@@ -24,7 +24,7 @@ app.get('/api/health', (req, res) => {
 // --- API routes ---
 app.use('/api/auth', require('./modules/auth/auth.routes'));
 app.use('/api/users', require('./modules/users/users.routes'));
-// app.use('/api/complaints', require('./modules/complaints/complaints.routes'));
+app.use('/api/complaints', require('./modules/complaints/complaints.routes'));
 // app.use('/api/dashboard', require('./modules/dashboard/dashboard.routes'));
 
 // Uploaded complaint images (served statically once Phase 2 adds them).
