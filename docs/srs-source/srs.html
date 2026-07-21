@@ -1,0 +1,806 @@
+<meta charset="utf-8">
+<title>Hostel Buddy — Software Requirements Specification</title>
+<script>
+  // Signal to the headless renderer when pagination is complete.
+  window.PagedConfig = { auto: true, after: () => { window.__PAGED_DONE = true; } };
+</script>
+<style>
+  :root{
+    --ink:#1a1a1a; --muted:#555; --line:#bcbcbc; --soft:#e7e7e7;
+    --accent:#1f4e79; --accent2:#2e75b6; --wire:#8a8a8a; --wirefill:#f4f4f4;
+  }
+  @page{
+    size: A4;
+    margin: 22mm 20mm 20mm 20mm;
+    @top-right{ content: string(doctitle); font-family: Georgia, serif; font-size: 8.5pt; color:#777; }
+    @bottom-center{ content: "Page " counter(page); font-family: Georgia, serif; font-size: 9pt; color:#555; }
+  }
+  @page :first{
+    @top-right{ content: none; }
+    @bottom-center{ content: none; }
+  }
+  html{ font-family: Georgia, "Times New Roman", serif; color:var(--ink); font-size:11pt; line-height:1.5; }
+  body{ margin:0; }
+  h1,h2,h3,h4{ font-family: "Segoe UI", Arial, sans-serif; color:var(--accent); line-height:1.25; }
+  h1{ font-size:19pt; string-set: doctitle "Hostel Buddy — SRS v1.0"; }
+  h2{ font-size:15pt; margin-top:1.4em; border-bottom:2px solid var(--soft); padding-bottom:3px; break-after:avoid; }
+  h3{ font-size:12.5pt; margin-top:1.1em; break-after:avoid; }
+  h4{ font-size:11pt; margin-top:0.9em; color:var(--accent2); break-after:avoid; }
+  p{ margin:0.5em 0; text-align:justify; }
+  ul,ol{ margin:0.4em 0 0.6em 0; padding-left:1.4em; }
+  li{ margin:0.2em 0; }
+  code{ font-family:Consolas,monospace; font-size:9.5pt; background:#f2f2f2; padding:0 3px; border-radius:3px; }
+  table{ border-collapse:collapse; width:100%; margin:0.6em 0; font-size:10pt; }
+  th,td{ border:1px solid var(--line); padding:5px 8px; text-align:left; vertical-align:top; }
+  th{ background:var(--accent); color:#fff; font-family:"Segoe UI",Arial,sans-serif; font-weight:600; }
+  tr:nth-child(even) td{ background:#f6f8fb; }
+  .center{ text-align:center; }
+  .req{ font-family:Consolas,monospace; font-weight:bold; color:var(--accent); }
+  figure{ margin:1em 0; break-inside:avoid; text-align:center; }
+  figure svg{ max-width:100%; height:auto; border:1px solid var(--soft); background:#fff; }
+  figcaption{ font-size:9pt; color:var(--muted); margin-top:4px; font-style:italic; }
+  .pill{ display:inline-block; padding:1px 9px; border-radius:10px; font-size:9pt; font-family:"Segoe UI",Arial,sans-serif; color:#fff; }
+  .p-high{ background:#b23b3b; } .p-med{ background:#c98a17; } .p-low{ background:#5a8f4e; }
+  .break{ break-before:page; }
+  .avoid{ break-inside:avoid; }
+
+  /* Cover */
+  .cover{ height:247mm; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .cover .kicker{ font-family:"Segoe UI",Arial,sans-serif; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-size:11pt; }
+  .cover .title{ font-family:"Segoe UI",Arial,sans-serif; font-size:44pt; font-weight:700; color:var(--accent); margin:6px 0 2px; }
+  .cover .subtitle{ font-size:13pt; color:var(--muted); margin-bottom:26px; }
+  .cover .ver{ font-family:"Segoe UI",Arial,sans-serif; font-size:13pt; color:var(--accent2); border:1px solid var(--accent2); border-radius:20px; padding:4px 18px; }
+  .cover .meta{ margin-top:34px; font-size:12pt; line-height:1.9; }
+  .cover .meta b{ color:var(--accent); }
+  .rule{ width:120px; height:4px; background:var(--accent2); margin:14px auto 0; border-radius:2px; }
+
+  /* TOC */
+  .toc h2{ border:none; }
+  .toc ul{ list-style:none; padding-left:0; }
+  .toc .lvl1{ font-family:"Segoe UI",Arial,sans-serif; font-weight:600; margin-top:8px; }
+  .toc .lvl2{ padding-left:1.6em; font-size:10pt; }
+  .toc a{ color:var(--ink); text-decoration:none; display:flex; justify-content:space-between; align-items:baseline; width:100%; gap:6px; }
+  .toc a::after{ content: target-counter(attr(href), page); color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .toc li{ border-bottom:1px dotted #d8d8d8; padding-bottom:2px; }
+  .toc .lvl1{ border-bottom:none; }
+
+  /* Stimulus / response table tweaks */
+  .sr th:first-child{ width:46%; }
+</style>
+
+<!-- ============================ COVER ============================ -->
+<section class="cover">
+  <div class="kicker">Software Requirements Specification</div>
+  <div class="title">Hostel&nbsp;Buddy</div>
+  <div class="subtitle">Smart Hostel Complaint Management System</div>
+  <div class="rule"></div>
+  <div class="ver" style="margin-top:26px;">Version 1.0 — Approved</div>
+  <div class="meta">
+    <div><b>Prepared by:</b> Group 19</div>
+    <div><b>Project Title:</b> Hostel Buddy</div>
+    <div><b>Course:</b> Software Engineering — Project</div>
+    <div><b>Document Type:</b> Software Requirements Specification (IEEE&nbsp;830)</div>
+    <div><b>Date Created:</b> 21 July 2026</div>
+  </div>
+</section>
+
+<!-- ============================ REVISION HISTORY ============================ -->
+<section class="break">
+  <h2 id="rev">Revision History</h2>
+  <table>
+    <tr><th>Name</th><th>Date</th><th>Reason for Changes</th><th>Version</th></tr>
+    <tr><td>Group 19</td><td>21 July 2026</td><td>Initial baseline of the Software Requirements Specification for Hostel Buddy.</td><td>1.0</td></tr>
+  </table>
+  <p style="font-size:9.5pt;color:var(--muted)"><em>Note: This is the initial version (Version 1.0) of the SRS. The document may be refined and updated based on feedback received during subsequent project reviews.</em></p>
+
+  <!-- Team members table — fill in before final submission -->
+  <h3 id="team">Group 19 — Team Members</h3>
+  <table>
+    <tr><th style="width:60px">#</th><th>Member Name</th><th>Roll Number</th></tr>
+    <tr><td>1</td><td>Pranjal Tyagi</td><td>2024BCD0053</td></tr>
+    <tr><td>2</td><td>Dinesh Saini</td><td>2024BCD0033</td></tr>
+    <tr><td>3</td><td>Ajinkya</td><td>2024BCS0173</td></tr>
+    <tr><td>4</td><td>Saurabh</td><td>2024BCS0185</td></tr>
+  </table>
+</section>
+
+<!-- ============================ TABLE OF CONTENTS ============================ -->
+<section class="break toc">
+  <h2>Table of Contents</h2>
+  <ul>
+    <li class="lvl1"><a href="#rev">Revision History</a></li>
+    <li class="lvl1"><a href="#s1">1. Introduction</a></li>
+    <li class="lvl2"><a href="#s1-1">1.1 Purpose</a></li>
+    <li class="lvl2"><a href="#s1-2">1.2 Document Conventions</a></li>
+    <li class="lvl2"><a href="#s1-3">1.3 Intended Audience and Reading Suggestions</a></li>
+    <li class="lvl2"><a href="#s1-4">1.4 Product Scope</a></li>
+    <li class="lvl2"><a href="#s1-5">1.5 References</a></li>
+    <li class="lvl1"><a href="#s2">2. Overall Description</a></li>
+    <li class="lvl2"><a href="#s2-1">2.1 Product Perspective</a></li>
+    <li class="lvl2"><a href="#s2-2">2.2 Product Functions</a></li>
+    <li class="lvl2"><a href="#s2-3">2.3 User Classes and Characteristics</a></li>
+    <li class="lvl2"><a href="#s2-4">2.4 Use Case Diagram</a></li>
+    <li class="lvl2"><a href="#s2-5">2.5 Use Case List</a></li>
+    <li class="lvl2"><a href="#s2-6">2.6 Operating Environment</a></li>
+    <li class="lvl2"><a href="#s2-7">2.7 Design and Implementation Constraints</a></li>
+    <li class="lvl2"><a href="#s2-8">2.8 User Documentation</a></li>
+    <li class="lvl2"><a href="#s2-9">2.9 Assumptions and Dependencies</a></li>
+    <li class="lvl1"><a href="#s3">3. External Interface Requirements</a></li>
+    <li class="lvl2"><a href="#s3-1">3.1 User Interfaces</a></li>
+    <li class="lvl2"><a href="#s3-2">3.2 Hardware Interfaces</a></li>
+    <li class="lvl2"><a href="#s3-3">3.3 Software Interfaces</a></li>
+    <li class="lvl2"><a href="#s3-4">3.4 Communications Interfaces</a></li>
+    <li class="lvl1"><a href="#s4">4. Functional Requirements</a></li>
+    <li class="lvl2"><a href="#s4-1">4.1 User Authentication &amp; Account Management</a></li>
+    <li class="lvl2"><a href="#s4-2">4.2 Complaint Submission</a></li>
+    <li class="lvl2"><a href="#s4-3">4.3 Complaint Tracking &amp; History</a></li>
+    <li class="lvl2"><a href="#s4-4">4.4 Complaint Management (Administrator)</a></li>
+    <li class="lvl2"><a href="#s4-5">4.5 Search &amp; Filter</a></li>
+    <li class="lvl2"><a href="#s4-6">4.6 Dashboard &amp; Analytics</a></li>
+    <li class="lvl2"><a href="#s4-7">4.7 Profile &amp; Student Account Management</a></li>
+    <li class="lvl1"><a href="#s5">5. Other Nonfunctional Requirements</a></li>
+    <li class="lvl2"><a href="#s5-1">5.1 Performance Requirements</a></li>
+    <li class="lvl2"><a href="#s5-2">5.2 Safety Requirements</a></li>
+    <li class="lvl2"><a href="#s5-3">5.3 Security Requirements</a></li>
+    <li class="lvl2"><a href="#s5-4">5.4 Software Quality Attributes</a></li>
+    <li class="lvl2"><a href="#s5-5">5.5 Business Rules</a></li>
+    <li class="lvl1"><a href="#s6">6. Other Requirements</a></li>
+    <li class="lvl1"><a href="#appA">Appendix A: Glossary</a></li>
+    <li class="lvl1"><a href="#appB">Appendix B: Analysis Models</a></li>
+    <li class="lvl1"><a href="#appC">Appendix C: To Be Determined List</a></li>
+  </ul>
+</section>
+
+<!-- ============================ 1. INTRODUCTION ============================ -->
+<section class="break">
+  <h2 id="s1">1. Introduction</h2>
+
+  <h3 id="s1-1">1.1 Purpose</h3>
+  <p>This document specifies the software requirements for <b>Hostel Buddy</b>, a Smart Hostel Complaint Management System, Version 1.0. Hostel Buddy is a web-based application that allows hostel students to submit maintenance complaints online and track their resolution, while enabling a hostel administrator to manage and resolve those complaints from a central dashboard.</p>
+  <p>This SRS covers the complete Hostel Buddy system as planned for its first release, including the student-facing and administrator-facing functionality. It defines the product's intended behavior, its external interfaces, and the quality attributes it must satisfy. It does not prescribe the internal design or the specific technologies used to build the system; those are addressed separately during the Architecture Review.</p>
+
+  <h3 id="s1-2">1.2 Document Conventions</h3>
+  <ul>
+    <li>Each functional requirement carries a unique identifier of the form <span class="req">REQ-n</span> so it can be traced through design, implementation, and testing.</li>
+    <li>Every system feature is assigned a priority of <span class="pill p-high">High</span>, <span class="pill p-med">Medium</span>, or <span class="pill p-low">Low</span>. Unless a detailed requirement states otherwise, it inherits the priority of the feature that contains it.</li>
+    <li>The key words <em>shall</em> and <em>must</em> denote mandatory requirements; <em>should</em> denotes a desirable but non-mandatory behavior.</li>
+    <li>Terms shown in <em>italics</em> on first use are defined in <a href="#appA">Appendix A: Glossary</a>.</li>
+    <li>The four complaint states — <em>Pending</em>, <em>In Progress</em>, <em>Resolved</em>, and <em>Closed</em> — are capitalized throughout to indicate the defined workflow states.</li>
+  </ul>
+
+  <h3 id="s1-3">1.3 Intended Audience and Reading Suggestions</h3>
+  <p>This document is intended for the following readers:</p>
+  <ul>
+    <li><b>Course instructors / evaluators</b> — to assess the completeness and clarity of the requirements.</li>
+    <li><b>Project developers (Group 19)</b> — as the authoritative basis for design, implementation, and testing.</li>
+    <li><b>Testers</b> — to derive test cases from the numbered functional and nonfunctional requirements.</li>
+    <li><b>End users</b> — hostel students and the hostel administrator, to confirm the system meets their needs.</li>
+  </ul>
+  <p><b>Reading suggestion:</b> All readers should begin with Section 1 (Introduction) and Section 2 (Overall Description) for context. Evaluators and users may then focus on Section 2.4–2.5 (use cases) and Section 4 (functional requirements). Developers and testers should read the entire document, paying particular attention to Sections 3, 4, and 5.</p>
+
+  <h3 id="s1-4">1.4 Product Scope</h3>
+  <p>Hostel Buddy replaces the traditional paper-based hostel complaint register with a centralized online platform. Its purpose is to make the reporting and resolution of hostel maintenance issues faster, transparent, and permanently recorded.</p>
+  <p>Using Hostel Buddy, a student can register an account, raise a complaint under a defined category with a description and an optional image, and monitor its progress through the resolution workflow. The administrator can view every complaint, search and filter them, update their status, and add remarks, while also viewing statistics that summarize complaint activity. Key benefits include:</p>
+  <ul>
+    <li>Transparency — students can see the current status of their complaints at any time.</li>
+    <li>Efficiency — the administrator manages all complaints from a single dashboard instead of a physical register.</li>
+    <li>Accountability — every complaint and its resolution history is stored permanently for future reference.</li>
+    <li>Accessibility — the system is usable from any desktop or mobile web browser without installation.</li>
+  </ul>
+  <p>The scope of Version 1.0 is intentionally limited to a single hostel with one administrator. Enhancements such as notifications, multi-hostel support, and a dedicated maintenance-staff role are deferred (see Section 6 and Appendix C).</p>
+
+  <h3 id="s1-5">1.5 References</h3>
+  <table>
+    <tr><th>#</th><th>Title</th><th>Source / Version</th></tr>
+    <tr><td>R1</td><td>IEEE Std 830-1998 — Recommended Practice for Software Requirements Specifications</td><td>IEEE, 1998</td></tr>
+    <tr><td>R2</td><td>Hostel Buddy — Project Proposal &amp; Concept Note</td><td>Group 19, v1.0</td></tr>
+    <tr><td>R3</td><td>IEEE SRS Template (course-provided)</td><td>Karl Wiegers / IEEE 830 template</td></tr>
+    <tr><td>R4</td><td>Unified Modeling Language (UML) — Use Case Notation</td><td>OMG UML 2.5</td></tr>
+  </table>
+</section>
+
+<!-- ============================ 2. OVERALL DESCRIPTION ============================ -->
+<section class="break">
+  <h2 id="s2">2. Overall Description</h2>
+
+  <h3 id="s2-1">2.1 Product Perspective</h3>
+  <p>Hostel Buddy is a new, self-contained product. It is not a component of, or a follow-on to, any existing system; it replaces the manual, paper-based complaint register currently maintained at the hostel office. The product is delivered as a web application accessed through a browser, backed by a central data store in which all user accounts and complaint records are held.</p>
+  <p>At a high level the system consists of three cooperating parts: a presentation layer that users interact with through their browser, an application layer that enforces the rules described in this document, and a data layer that permanently stores users and complaints. Students and the administrator interact with the same system through role-appropriate views. The detailed internal architecture is outside the scope of this SRS and will be presented during the Architecture Review.</p>
+
+  <h3 id="s2-2">2.2 Product Functions</h3>
+  <p>At a summary level, Hostel Buddy shall let its users perform the following major functions:</p>
+  <ul>
+    <li>Register a student account and authenticate (student and administrator log in).</li>
+    <li>Submit a complaint with a category, a description, and an optional supporting image.</li>
+    <li>Track a complaint through the states Pending → In Progress → Resolved → Closed.</li>
+    <li>Edit or delete a complaint while it is still Pending.</li>
+    <li>View personal complaint history and status, including administrator remarks and resolution date.</li>
+    <li>(Administrator) View all complaints, search and filter them, update status, and record remarks.</li>
+    <li>View dashboard statistics — personal totals for a student, and system-wide totals and category distribution for the administrator.</li>
+    <li>(Administrator) View the list of registered students and manage student accounts where necessary.</li>
+  </ul>
+
+  <h3 id="s2-3">2.3 User Classes and Characteristics</h3>
+  <table>
+    <tr><th>User Class</th><th>Characteristics</th><th>Functions Used</th></tr>
+    <tr>
+      <td><b>Student</b><br>(primary, most frequent)</td>
+      <td>A hostel resident with basic web literacy. Accesses the system frequently to raise and track complaints. Has authority only over their own account and complaints.</td>
+      <td>Register, log in, manage profile, submit / edit / delete (Pending) complaints, track status and history, view personal dashboard.</td>
+    </tr>
+    <tr>
+      <td><b>Administrator</b><br>(privileged, single account)</td>
+      <td>Hostel warden or office staff responsible for resolving complaints. Comfortable with web tools. Has system-wide authority over all complaints and student accounts.</td>
+      <td>Log in, view / search / filter all complaints, update status, add remarks, view analytics, manage student accounts.</td>
+    </tr>
+    <tr>
+      <td><b>Unregistered Visitor</b><br>(transient)</td>
+      <td>A prospective student who has not yet created an account.</td>
+      <td>View the home page and register a new student account.</td>
+    </tr>
+  </table>
+  <p>There is deliberately no separate maintenance-staff user class in Version 1.0. The administrator advances complaint status directly, which preserves the full workflow while keeping the system simple.</p>
+
+  <h3 id="s2-4">2.4 Use Case Diagram</h3>
+  <p>The following diagram presents the major actors of Hostel Buddy and the use cases through which they interact with the system.</p>
+  <figure>
+    <!-- ===== USE CASE DIAGRAM ===== -->
+    <svg viewBox="0 0 920 760" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <defs>
+        <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#444"/>
+        </marker>
+        <marker id="openarrow" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L9,4 L0,8" fill="none" stroke="#7a2e8a" stroke-width="1.2"/>
+        </marker>
+      </defs>
+
+      <!-- system boundary -->
+      <rect x="210" y="34" width="500" height="700" rx="8" fill="#fbfcfe" stroke="#2e75b6" stroke-width="2"/>
+      <text x="460" y="56" text-anchor="middle" font-size="15" font-weight="700" fill="#1f4e79">Hostel Buddy System</text>
+
+      <!-- ===== actors ===== -->
+      <!-- Student -->
+      <g stroke="#333" stroke-width="2" fill="none">
+        <circle cx="95" cy="352" r="14" fill="#eaf1fb"/>
+        <line x1="95" y1="366" x2="95" y2="408"/>
+        <line x1="70" y1="382" x2="120" y2="382"/>
+        <line x1="95" y1="408" x2="75" y2="440"/>
+        <line x1="95" y1="408" x2="115" y2="440"/>
+      </g>
+      <text x="95" y="460" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a1a">Student</text>
+
+      <!-- Administrator -->
+      <g stroke="#333" stroke-width="2" fill="none">
+        <circle cx="825" cy="352" r="14" fill="#fdeeea"/>
+        <line x1="825" y1="366" x2="825" y2="408"/>
+        <line x1="800" y1="382" x2="850" y2="382"/>
+        <line x1="825" y1="408" x2="805" y2="440"/>
+        <line x1="825" y1="408" x2="845" y2="440"/>
+      </g>
+      <text x="825" y="460" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a1a">Administrator</text>
+
+      <!-- association lines (drawn first, behind ovals) -->
+      <g stroke="#5b6b7a" stroke-width="1.1">
+        <!-- student -> shared login -->
+        <line x1="112" y1="345" x2="372" y2="80"/>
+        <!-- student -> left ovals -->
+        <line x1="118" y1="360" x2="238" y2="165"/>
+        <line x1="120" y1="372" x2="238" y2="232"/>
+        <line x1="122" y1="384" x2="238" y2="300"/>
+        <line x1="122" y1="398" x2="238" y2="432"/>
+        <line x1="118" y1="410" x2="238" y2="500"/>
+        <line x1="112" y1="420" x2="238" y2="568"/>
+        <line x1="108" y1="428" x2="238" y2="636"/>
+        <!-- admin -> shared login -->
+        <line x1="808" y1="345" x2="548" y2="80"/>
+        <!-- admin -> right ovals -->
+        <line x1="802" y1="360" x2="682" y2="165"/>
+        <line x1="800" y1="372" x2="682" y2="235"/>
+        <line x1="800" y1="384" x2="682" y2="312"/>
+        <line x1="802" y1="410" x2="682" y2="486"/>
+        <line x1="806" y1="424" x2="682" y2="566"/>
+      </g>
+
+      <!-- ===== use case ovals ===== -->
+      <!-- shared Login (top center) -->
+      <g>
+        <ellipse cx="460" cy="80" rx="86" ry="26" fill="#eef4fb" stroke="#2e75b6" stroke-width="1.4"/>
+        <text x="460" y="85" text-anchor="middle" font-size="12.5" fill="#1a1a1a">Login</text>
+      </g>
+
+      <!-- LEFT column (Student) -->
+      <g font-size="11.5" fill="#1a1a1a">
+        <ellipse cx="330" cy="165" rx="92" ry="25" fill="#eaf1fb" stroke="#2e75b6"/><text x="330" y="169" text-anchor="middle">Register Account</text>
+        <ellipse cx="330" cy="232" rx="92" ry="25" fill="#eaf1fb" stroke="#2e75b6"/><text x="330" y="236" text-anchor="middle">Manage Profile</text>
+        <ellipse cx="330" cy="300" rx="92" ry="25" fill="#eaf1fb" stroke="#2e75b6"/><text x="330" y="304" text-anchor="middle">Submit Complaint</text>
+        <ellipse cx="330" cy="368" rx="92" ry="25" fill="#f3f3f3" stroke="#8a8a8a" stroke-dasharray="0"/><text x="330" y="372" text-anchor="middle">Upload Image</text>
+        <ellipse cx="330" cy="432" rx="92" ry="25" fill="#eaf1fb" stroke="#2e75b6"/><text x="330" y="436" text-anchor="middle">Edit / Delete (Pending)</text>
+        <ellipse cx="330" cy="500" rx="92" ry="25" fill="#eaf1fb" stroke="#2e75b6"/><text x="330" y="504" text-anchor="middle">Track Status &amp; History</text>
+        <ellipse cx="330" cy="568" rx="92" ry="25" fill="#eaf1fb" stroke="#2e75b6"/><text x="330" y="572" text-anchor="middle">View Student Dashboard</text>
+      </g>
+
+      <!-- RIGHT column (Administrator) -->
+      <g font-size="11.5" fill="#1a1a1a">
+        <ellipse cx="590" cy="165" rx="92" ry="25" fill="#fdeeea" stroke="#c0733f"/><text x="590" y="169" text-anchor="middle">View All Complaints</text>
+        <ellipse cx="590" cy="235" rx="92" ry="25" fill="#fdeeea" stroke="#c0733f"/><text x="590" y="239" text-anchor="middle">Search / Filter</text>
+        <ellipse cx="590" cy="312" rx="92" ry="25" fill="#fdeeea" stroke="#c0733f"/><text x="590" y="316" text-anchor="middle">Update Status</text>
+        <ellipse cx="590" cy="388" rx="92" ry="25" fill="#f3f3f3" stroke="#8a8a8a"/><text x="590" y="392" text-anchor="middle">Add Remarks</text>
+        <ellipse cx="590" cy="486" rx="92" ry="25" fill="#fdeeea" stroke="#c0733f"/><text x="590" y="490" text-anchor="middle">View Analytics</text>
+        <ellipse cx="590" cy="566" rx="92" ry="25" fill="#fdeeea" stroke="#c0733f"/><text x="590" y="570" text-anchor="middle">Manage Students</text>
+      </g>
+
+      <!-- include relationships -->
+      <g stroke="#7a2e8a" stroke-width="1.2" stroke-dasharray="5,4" fill="none">
+        <line x1="330" y1="325" x2="330" y2="343" marker-end="url(#openarrow)"/>
+        <line x1="590" y1="337" x2="590" y2="363" marker-end="url(#openarrow)"/>
+      </g>
+      <text x="345" y="338" font-size="9" fill="#7a2e8a" font-style="italic">«include»</text>
+      <text x="605" y="352" font-size="9" fill="#7a2e8a" font-style="italic">«include»</text>
+    </svg>
+    <figcaption>Figure 1 — Overall Use Case Diagram for Hostel Buddy (Student and Administrator actors).</figcaption>
+  </figure>
+
+  <h3 id="s2-5">2.5 Use Case List</h3>
+  <p>The table below lists all major use cases and their primary actors.</p>
+  <table>
+    <tr><th style="width:70px">UC ID</th><th>Use Case</th><th style="width:150px">Primary Actor</th></tr>
+    <tr><td>UC-1</td><td>Register Account</td><td>Student</td></tr>
+    <tr><td>UC-2</td><td>Login</td><td>Student, Administrator</td></tr>
+    <tr><td>UC-3</td><td>Manage Profile</td><td>Student</td></tr>
+    <tr><td>UC-4</td><td>Submit Complaint</td><td>Student</td></tr>
+    <tr><td>UC-5</td><td>Upload Complaint Image («include» of UC-4)</td><td>Student</td></tr>
+    <tr><td>UC-6</td><td>Edit / Delete Complaint (Pending only)</td><td>Student</td></tr>
+    <tr><td>UC-7</td><td>Track Complaint Status &amp; History</td><td>Student</td></tr>
+    <tr><td>UC-8</td><td>View Student Dashboard</td><td>Student</td></tr>
+    <tr><td>UC-9</td><td>View All Complaints</td><td>Administrator</td></tr>
+    <tr><td>UC-10</td><td>Search / Filter Complaints</td><td>Administrator</td></tr>
+    <tr><td>UC-11</td><td>Update Complaint Status</td><td>Administrator</td></tr>
+    <tr><td>UC-12</td><td>Add Remarks («include» of UC-11)</td><td>Administrator</td></tr>
+    <tr><td>UC-13</td><td>View Analytics Dashboard</td><td>Administrator</td></tr>
+    <tr><td>UC-14</td><td>Manage Student Accounts</td><td>Administrator</td></tr>
+  </table>
+
+  <h3 id="s2-6">2.6 Operating Environment</h3>
+  <ul>
+    <li><b>Client side:</b> Any modern desktop or mobile web browser (e.g., Chrome, Firefox, Edge, Safari) with an active internet connection. No installation is required on the user's device.</li>
+    <li><b>Server side:</b> The application and its data store are hosted on a server (local or cloud-hosted) that is reachable over the internet via a URL.</li>
+    <li><b>Coexistence:</b> The system operates as a standalone product and does not require any other application to be installed on the user's device.</li>
+  </ul>
+
+  <h3 id="s2-7">2.7 Design and Implementation Constraints</h3>
+  <ul>
+    <li>The product shall be delivered as a web application accessible through a standard browser over the internet.</li>
+    <li>The user interface shall be responsive and usable on both desktop and mobile screen sizes.</li>
+    <li>User passwords shall never be stored or displayed in plain text.</li>
+    <li>Access to functions shall be controlled by user role; a student shall not be able to access administrator functions or another student's data.</li>
+    <li>Complaint categories and complaint states are fixed, controlled sets defined in this document; only listed values are permitted.</li>
+    <li>All complaint records shall be retained permanently and shall not be lost during normal operation.</li>
+    <li>Detailed architectural and technology choices are deferred to the Architecture Review and are not constrained by this SRS beyond the points above.</li>
+  </ul>
+
+  <h3 id="s2-8">2.8 User Documentation</h3>
+  <ul>
+    <li>A concise <b>User Guide</b> describing how to register, raise a complaint, and track its status (student), and how to manage complaints (administrator).</li>
+    <li>An in-application <b>Help / FAQ</b> section covering common questions and the meaning of each complaint state.</li>
+    <li>A project <b>README</b> for evaluators, describing setup and a walkthrough of the main workflow.</li>
+  </ul>
+
+  <h3 id="s2-9">2.9 Assumptions and Dependencies</h3>
+  <ul>
+    <li>Users have access to an internet-connected device with a modern web browser.</li>
+    <li>Each student registers with a valid, unique email address.</li>
+    <li>The hostel provides a single administrator account for Version 1.0.</li>
+    <li>The hosting server and its data store are available during normal operating hours.</li>
+    <li>Uploaded complaint images are of a reasonable size (a few megabytes) and in common image formats.</li>
+    <li>The project depends on the availability of a hosting environment for demonstration and use.</li>
+  </ul>
+</section>
+
+<!-- ============================ 3. EXTERNAL INTERFACES ============================ -->
+<section class="break">
+  <h2 id="s3">3. External Interface Requirements</h2>
+
+  <h3 id="s3-1">3.1 User Interfaces</h3>
+  <p>Hostel Buddy presents a clean, responsive web interface. The major screens are described below, each accompanied by a wireframe indicating its logical layout. Wireframes convey structure and content, not final visual styling.</p>
+  <ul>
+    <li><b>Home / Landing:</b> Introduces the system and offers Login and Register actions.</li>
+    <li><b>Register &amp; Login:</b> Collect the credentials needed to create or access an account.</li>
+    <li><b>Student Dashboard:</b> Summary cards of the student's complaint counts by state, with quick access to raise a complaint.</li>
+    <li><b>Raise Complaint:</b> A form to choose a category, describe the issue, and optionally attach an image.</li>
+    <li><b>My Complaints:</b> A list of the student's complaints with status, dates, remarks, and edit/delete for Pending items.</li>
+    <li><b>Admin Dashboard:</b> System-wide totals, category distribution chart, and recent complaints.</li>
+    <li><b>Admin — All Complaints:</b> A searchable, filterable table of every complaint with controls to update status and add remarks.</li>
+  </ul>
+
+  <h4>3.1.1 Wireframe — Login &amp; Registration</h4>
+  <figure>
+    <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <rect x="1" y="1" width="718" height="298" fill="#fff" stroke="#cfcfcf"/>
+      <rect x="1" y="1" width="718" height="26" fill="#eef2f7" stroke="#cfcfcf"/>
+      <circle cx="16" cy="14" r="4" fill="#e0655c"/><circle cx="30" cy="14" r="4" fill="#e6b34d"/><circle cx="44" cy="14" r="4" fill="#61b061"/>
+      <text x="360" y="18" text-anchor="middle" font-size="10" fill="#666">hostelbuddy.app / login</text>
+      <!-- Login card -->
+      <rect x="70" y="55" width="270" height="210" rx="6" fill="#fafbfc" stroke="#d5dbe2"/>
+      <text x="205" y="82" text-anchor="middle" font-size="14" font-weight="700" fill="#1f4e79">Login</text>
+      <rect x="95" y="98" width="220" height="26" rx="4" fill="#fff" stroke="#c9c9c9"/><text x="103" y="115" font-size="10" fill="#9a9a9a">Email</text>
+      <rect x="95" y="134" width="220" height="26" rx="4" fill="#fff" stroke="#c9c9c9"/><text x="103" y="151" font-size="10" fill="#9a9a9a">Password</text>
+      <rect x="95" y="174" width="220" height="30" rx="5" fill="#2e75b6"/><text x="205" y="194" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">Sign In</text>
+      <text x="205" y="228" text-anchor="middle" font-size="9.5" fill="#666">New here? Create a student account</text>
+      <!-- Register card -->
+      <rect x="380" y="55" width="270" height="210" rx="6" fill="#fafbfc" stroke="#d5dbe2"/>
+      <text x="515" y="82" text-anchor="middle" font-size="14" font-weight="700" fill="#1f4e79">Register</text>
+      <rect x="405" y="94" width="220" height="22" rx="4" fill="#fff" stroke="#c9c9c9"/><text x="412" y="109" font-size="9.5" fill="#9a9a9a">Full Name</text>
+      <rect x="405" y="122" width="220" height="22" rx="4" fill="#fff" stroke="#c9c9c9"/><text x="412" y="137" font-size="9.5" fill="#9a9a9a">Email</text>
+      <rect x="405" y="150" width="105" height="22" rx="4" fill="#fff" stroke="#c9c9c9"/><text x="412" y="165" font-size="9.5" fill="#9a9a9a">Room No.</text>
+      <rect x="520" y="150" width="105" height="22" rx="4" fill="#fff" stroke="#c9c9c9"/><text x="527" y="165" font-size="9.5" fill="#9a9a9a">Password</text>
+      <rect x="405" y="182" width="220" height="30" rx="5" fill="#1f4e79"/><text x="515" y="202" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">Create Account</text>
+    </svg>
+    <figcaption>Figure 2 — Login and Registration wireframe.</figcaption>
+  </figure>
+
+  <h4>3.1.2 Wireframe — Student Dashboard &amp; Raise Complaint</h4>
+  <figure>
+    <svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <rect x="1" y="1" width="718" height="318" fill="#fff" stroke="#cfcfcf"/>
+      <rect x="1" y="1" width="718" height="30" fill="#1f4e79"/>
+      <text x="16" y="20" font-size="12" fill="#fff" font-weight="700">Hostel Buddy</text>
+      <text x="560" y="20" font-size="10" fill="#cfe0f2">Dashboard · Raise · My Complaints · Profile</text>
+      <!-- stat cards -->
+      <text x="20" y="52" font-size="12" font-weight="700" fill="#1f4e79">My Complaints Overview</text>
+      <g font-family="Segoe UI, Arial">
+        <rect x="20" y="62" width="120" height="66" rx="6" fill="#eef4fb" stroke="#cddcee"/><text x="80" y="92" text-anchor="middle" font-size="22" font-weight="700" fill="#1f4e79">12</text><text x="80" y="112" text-anchor="middle" font-size="9.5" fill="#555">Total</text>
+        <rect x="150" y="62" width="120" height="66" rx="6" fill="#fdf3e6" stroke="#f0dcc0"/><text x="210" y="92" text-anchor="middle" font-size="22" font-weight="700" fill="#c98a17">3</text><text x="210" y="112" text-anchor="middle" font-size="9.5" fill="#555">Pending</text>
+        <rect x="280" y="62" width="120" height="66" rx="6" fill="#eaf3fb" stroke="#cddcee"/><text x="340" y="92" text-anchor="middle" font-size="22" font-weight="700" fill="#2e75b6">4</text><text x="340" y="112" text-anchor="middle" font-size="9.5" fill="#555">In Progress</text>
+        <rect x="410" y="62" width="120" height="66" rx="6" fill="#ecf6ec" stroke="#cfe6cf"/><text x="470" y="92" text-anchor="middle" font-size="22" font-weight="700" fill="#5a8f4e">4</text><text x="470" y="112" text-anchor="middle" font-size="9.5" fill="#555">Resolved</text>
+        <rect x="540" y="62" width="120" height="66" rx="6" fill="#f0f0f0" stroke="#dcdcdc"/><text x="600" y="92" text-anchor="middle" font-size="22" font-weight="700" fill="#666">1</text><text x="600" y="112" text-anchor="middle" font-size="9.5" fill="#555">Closed</text>
+      </g>
+      <!-- raise complaint form -->
+      <rect x="20" y="146" width="640" height="158" rx="6" fill="#fafbfc" stroke="#d5dbe2"/>
+      <text x="36" y="168" font-size="12" font-weight="700" fill="#1f4e79">Raise a Complaint</text>
+      <text x="36" y="188" font-size="9.5" fill="#666">Category</text>
+      <rect x="36" y="193" width="200" height="24" rx="4" fill="#fff" stroke="#c9c9c9"/><text x="44" y="209" font-size="9.5" fill="#333">Electricity ▾</text>
+      <text x="260" y="188" font-size="9.5" fill="#666">Attach Image (optional)</text>
+      <rect x="260" y="193" width="200" height="24" rx="4" fill="#fff" stroke="#c9c9c9"/><text x="268" y="209" font-size="9.5" fill="#9a9a9a">Choose file…</text>
+      <text x="36" y="236" font-size="9.5" fill="#666">Description</text>
+      <rect x="36" y="241" width="588" height="40" rx="4" fill="#fff" stroke="#c9c9c9"/><text x="44" y="257" font-size="9.5" fill="#9a9a9a">Describe the issue…</text>
+      <rect x="500" y="284" width="124" height="20" rx="5" fill="#2e75b6"/><text x="562" y="298" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">Submit Complaint</text>
+    </svg>
+    <figcaption>Figure 3 — Student dashboard (status summary cards) and the Raise Complaint form.</figcaption>
+  </figure>
+
+  <h4>3.1.3 Wireframe — My Complaints (Student)</h4>
+  <figure>
+    <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <rect x="1" y="1" width="718" height="248" fill="#fff" stroke="#cfcfcf"/>
+      <rect x="1" y="1" width="718" height="30" fill="#1f4e79"/>
+      <text x="16" y="20" font-size="12" fill="#fff" font-weight="700">Hostel Buddy — My Complaints</text>
+      <!-- table header -->
+      <rect x="20" y="46" width="680" height="26" fill="#2e75b6"/>
+      <g font-size="10" fill="#fff" font-weight="700">
+        <text x="34" y="63">ID</text><text x="90" y="63">Category</text><text x="200" y="63">Description</text>
+        <text x="370" y="63">Status</text><text x="470" y="63">Submitted</text><text x="565" y="63">Remarks</text><text x="650" y="63">Action</text>
+      </g>
+      <!-- rows -->
+      <g font-size="9.5" fill="#333">
+        <rect x="20" y="72" width="680" height="30" fill="#f6f8fb" stroke="#e5e5e5"/>
+        <text x="34" y="91">#12</text><text x="90" y="91">Wi-Fi</text><text x="200" y="91">No signal in B-204</text>
+        <rect x="366" y="79" width="72" height="16" rx="8" fill="#fdf3e6"/><text x="402" y="91" text-anchor="middle" fill="#c98a17">Pending</text>
+        <text x="470" y="91">18 Jul</text><text x="565" y="91" fill="#999">—</text><text x="650" y="91" fill="#2e75b6">Edit/Del</text>
+
+        <rect x="20" y="102" width="680" height="30" fill="#fff" stroke="#e5e5e5"/>
+        <text x="34" y="121">#09</text><text x="90" y="121">Plumbing</text><text x="200" y="121">Leaking tap, washroom</text>
+        <rect x="366" y="109" width="80" height="16" rx="8" fill="#eaf3fb"/><text x="406" y="121" text-anchor="middle" fill="#2e75b6">In Progress</text>
+        <text x="470" y="121">15 Jul</text><text x="565" y="121">Assigned</text><text x="650" y="121" fill="#bbb">Locked</text>
+
+        <rect x="20" y="132" width="680" height="30" fill="#f6f8fb" stroke="#e5e5e5"/>
+        <text x="34" y="151">#05</text><text x="90" y="151">Electricity</text><text x="200" y="151">Fan not working</text>
+        <rect x="366" y="139" width="72" height="16" rx="8" fill="#ecf6ec"/><text x="402" y="151" text-anchor="middle" fill="#5a8f4e">Resolved</text>
+        <text x="470" y="151">10 Jul</text><text x="565" y="151">Fixed 12 Jul</text><text x="650" y="151" fill="#bbb">Locked</text>
+      </g>
+      <text x="20" y="185" font-size="9" fill="#888" font-style="italic">Edit / Delete controls are available only while a complaint is Pending.</text>
+    </svg>
+    <figcaption>Figure 4 — My Complaints list with status, dates, remarks, and Pending-only actions.</figcaption>
+  </figure>
+
+  <h4>3.1.4 Wireframe — Admin Dashboard &amp; All Complaints</h4>
+  <figure>
+    <svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <rect x="1" y="1" width="718" height="338" fill="#fff" stroke="#cfcfcf"/>
+      <rect x="1" y="1" width="718" height="30" fill="#7a2e2e"/>
+      <text x="16" y="20" font-size="12" fill="#fff" font-weight="700">Hostel Buddy — Admin</text>
+      <text x="540" y="20" font-size="10" fill="#f0d6d6">Dashboard · All Complaints · Students</text>
+      <!-- stat cards -->
+      <g>
+        <rect x="20" y="44" width="130" height="56" rx="6" fill="#f4f6f9" stroke="#dbe1e8"/><text x="85" y="70" text-anchor="middle" font-size="18" font-weight="700" fill="#1f4e79">248</text><text x="85" y="88" text-anchor="middle" font-size="9" fill="#555">Total Complaints</text>
+        <rect x="160" y="44" width="120" height="56" rx="6" fill="#fdf3e6" stroke="#f0dcc0"/><text x="220" y="70" text-anchor="middle" font-size="18" font-weight="700" fill="#c98a17">31</text><text x="220" y="88" text-anchor="middle" font-size="9" fill="#555">Pending</text>
+        <rect x="290" y="44" width="120" height="56" rx="6" fill="#eaf3fb" stroke="#cddcee"/><text x="350" y="70" text-anchor="middle" font-size="18" font-weight="700" fill="#2e75b6">44</text><text x="350" y="88" text-anchor="middle" font-size="9" fill="#555">In Progress</text>
+        <rect x="420" y="44" width="120" height="56" rx="6" fill="#ecf6ec" stroke="#cfe6cf"/><text x="480" y="70" text-anchor="middle" font-size="18" font-weight="700" fill="#5a8f4e">150</text><text x="480" y="88" text-anchor="middle" font-size="9" fill="#555">Resolved</text>
+        <rect x="550" y="44" width="150" height="56" rx="6" fill="#eef4fb" stroke="#cddcee"/><text x="625" y="70" text-anchor="middle" font-size="18" font-weight="700" fill="#1f4e79">96</text><text x="625" y="88" text-anchor="middle" font-size="9" fill="#555">Students</text>
+      </g>
+      <!-- category chart -->
+      <text x="20" y="126" font-size="11" font-weight="700" fill="#1f4e79">Category Distribution</text>
+      <g>
+        <rect x="20" y="134" width="150" height="12" fill="#2e75b6"/><text x="178" y="144" font-size="8.5" fill="#555">Electricity (62)</text>
+        <rect x="20" y="150" width="120" height="12" fill="#5a8f4e"/><text x="148" y="160" font-size="8.5" fill="#555">Plumbing (48)</text>
+        <rect x="20" y="166" width="96" height="12" fill="#c98a17"/><text x="124" y="176" font-size="8.5" fill="#555">Wi-Fi (39)</text>
+        <rect x="20" y="182" width="70" height="12" fill="#7a2e8a"/><text x="98" y="192" font-size="8.5" fill="#555">Cleaning (28)</text>
+        <rect x="20" y="198" width="52" height="12" fill="#b23b3b"/><text x="80" y="208" font-size="8.5" fill="#555">Others (71)</text>
+      </g>
+      <!-- search + filter -->
+      <rect x="300" y="120" width="400" height="26" rx="4" fill="#fff" stroke="#c9c9c9"/><text x="310" y="137" font-size="9.5" fill="#9a9a9a">🔍 Search by ID, student name, or room…</text>
+      <rect x="300" y="150" width="120" height="22" rx="4" fill="#f2f2f2" stroke="#c9c9c9"/><text x="308" y="165" font-size="9" fill="#333">Category ▾</text>
+      <rect x="430" y="150" width="120" height="22" rx="4" fill="#f2f2f2" stroke="#c9c9c9"/><text x="438" y="165" font-size="9" fill="#333">Status ▾</text>
+      <!-- table -->
+      <rect x="300" y="182" width="400" height="22" fill="#7a2e2e"/>
+      <g font-size="9" fill="#fff" font-weight="700"><text x="308" y="197">ID</text><text x="340" y="197">Student</text><text x="430" y="197">Category</text><text x="520" y="197">Status</text><text x="620" y="197">Update</text></g>
+      <g font-size="8.8" fill="#333">
+        <rect x="300" y="204" width="400" height="22" fill="#f6f8fb"/><text x="308" y="219">#248</text><text x="340" y="219">R. Sharma</text><text x="430" y="219">Wi-Fi</text><text x="520" y="219" fill="#c98a17">Pending</text><text x="620" y="219" fill="#2e75b6">Change ▾</text>
+        <rect x="300" y="226" width="400" height="22" fill="#fff"/><text x="308" y="241">#247</text><text x="340" y="241">A. Verma</text><text x="430" y="241">Plumbing</text><text x="520" y="241" fill="#2e75b6">In Prog.</text><text x="620" y="241" fill="#2e75b6">Change ▾</text>
+        <rect x="300" y="248" width="400" height="22" fill="#f6f8fb"/><text x="308" y="263">#246</text><text x="340" y="263">K. Nair</text><text x="430" y="263">Electricity</text><text x="520" y="263" fill="#5a8f4e">Resolved</text><text x="620" y="263" fill="#2e75b6">Change ▾</text>
+      </g>
+      <text x="20" y="300" font-size="9" fill="#888" font-style="italic">The administrator searches/filters complaints and updates status with remarks from a single screen.</text>
+    </svg>
+    <figcaption>Figure 5 — Administrator dashboard with statistics, category distribution, and searchable complaint management.</figcaption>
+  </figure>
+
+  <h3 id="s3-2">3.2 Hardware Interfaces</h3>
+  <p>Hostel Buddy does not require any specialized hardware. It interfaces with standard client hardware — a desktop computer, laptop, tablet, or smartphone capable of running a modern web browser — and with standard server hardware for hosting. The only hardware-related interaction is the optional use of a device's file storage or camera to select or capture an image when attaching it to a complaint, which is mediated entirely by the browser.</p>
+
+  <h3 id="s3-3">3.3 Software Interfaces</h3>
+  <ul>
+    <li><b>Web browser:</b> The system is consumed through the user's browser, which renders the interface and exchanges data with the server.</li>
+    <li><b>Data store:</b> The application interfaces with a persistent data store that holds user accounts and complaint records. Data items exchanged include user profiles, complaint details, status changes, and remarks.</li>
+    <li><b>File storage:</b> Uploaded complaint images are stored and later served back for viewing. Incoming data includes the image file and its metadata; outgoing data includes the reference used to display the image.</li>
+  </ul>
+  <p>Detailed component names, versions, and protocols are design decisions deferred to the Architecture Review.</p>
+
+  <h3 id="s3-4">3.4 Communications Interfaces</h3>
+  <ul>
+    <li>All communication between the browser and the server occurs over standard web protocols (HTTP/HTTPS). Secure transport (HTTPS) is required whenever the system is deployed for real use so that credentials and complaint data are protected in transit.</li>
+    <li>Data is exchanged in a standard structured format suitable for web applications.</li>
+    <li>Email or push-notification communication is not part of Version 1.0 and is listed as a future enhancement (Section 6).</li>
+  </ul>
+</section>
+
+<!-- ============================ 4. FUNCTIONAL REQUIREMENTS ============================ -->
+<section class="break">
+  <h2 id="s4">4. Functional Requirements</h2>
+  <p>The functional requirements are organized by <b>system feature</b> — the major services Hostel Buddy provides. Each feature corresponds to one or more use cases in Figure 1. Every requirement is uniquely tagged (<span class="req">REQ-n</span>) and verifiable.</p>
+
+  <!-- 4.1 -->
+  <h3 id="s4-1">4.1 User Authentication &amp; Account Management</h3>
+  <h4>4.1.1 Description and Priority</h4>
+  <p>Enables a visitor to register as a student and allows students and the administrator to log in securely so that access to functions and data is restricted to authorized users. <b>Priority:</b> <span class="pill p-high">High</span>. <em>(Related use cases: UC-1, UC-2.)</em></p>
+  <h4>4.1.2 Stimulus / Response Sequences</h4>
+  <table class="sr">
+    <tr><th>User Action (Stimulus)</th><th>System Response</th></tr>
+    <tr><td>Visitor submits the registration form.</td><td>System validates the input, ensures the email is not already registered, securely records the account, and signs the student in.</td></tr>
+    <tr><td>Visitor submits a duplicate email.</td><td>System rejects the registration with a clear message that the email is already in use.</td></tr>
+    <tr><td>User submits login credentials.</td><td>System verifies the credentials and grants a role-appropriate session, or rejects invalid credentials with a generic error.</td></tr>
+    <tr><td>User logs out.</td><td>System ends the session and returns the user to the login page.</td></tr>
+  </table>
+  <h4>4.1.3 Functional Requirements</h4>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">REQ-1:</span> The system shall allow a visitor to register a student account by providing name, email, password, and room number.</li>
+    <li><span class="req">REQ-2:</span> The system shall require the email address of each account to be unique and shall reject registration with an already-registered email.</li>
+    <li><span class="req">REQ-3:</span> The system shall store passwords only in a protected (non-plain-text) form and shall never display them.</li>
+    <li><span class="req">REQ-4:</span> The system shall authenticate students and the administrator via email and password and establish a role-appropriate session.</li>
+    <li><span class="req">REQ-5:</span> The system shall reject invalid login attempts with a generic error message that does not reveal whether the email exists.</li>
+    <li><span class="req">REQ-6:</span> The system shall provide a single seeded administrator account and shall not permit self-registration of administrator accounts.</li>
+    <li><span class="req">REQ-7:</span> The system shall allow an authenticated user to log out and shall terminate the session on logout.</li>
+    <li><span class="req">REQ-8:</span> The system shall validate all registration and login inputs and shall display a clear message for any invalid or missing field.</li>
+  </ul>
+
+  <!-- 4.2 -->
+  <h3 id="s4-2">4.2 Complaint Submission</h3>
+  <h4>4.2.1 Description and Priority</h4>
+  <p>Allows a logged-in student to raise a maintenance complaint by selecting a category, entering a description, and optionally attaching an image. <b>Priority:</b> <span class="pill p-high">High</span>. <em>(Related use cases: UC-4, UC-5.)</em></p>
+  <h4>4.2.2 Stimulus / Response Sequences</h4>
+  <table class="sr">
+    <tr><th>User Action (Stimulus)</th><th>System Response</th></tr>
+    <tr><td>Student opens the Raise Complaint form.</td><td>System displays the category list, a description field, and an optional image upload.</td></tr>
+    <tr><td>Student submits a valid complaint.</td><td>System records the complaint with state Pending and confirms submission, then shows it under My Complaints.</td></tr>
+    <tr><td>Student submits with a missing category or empty description.</td><td>System rejects the submission and highlights the missing fields.</td></tr>
+    <tr><td>Student attaches an unsupported or oversized image.</td><td>System rejects the image with a message stating the allowed formats and size.</td></tr>
+  </table>
+  <h4>4.2.3 Functional Requirements</h4>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">REQ-9:</span> The system shall allow a logged-in student to submit a complaint consisting of a category, a description, and an optional image.</li>
+    <li><span class="req">REQ-10:</span> The system shall restrict the complaint category to the defined set: Electricity, Plumbing, Water Supply, Wi-Fi, Cleaning, Furniture, Security, Other.</li>
+    <li><span class="req">REQ-11:</span> The system shall require a non-empty description for every complaint.</li>
+    <li><span class="req">REQ-12:</span> The system shall accept an optional image attachment in common image formats within a defined maximum size, and shall reject attachments that violate these limits.</li>
+    <li><span class="req">REQ-13:</span> The system shall assign every newly submitted complaint the initial state <em>Pending</em> and shall record its submission date and time.</li>
+    <li><span class="req">REQ-14:</span> The system shall associate each complaint with the student who submitted it.</li>
+    <li><span class="req">REQ-15:</span> The system shall confirm successful submission to the student.</li>
+  </ul>
+
+  <!-- 4.3 -->
+  <h3 id="s4-3">4.3 Complaint Tracking &amp; History</h3>
+  <h4>4.3.1 Description and Priority</h4>
+  <p>Lets a student view all of their complaints and follow each one through the resolution workflow, including administrator remarks and resolution date, and edit or delete a complaint while it is still Pending. <b>Priority:</b> <span class="pill p-high">High</span>. <em>(Related use cases: UC-6, UC-7.)</em></p>
+  <h4>4.3.2 Stimulus / Response Sequences</h4>
+  <table class="sr">
+    <tr><td>Student opens My Complaints.</td><td>System lists the student's complaints with current status, submission date, remarks, and resolution date.</td></tr>
+    <tr><td>Student edits a Pending complaint.</td><td>System saves the changes and keeps the complaint Pending.</td></tr>
+    <tr><td>Student attempts to edit or delete a complaint that is no longer Pending.</td><td>System prevents the action and informs the student that only Pending complaints can be changed.</td></tr>
+    <tr><td>Student deletes a Pending complaint.</td><td>System removes the complaint and updates the list.</td></tr>
+  </table>
+  <h4>4.3.3 Functional Requirements</h4>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">REQ-16:</span> The system shall allow a student to view a list of all complaints they have submitted.</li>
+    <li><span class="req">REQ-17:</span> The system shall display for each complaint its category, description, current status, submission date, administrator remarks, and resolution date (when applicable).</li>
+    <li><span class="req">REQ-18:</span> The system shall allow a student to edit a complaint only while its status is <em>Pending</em>.</li>
+    <li><span class="req">REQ-19:</span> The system shall allow a student to delete a complaint only while its status is <em>Pending</em>.</li>
+    <li><span class="req">REQ-20:</span> The system shall prevent a student from viewing, editing, or deleting any complaint that belongs to another student.</li>
+    <li><span class="req">REQ-21:</span> The system shall reflect status changes made by the administrator so that the student always sees the current status.</li>
+  </ul>
+
+  <!-- 4.4 -->
+  <h3 id="s4-4">4.4 Complaint Management (Administrator)</h3>
+  <h4>4.4.1 Description and Priority</h4>
+  <p>Enables the administrator to review any complaint, advance its status through the defined workflow, and record remarks during resolution. <b>Priority:</b> <span class="pill p-high">High</span>. <em>(Related use cases: UC-9, UC-11, UC-12.)</em></p>
+  <h4>4.4.2 Stimulus / Response Sequences</h4>
+  <table class="sr">
+    <tr><td>Administrator opens a complaint.</td><td>System displays its full details, including the student, category, description, image, and history.</td></tr>
+    <tr><td>Administrator changes the status and adds remarks.</td><td>System records the new status, saves the remarks, and updates the change timestamp.</td></tr>
+    <tr><td>Administrator marks a complaint Resolved.</td><td>System records the resolution date the first time the complaint reaches Resolved.</td></tr>
+  </table>
+  <h4>4.4.3 Functional Requirements</h4>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">REQ-22:</span> The system shall allow the administrator to view every complaint submitted by any student.</li>
+    <li><span class="req">REQ-23:</span> The system shall allow the administrator to change a complaint's status among the defined states: Pending, In Progress, Resolved, Closed.</li>
+    <li><span class="req">REQ-24:</span> The system shall allow the administrator to add or update remarks when handling a complaint.</li>
+    <li><span class="req">REQ-25:</span> The system shall record the date and time of the most recent status change for each complaint.</li>
+    <li><span class="req">REQ-26:</span> The system shall record a resolution date the first time a complaint's status is set to <em>Resolved</em>.</li>
+    <li><span class="req">REQ-27:</span> The system shall restrict complaint status changes and remarks to the administrator role only.</li>
+    <li><span class="req">REQ-28:</span> The system shall prevent a complaint from being set to any value outside the defined set of states.</li>
+  </ul>
+
+  <!-- 4.5 -->
+  <h3 id="s4-5">4.5 Search &amp; Filter</h3>
+  <h4>4.5.1 Description and Priority</h4>
+  <p>Helps the administrator locate complaints quickly among many records. <b>Priority:</b> <span class="pill p-med">Medium</span>. <em>(Related use case: UC-10.)</em></p>
+  <h4>4.5.2 Stimulus / Response Sequences</h4>
+  <table class="sr">
+    <tr><td>Administrator enters a search term or selects a filter.</td><td>System displays only the complaints that match the term and the selected filters.</td></tr>
+    <tr><td>Administrator clears the filters.</td><td>System restores the full list of complaints.</td></tr>
+  </table>
+  <h4>4.5.3 Functional Requirements</h4>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">REQ-29:</span> The system shall allow the administrator to search complaints by complaint ID, student name, and room number.</li>
+    <li><span class="req">REQ-30:</span> The system shall allow the administrator to filter complaints by category.</li>
+    <li><span class="req">REQ-31:</span> The system shall allow the administrator to filter complaints by status.</li>
+    <li><span class="req">REQ-32:</span> The system shall allow search and filter criteria to be combined and shall update the displayed results accordingly.</li>
+  </ul>
+
+  <!-- 4.6 -->
+  <h3 id="s4-6">4.6 Dashboard &amp; Analytics</h3>
+  <h4>4.6.1 Description and Priority</h4>
+  <p>Provides at-a-glance statistics: a personal summary for students and system-wide metrics with category distribution for the administrator. <b>Priority:</b> <span class="pill p-med">Medium</span>. <em>(Related use cases: UC-8, UC-13.)</em></p>
+  <h4>4.6.2 Stimulus / Response Sequences</h4>
+  <table class="sr">
+    <tr><td>Student opens the dashboard.</td><td>System shows the student's counts of Total, Pending, In Progress, Resolved, and Closed complaints.</td></tr>
+    <tr><td>Administrator opens the dashboard.</td><td>System shows total students, total complaints, counts per status, category distribution, and recent complaints.</td></tr>
+  </table>
+  <h4>4.6.3 Functional Requirements</h4>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">REQ-33:</span> The system shall present each student a dashboard showing their number of Total, Pending, In Progress, Resolved, and Closed complaints.</li>
+    <li><span class="req">REQ-34:</span> The system shall present the administrator a dashboard showing total registered students and total complaints.</li>
+    <li><span class="req">REQ-35:</span> The system shall present the administrator the count of complaints in each status.</li>
+    <li><span class="req">REQ-36:</span> The system shall present the administrator the distribution of complaints across categories in a visual chart.</li>
+    <li><span class="req">REQ-37:</span> The system shall present the administrator a list of the most recent complaints.</li>
+  </ul>
+
+  <!-- 4.7 -->
+  <h3 id="s4-7">4.7 Profile &amp; Student Account Management</h3>
+  <h4>4.7.1 Description and Priority</h4>
+  <p>Lets a student maintain their own profile and lets the administrator view and, where necessary, manage student accounts. <b>Priority:</b> <span class="pill p-low">Low</span>. <em>(Related use cases: UC-3, UC-14.)</em></p>
+  <h4>4.7.2 Stimulus / Response Sequences</h4>
+  <table class="sr">
+    <tr><td>Student updates profile details.</td><td>System validates and saves the changes.</td></tr>
+    <tr><td>Administrator opens the student list.</td><td>System displays all registered students and their details.</td></tr>
+  </table>
+  <h4>4.7.3 Functional Requirements</h4>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">REQ-38:</span> The system shall allow a student to view and update their own profile information (such as name and room number).</li>
+    <li><span class="req">REQ-39:</span> The system shall validate profile changes and reject invalid input with a clear message.</li>
+    <li><span class="req">REQ-40:</span> The system shall allow the administrator to view the list of registered students.</li>
+    <li><span class="req">REQ-41:</span> The system shall allow the administrator to manage student accounts where necessary, subject to administrator-only access.</li>
+  </ul>
+</section>
+
+<!-- ============================ 5. NONFUNCTIONAL ============================ -->
+<section class="break">
+  <h2 id="s5">5. Other Nonfunctional Requirements</h2>
+
+  <h3 id="s5-1">5.1 Performance Requirements</h3>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">NFR-1:</span> Dashboard pages shall load within 2–3 seconds under normal operating conditions.</li>
+    <li><span class="req">NFR-2:</span> Submission of a complaint shall complete within approximately 2 seconds on a typical connection, excluding time spent uploading a large image.</li>
+    <li><span class="req">NFR-3:</span> Search and filter results shall be displayed promptly as criteria are applied.</li>
+    <li><span class="req">NFR-4:</span> The system shall remain responsive while holding thousands of student accounts and thousands of complaint records.</li>
+  </ul>
+
+  <h3 id="s5-2">5.2 Safety Requirements</h3>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">NFR-5:</span> The system shall retain all complaint records permanently and shall not lose data during normal operation.</li>
+    <li><span class="req">NFR-6:</span> The system shall confirm irreversible actions (such as deleting a Pending complaint) before carrying them out.</li>
+    <li><span class="req">NFR-7:</span> The system should support regular backup of stored data so that records can be recovered after a failure.</li>
+  </ul>
+
+  <h3 id="s5-3">5.3 Security Requirements</h3>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">NFR-8:</span> The system shall store user passwords only in a securely hashed form.</li>
+    <li><span class="req">NFR-9:</span> The system shall enforce role-based access control so that students cannot access administrator functions and vice versa.</li>
+    <li><span class="req">NFR-10:</span> The system shall ensure a student can access only their own complaints and profile.</li>
+    <li><span class="req">NFR-11:</span> The system shall validate and sanitize all user input to prevent invalid or malicious data from being processed.</li>
+    <li><span class="req">NFR-12:</span> When deployed for real use, the system shall transmit all data over a secure (HTTPS) connection.</li>
+    <li><span class="req">NFR-13:</span> The system shall require authentication before granting access to any complaint or account data.</li>
+  </ul>
+
+  <h3 id="s5-4">5.4 Software Quality Attributes</h3>
+  <table>
+    <tr><th>Attribute</th><th>Requirement</th></tr>
+    <tr><td><b>Usability</b></td><td>The interface shall be intuitive and responsive, usable on desktop and mobile browsers without training.</td></tr>
+    <tr><td><b>Reliability</b></td><td>The system shall operate without data loss during normal use and shall handle invalid input gracefully.</td></tr>
+    <tr><td><b>Maintainability</b></td><td>The system shall be organized into independent feature modules (authentication, complaints, dashboard, users) so features can be updated or extended with minimal impact on others.</td></tr>
+    <tr><td><b>Scalability</b></td><td>The system shall support growth to multiple hostel blocks and thousands of users and records without redesign.</td></tr>
+    <tr><td><b>Portability</b></td><td>The system shall be accessible from any modern browser and shall not require client-side installation.</td></tr>
+    <tr><td><b>Availability</b></td><td>The system should be available during normal hostel operating hours.</td></tr>
+  </table>
+
+  <h3 id="s5-5">5.5 Business Rules</h3>
+  <ul style="list-style:none;padding-left:0">
+    <li><span class="req">BR-1:</span> Only a registered, logged-in student may submit a complaint.</li>
+    <li><span class="req">BR-2:</span> A student may edit or delete a complaint only while it is in the Pending state.</li>
+    <li><span class="req">BR-3:</span> Only the administrator may change a complaint's status or add remarks.</li>
+    <li><span class="req">BR-4:</span> A complaint's status may only move within the defined set of states Pending, In Progress, Resolved, Closed.</li>
+    <li><span class="req">BR-5:</span> A student may view only their own complaints; the administrator may view all complaints.</li>
+    <li><span class="req">BR-6:</span> Administrator accounts are not self-registered; the administrator is provisioned by the system.</li>
+  </ul>
+</section>
+
+<!-- ============================ 6. OTHER REQUIREMENTS ============================ -->
+<section class="break">
+  <h2 id="s6">6. Other Requirements</h2>
+  <p><b>Data retention:</b> All user and complaint records shall be stored durably so that a complete complaint history is available for future reference. <b>Internationalization:</b> The interface shall use English for Version 1.0. <b>Reuse:</b> Feature modules shall be designed so they can be reused or extended in later versions.</p>
+  <p><b>Future enhancements (out of scope for Version 1.0):</b> email notifications, push notifications, a dedicated maintenance-staff role, complaint ratings, QR-code room identification, a native mobile application, AI-based complaint categorization, and multi-hostel support. These are recorded here to bound the current scope and to guide later releases.</p>
+</section>
+
+<!-- ============================ APPENDICES ============================ -->
+<section class="break">
+  <h2 id="appA">Appendix A: Glossary</h2>
+  <table>
+    <tr><th>Term</th><th>Definition</th></tr>
+    <tr><td>Complaint</td><td>A maintenance issue reported by a student, consisting of a category, description, optional image, status, and remarks.</td></tr>
+    <tr><td>Category</td><td>The type of issue a complaint concerns, chosen from a fixed list (e.g., Electricity, Plumbing, Wi-Fi).</td></tr>
+    <tr><td>Status / State</td><td>The current stage of a complaint in the workflow: Pending, In Progress, Resolved, or Closed.</td></tr>
+    <tr><td>Pending</td><td>A newly submitted complaint that has not yet been acted upon; editable and deletable by its student.</td></tr>
+    <tr><td>In Progress</td><td>A complaint the administrator has begun working on.</td></tr>
+    <tr><td>Resolved</td><td>A complaint whose underlying issue has been fixed; its resolution date is recorded.</td></tr>
+    <tr><td>Closed</td><td>A resolved complaint that has been finalized and requires no further action.</td></tr>
+    <tr><td>Remarks</td><td>Notes added by the administrator while handling a complaint.</td></tr>
+    <tr><td>Student</td><td>A hostel resident who registers to submit and track complaints.</td></tr>
+    <tr><td>Administrator</td><td>The privileged user who manages and resolves all complaints.</td></tr>
+    <tr><td>Role-Based Access Control</td><td>A security approach that grants functions and data access according to the user's role.</td></tr>
+    <tr><td>SRS</td><td>Software Requirements Specification — this document.</td></tr>
+    <tr><td>Dashboard</td><td>A screen presenting summary statistics about complaints.</td></tr>
+  </table>
+
+  <h2 id="appB">Appendix B: Analysis Models</h2>
+  <p>The overall Use Case Diagram (Figure 1) and Use Case List (Section 2.5) are the analysis models included in this initial version. The following additional design artifacts are <b>not</b> included in this submission and will be provided separately during the Architecture Review:</p>
+  <ul>
+    <li>Class Diagram</li>
+    <li>Sequence Diagram</li>
+    <li>Entity-Relationship (ER) Diagram</li>
+    <li>Component Diagram</li>
+    <li>Deployment Diagram</li>
+    <li>Software Architecture Diagram</li>
+  </ul>
+
+  <h2 id="appC">Appendix C: To Be Determined List</h2>
+  <p>There are no open "To Be Determined" (TBD) items in this version of the SRS. All requirements defined for Version 1.0 are fully specified. Future items are captured under Future Enhancements in Section 6 and will be scheduled in later releases.</p>
+</section>
+
+<script src="paged.polyfill.js"></script>

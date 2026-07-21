@@ -1,0 +1,9 @@
+# Normalize line endings: let Git store text with LF and check out natively.
+* text=auto
+
+# Binary files Git should not touch.
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary

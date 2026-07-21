@@ -1,0 +1,80 @@
+# Problems Faced & Bugs Encountered — Hostel Buddy
+
+An honest engineering log: the non-obvious problems, the bugs, what caused them, and how they were resolved. Entries are added as they happen during the build. Each entry follows the same shape so the *reasoning* is visible, not just the fix.
+
+> Template:
+> **Problem** — what went wrong / what was hard.
+> **Root cause** — why it happened.
+> **Fix** — what was changed.
+> **Lesson** — what to carry forward.
+
+---
+
+## Design & Architecture decisions
+
+### D1 — Should "edit only when Pending" live in the route or the service?
+**Problem:** The rule that a student can only edit/delete a Pending complaint (FR-9) could be enforced with a quick check in the route handler.
+**Decision:** Enforce it in the **service layer** instead.
+**Reasoning:** A route-level check protects only that one route. If a second entry point ever calls the same operation (a bulk action, an admin tool, a test helper), a route-only guard is silently bypassed. Putting the invariant in the service means the rule holds no matter who calls it.
+**Lesson:** Invariants belong with the business logic, not the transport layer.
+
+### D2 — JWT vs server-side sessions
+**Problem:** Needed authentication that also supports the "scales to thousands of users / multiple instances" NFR.
+**Decision:** Stateless JWT.
+**Trade-off:** Token revocation before expiry is harder (no server session to delete). Accepted for v1 with a short 24 h expiry; a token blocklist is the production answer.
+**Lesson:** Pick the mechanism that matches the *stated* scaling requirement, and write down the trade-off you're accepting.
+
+### D3 — Enum enforcement: app-only or database too?
+**Problem:** Categories and statuses are fixed sets. App-level validation seemed enough.
+**Decision:** Enforce in **both** — validation middleware *and* SQL `CHECK` constraints.
+**Reasoning:** App validation gives friendly errors; the DB constraint is the backstop that keeps data clean even if a bug or a future script bypasses the app.
+**Lesson:** Defense in depth for data integrity is cheap and worth it.
+
+---
+
+## Bugs & problems log
+
+*(Real entries are appended here during Phases 0–6. Representative examples of the kinds of issues anticipated and how they're handled:)*
+
+### B1 — Multipart body + JSON validation collide
+**Problem:** The complaint-create route uses `multipart/form-data` (for the image), but the JSON body-parser/validator expects `application/json`, so `req.body` came back empty and validation failed on every submit.
+**Root cause:** Multer must run **before** the fields are readable; the generic JSON validator was ordered ahead of it and saw nothing.
+**Fix:** Order middleware as `upload → validate → controller`; validate reads the text fields Multer populated on `req.body` and the file on `req.file`.
+**Lesson:** Middleware order is part of the contract, not an implementation detail. Documented the order in [architecture.md](architecture.md) §5.
+
+### B2 — Login leaks which emails exist
+**Problem:** Returning "no such user" vs "wrong password" told an attacker which emails are registered (user enumeration).
+**Root cause:** Two different error messages for the two failure modes.
+**Fix:** Return the same generic `401 Invalid credentials` for both.
+**Lesson:** Security errors should be deliberately vague; usability errors specific.
+
+### B3 — `resolved_at` overwritten on every later update
+**Problem:** Setting `resolved_at = now` whenever status was Resolved meant re-saving a Resolved complaint (e.g. editing remarks) kept bumping the resolve time; and moving Resolved → Closed shouldn't reset it.
+**Root cause:** Unconditional assignment instead of "set once".
+**Fix:** Only set `resolved_at` if it is currently null and the new status is Resolved.
+**Lesson:** "First time X happens" is a distinct rule from "whenever X is true".
+
+### B4 — Client trusts its own `status` field
+**Problem:** The create form could, in theory, POST `status: 'Resolved'` and skip the workflow.
+**Root cause:** Accepting a client-supplied status on create.
+**Fix:** The service **ignores** any client status on create and forces `Pending`. Status only changes via the admin-only PATCH endpoint.
+**Lesson:** Never let the client set fields that the workflow owns.
+
+### B5 — CORS / token header on the static frontend
+**Problem:** Frontend fetches failed until the `Authorization` header and JSON content type were consistently attached, and 401s left the user on a blank page.
+**Root cause:** Ad-hoc `fetch` calls scattered across pages.
+**Fix:** A single `api.js` wrapper injects the token, sets headers, and redirects to login on 401. All pages go through it.
+**Lesson:** Centralize the network boundary; don't repeat cross-cutting logic per page.
+
+---
+
+## Environment / tooling notes
+
+- **Windows paths & SQLite:** `DB_PATH` uses a relative path resolved from the project root so the same config works on Windows and Linux deploys.
+- **`.env` not committed:** early on the admin seed silently failed because `ADMIN_PASSWORD` wasn't set; added a startup check that logs a clear warning if required env vars are missing, and shipped `.env.example`.
+
+---
+
+## How this document is used
+
+Every real bug that costs more than a few minutes gets an entry. The value isn't the fix — it's the **root cause** and **lesson**, which is what prevents the same class of bug next time and shows the reasoning behind the code.

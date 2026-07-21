@@ -1,0 +1,30 @@
+{
+  "name": "hostel-buddy",
+  "version": "1.0.0",
+  "description": "Smart Hostel Complaint Management System - Group 19 (Semester 5 Project)",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
+    "seed": "node --disable-warning=ExperimentalWarning src/db/seed.js"
+  },
+  "keywords": [
+    "hostel",
+    "complaint-management",
+    "express",
+    "sqlite"
+  ],
+  "author": "Group 19",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0"
+  }
+}
