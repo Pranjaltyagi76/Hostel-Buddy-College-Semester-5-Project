@@ -21,9 +21,9 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'hostel-buddy', time: new Date().toISOString() });
 });
 
-// --- API routes (mounted in later phases) ---
-// app.use('/api/auth', require('./modules/auth/auth.routes'));
-// app.use('/api/users', require('./modules/users/users.routes'));
+// --- API routes ---
+app.use('/api/auth', require('./modules/auth/auth.routes'));
+app.use('/api/users', require('./modules/users/users.routes'));
 // app.use('/api/complaints', require('./modules/complaints/complaints.routes'));
 // app.use('/api/dashboard', require('./modules/dashboard/dashboard.routes'));
 
