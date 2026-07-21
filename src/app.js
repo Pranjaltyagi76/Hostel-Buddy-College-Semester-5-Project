@@ -25,7 +25,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', require('./modules/auth/auth.routes'));
 app.use('/api/users', require('./modules/users/users.routes'));
 app.use('/api/complaints', require('./modules/complaints/complaints.routes'));
-// app.use('/api/dashboard', require('./modules/dashboard/dashboard.routes'));
+app.use('/api/dashboard', require('./modules/dashboard/dashboard.routes'));
 
 // Uploaded complaint images, served statically.
 // DECISION (v1): these files are public to anyone who has the URL — they are

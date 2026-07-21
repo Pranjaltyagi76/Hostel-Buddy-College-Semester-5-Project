@@ -1,6 +1,7 @@
 // Phase 3 integration test — admin complaint management.
-// Requires a freshly seeded server:  npm run seed && npm start   (another terminal)
-// Then run:  npm run test:admin
+// Self-contained: creates its own student (with a unique name/room) and
+// complaint, so it runs correctly in any order against a running server.
+//   npm start   (another terminal)   then   npm run test:admin
 const BASE = 'http://localhost:4000/api';
 let pass = 0, fail = 0;
 
@@ -18,32 +19,40 @@ function check(name, cond, detail = '') {
   else { console.log(`  ❌ ${name} ${detail}`); fail++; }
 }
 
-async function login(email, password) {
-  const r = await call('POST', '/auth/login', { body: { email, password } });
-  return r.data?.token;
-}
+const login = async (email, password) =>
+  (await call('POST', '/auth/login', { body: { email, password } })).data?.token;
 
 (async () => {
   const adminToken = await login('admin@hostel.test', 'admin123');
-  const studentToken = await login('rahul@hostel.test', 'student123'); // a seeded student
+
+  // --- create our own isolated student + complaint ---
+  const ts = Date.now();
+  const uniqueName = `Zeta Searchcase ${ts}`;
+  const uniqueRoom = `SR-${ts}`;
+  const email = `admflow${ts}@hostel.test`;
+  const PASS = 'secret123';
+  const reg = await call('POST', '/auth/register', { body: { name: uniqueName, email, password: PASS, room_number: uniqueRoom } });
+  const studentToken = reg.data.token;
+  // one Wi-Fi complaint owned by this student
+  const created = await call('POST', '/complaints', { token: studentToken, body: { category: 'Wi-Fi', description: 'Admin-flow test complaint' } });
+  const cid = created.data.id;
 
   console.log('\n1) Admin lists all complaints');
   let r = await call('GET', '/complaints', { token: adminToken });
   check('returns 200', r.status === 200, `(got ${r.status})`);
   check('has data array', Array.isArray(r.data?.data));
-  check('has pagination', !!r.data?.pagination && typeof r.data.pagination.total === 'number');
+  check('has pagination', typeof r.data?.pagination?.total === 'number');
   check('rows include student_name + room', r.data?.data?.[0]?.student_name !== undefined && r.data?.data?.[0]?.room_number !== undefined);
   const total = r.data?.pagination?.total;
-  check('total >= 13 (seeded)', total >= 13, `(got ${total})`);
 
   console.log('\n2) Student CANNOT use admin list');
   r = await call('GET', '/complaints', { token: studentToken });
   check('returns 403', r.status === 403, `(got ${r.status})`);
 
-  console.log('\n3) Filter by status = Pending');
+  console.log('\n3) Filter by status = Pending (our complaint is Pending)');
   r = await call('GET', '/complaints?status=Pending', { token: adminToken });
   check('all rows are Pending', r.data?.data?.every(c => c.status === 'Pending'), '(mismatch)');
-  const pendingOne = r.data?.data?.[0];
+  check('includes our complaint', r.data?.data?.some(c => c.id === cid));
 
   console.log('\n4) Filter by category = Wi-Fi');
   r = await call('GET', '/complaints?category=Wi-Fi', { token: adminToken });
@@ -55,17 +64,17 @@ async function login(email, password) {
   r = await call('GET', '/complaints?category=Nope', { token: adminToken });
   check('bad category -> 400', r.status === 400, `(got ${r.status})`);
 
-  console.log('\n6) Search by student name');
-  r = await call('GET', '/complaints?q=Rahul', { token: adminToken });
-  check('finds Rahul rows', r.data?.data?.length >= 1 && r.data.data.every(c => /rahul/i.test(c.student_name)));
+  console.log('\n6) Search by (unique) student name');
+  r = await call('GET', `/complaints?q=${encodeURIComponent(uniqueName)}`, { token: adminToken });
+  check('finds exactly our complaint', r.data?.data?.length === 1 && r.data.data[0].id === cid, `(got ${r.data?.data?.length})`);
 
-  console.log('\n7) Search by room number');
-  r = await call('GET', '/complaints?q=B-204', { token: adminToken });
-  check('finds B-204 rows', r.data?.data?.length >= 1 && r.data.data.every(c => c.room_number === 'B-204'));
+  console.log('\n7) Search by (unique) room number');
+  r = await call('GET', `/complaints?q=${encodeURIComponent(uniqueRoom)}`, { token: adminToken });
+  check('finds our room', r.data?.data?.length === 1 && r.data.data[0].room_number === uniqueRoom, `(got ${r.data?.data?.length})`);
 
   console.log('\n8) Search by complaint id');
-  r = await call('GET', `/complaints?q=${pendingOne.id}`, { token: adminToken });
-  check('finds the complaint by id', r.data?.data?.some(c => c.id === pendingOne.id));
+  r = await call('GET', `/complaints?q=${cid}`, { token: adminToken });
+  check('finds the complaint by id', r.data?.data?.some(c => c.id === cid));
 
   console.log('\n9) Pagination');
   r = await call('GET', '/complaints?limit=5&page=1', { token: adminToken });
@@ -73,9 +82,7 @@ async function login(email, password) {
   check('limit echoed as 5', r.data?.pagination?.limit === 5);
   check('totalPages computed', r.data?.pagination?.totalPages === Math.max(1, Math.ceil(total / 5)));
 
-  console.log('\n10) Status lifecycle on a Pending complaint');
-  const cid = pendingOne.id;
-  const owner = pendingOne.student_email;
+  console.log('\n10) Status lifecycle on our Pending complaint');
   r = await call('PATCH', `/complaints/${cid}/status`, { token: adminToken, body: { status: 'In Progress', admin_remarks: 'Technician assigned.' } });
   check('-> In Progress 200', r.status === 200, `(got ${r.status})`);
   check('status updated', r.data?.status === 'In Progress');
@@ -83,12 +90,11 @@ async function login(email, password) {
   check('resolved_at still null', r.data?.resolved_at === null);
 
   console.log('\n11) Student sees the update + can no longer edit');
-  const ownerToken = await login(owner, 'student123');
-  r = await call('GET', '/complaints/mine', { token: ownerToken });
+  r = await call('GET', '/complaints/mine', { token: studentToken });
   const mine = r.data?.find(c => c.id === cid);
   check('student sees In Progress', mine?.status === 'In Progress');
   check('student sees remarks', mine?.admin_remarks === 'Technician assigned.');
-  r = await call('PUT', `/complaints/${cid}`, { token: ownerToken, body: { description: 'too late' } });
+  r = await call('PUT', `/complaints/${cid}`, { token: studentToken, body: { description: 'too late' } });
   check('student edit now blocked (409)', r.status === 409, `(got ${r.status})`);
 
   console.log('\n12) Resolve sets resolved_at (once)');

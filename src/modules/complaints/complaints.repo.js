@@ -121,4 +121,52 @@ function updateStatus(id, { status, adminRemarks = null, setResolvedAt = false }
   return findById(id);
 }
 
-module.exports = { create, findById, findByUser, update, remove, search, updateStatus };
+// --- Aggregations (used by the dashboard module) ---
+// Counts are computed in SQL with GROUP BY rather than pulled into JS, so the
+// payload stays tiny and the work is done by the engine best suited to it.
+
+function statusCountsForUser(userId) {
+  return db
+    .prepare('SELECT status, COUNT(*) AS n FROM complaints WHERE user_id = ? GROUP BY status')
+    .all(userId);
+}
+
+function totalCount() {
+  return db.prepare('SELECT COUNT(*) AS n FROM complaints').get().n;
+}
+
+function statusCounts() {
+  return db.prepare('SELECT status, COUNT(*) AS n FROM complaints GROUP BY status').all();
+}
+
+function categoryCounts() {
+  return db.prepare('SELECT category, COUNT(*) AS n FROM complaints GROUP BY category').all();
+}
+
+function recent(limit = 5) {
+  return db
+    .prepare(
+      `SELECT c.id, c.user_id, u.name AS student_name, u.room_number,
+              c.category, c.description, c.status, c.created_at, c.updated_at
+         FROM complaints c
+         JOIN users u ON u.id = c.user_id
+         ORDER BY c.created_at DESC, c.id DESC
+         LIMIT ?`
+    )
+    .all(limit);
+}
+
+module.exports = {
+  create,
+  findById,
+  findByUser,
+  update,
+  remove,
+  search,
+  updateStatus,
+  statusCountsForUser,
+  totalCount,
+  statusCounts,
+  categoryCounts,
+  recent,
+};

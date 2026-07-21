@@ -8,9 +8,11 @@
     "start": "node --disable-warning=ExperimentalWarning src/server.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
     "seed": "node --disable-warning=ExperimentalWarning src/db/seed.js",
+    "test": "npm run test:auth && npm run test:complaints && npm run test:admin && npm run test:dashboard",
     "test:auth": "node tests/auth.test.js",
     "test:complaints": "node --disable-warning=ExperimentalWarning tests/complaints.test.js",
-    "test:admin": "node tests/admin.test.js"
+    "test:admin": "node tests/admin.test.js",
+    "test:dashboard": "node tests/dashboard.test.js"
   },
   "keywords": [
     "hostel",
