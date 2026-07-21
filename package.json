@@ -9,7 +9,8 @@
     "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
     "seed": "node --disable-warning=ExperimentalWarning src/db/seed.js",
     "test:auth": "node tests/auth.test.js",
-    "test:complaints": "node --disable-warning=ExperimentalWarning tests/complaints.test.js"
+    "test:complaints": "node --disable-warning=ExperimentalWarning tests/complaints.test.js",
+    "test:admin": "node tests/admin.test.js"
   },
   "keywords": [
     "hostel",

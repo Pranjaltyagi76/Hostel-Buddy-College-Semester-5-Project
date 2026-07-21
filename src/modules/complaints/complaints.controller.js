@@ -58,4 +58,23 @@ function remove(req, res, next) {
   }
 }
 
-module.exports = { create, listMine, getOne, update, remove };
+// Admin: list all complaints with search/filter/pagination.
+function listAll(req, res, next) {
+  try {
+    const { q, category, status, page, limit } = req.query;
+    res.json(complaintsService.listAll({ q, category, status, page, limit }));
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Admin: change a complaint's status and remarks.
+function updateStatus(req, res, next) {
+  try {
+    res.json(complaintsService.updateStatus(idOf(req), req.body));
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { create, listMine, getOne, update, remove, listAll, updateStatus };

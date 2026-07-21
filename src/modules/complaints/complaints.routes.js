@@ -8,13 +8,18 @@ const { ROLES } = require('../../config/constants');
 
 const router = express.Router();
 
-// Students create and manage their own complaints.
+// --- Admin: view and manage every complaint ---
+// (Listed before "/:id" so the literal paths are matched first.)
+router.get('/', requireAuth, requireRole(ROLES.ADMIN), controller.listAll);
+router.patch('/:id/status', requireAuth, requireRole(ROLES.ADMIN), controller.updateStatus);
+
+// --- Student: create and manage their own complaints ---
 router.post('/', requireAuth, requireRole(ROLES.STUDENT), uploadImage, controller.create);
 router.get('/mine', requireAuth, requireRole(ROLES.STUDENT), controller.listMine);
 router.put('/:id', requireAuth, requireRole(ROLES.STUDENT), uploadImage, controller.update);
 router.delete('/:id', requireAuth, requireRole(ROLES.STUDENT), controller.remove);
 
-// Readable by the owner or an admin (ownership enforced in the service).
+// --- Owner or admin: view a single complaint (ownership enforced in service) ---
 router.get('/:id', requireAuth, controller.getOne);
 
 module.exports = router;

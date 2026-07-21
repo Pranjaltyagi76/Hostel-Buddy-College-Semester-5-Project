@@ -6,9 +6,12 @@
 const complaintsRepo = require('./complaints.repo');
 const { removeUploadedFile } = require('../../middleware/upload');
 const { AppError } = require('../../middleware/errorHandler');
-const { CATEGORIES, ROLES } = require('../../config/constants');
+const { CATEGORIES, STATUSES, ROLES } = require('../../config/constants');
 
 const MAX_DESCRIPTION = 1000;
+const MAX_REMARKS = 1000;
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 20;
 
 function validateCategory(category) {
   if (!CATEGORIES.includes(category)) {
@@ -87,10 +90,83 @@ function deleteComplaint(userId, id) {
   return { deleted: true, id: complaint.id };
 }
 
+// --- Admin operations ---
+
+// Coerce an incoming page/limit query value to a sane positive integer.
+function toPositiveInt(value, fallback) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+// List every complaint with optional search (id / student name / room),
+// category and status filters, and pagination.
+function listAll({ q, category, status, page, limit } = {}) {
+  if (category && !CATEGORIES.includes(category)) {
+    throw new AppError('Invalid category filter', 400, 'VALIDATION_ERROR');
+  }
+  if (status && !STATUSES.includes(status)) {
+    throw new AppError('Invalid status filter', 400, 'VALIDATION_ERROR');
+  }
+
+  const pageNum = toPositiveInt(page, 1);
+  const pageSize = Math.min(toPositiveInt(limit, DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
+
+  const { rows, total } = complaintsRepo.search({
+    q,
+    category,
+    status,
+    page: pageNum,
+    limit: pageSize,
+  });
+
+  return {
+    data: rows,
+    pagination: {
+      page: pageNum,
+      limit: pageSize,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    },
+  };
+}
+
+// Advance a complaint's status and record remarks. Only the admin reaches
+// this (enforced at the route); business rules for status live here.
+function updateStatus(id, { status, admin_remarks } = {}) {
+  if (!STATUSES.includes(status)) {
+    throw new AppError('Please provide a valid status', 400, 'VALIDATION_ERROR');
+  }
+
+  const complaint = complaintsRepo.findById(id);
+  if (!complaint) throw new AppError('Complaint not found', 404, 'NOT_FOUND');
+
+  // Remarks are optional: undefined keeps the existing note, an empty/null
+  // value clears it, a string replaces it.
+  let remarks;
+  if (admin_remarks === undefined) {
+    remarks = complaint.admin_remarks;
+  } else if (admin_remarks === null || String(admin_remarks).trim() === '') {
+    remarks = null;
+  } else {
+    remarks = String(admin_remarks).trim();
+    if (remarks.length > MAX_REMARKS) {
+      throw new AppError(`Remarks are too long (max ${MAX_REMARKS} characters)`, 400, 'VALIDATION_ERROR');
+    }
+  }
+
+  // Record the resolution time only the FIRST time it becomes Resolved, so
+  // later edits or a move to Closed never reset it.
+  const setResolvedAt = status === 'Resolved' && !complaint.resolved_at;
+
+  return complaintsRepo.updateStatus(id, { status, adminRemarks: remarks, setResolvedAt });
+}
+
 module.exports = {
   createComplaint,
   listMine,
   getOne,
   updateComplaint,
   deleteComplaint,
+  listAll,
+  updateStatus,
 };
