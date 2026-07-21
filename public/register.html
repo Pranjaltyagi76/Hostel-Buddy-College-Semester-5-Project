@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — Hostel Buddy</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="brand-lg">🏠 Hostel Buddy</div>
+      <div class="subtitle">Create your student account</div>
+
+      <div id="formError" class="alert alert-error"></div>
+
+      <form id="registerForm" novalidate>
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" required maxlength="100" placeholder="e.g. Rahul Sharma">
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" autocomplete="email" required placeholder="you@hostel.test">
+        </div>
+        <div class="form-group">
+          <label for="room">Room Number</label>
+          <input type="text" id="room" maxlength="20" placeholder="e.g. B-204">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" autocomplete="new-password" required placeholder="At least 6 characters">
+          <div class="hint">Minimum 6 characters.</div>
+        </div>
+        <button type="submit" class="btn btn-navy btn-block" id="submitBtn">Create Account</button>
+      </form>
+
+      <div class="auth-switch">Already have an account? <a href="login.html">Sign in</a></div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/register.js"></script>
+</body>
+</html>

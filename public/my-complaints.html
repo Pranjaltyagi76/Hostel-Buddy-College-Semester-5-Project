@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Complaints — Hostel Buddy</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app-nav"></div>
+  <div class="container">
+    <div class="page-head">
+      <h1>My Complaints</h1>
+      <a class="btn" href="raise.html">＋ Raise a Complaint</a>
+    </div>
+
+    <div class="card">
+      <div id="listArea">
+        <div class="loading"><div class="spinner"></div>Loading your complaints…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared modal (view / edit) -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">Complaint</h3>
+        <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/my-complaints.js"></script>
+</body>
+</html>

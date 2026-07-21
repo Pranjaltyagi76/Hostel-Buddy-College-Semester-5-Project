@@ -3,23 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hostel Buddy</title>
+  <title>Hostel Buddy — Complaint Management</title>
+  <link rel="stylesheet" href="css/styles.css">
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7fb; color: #1a1a1a;
-           display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-    .card { background: #fff; padding: 40px 48px; border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.08);
-            text-align: center; max-width: 420px; }
-    h1 { color: #1f4e79; margin: 0 0 6px; }
-    p  { color: #555; }
-    .badge { display: inline-block; background: #eef4fb; color: #2e75b6; padding: 4px 12px;
-             border-radius: 12px; font-size: 13px; margin-top: 10px; }
+    .hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+            background: linear-gradient(135deg, #1f4e79 0%, #2e75b6 100%); }
+    .hero-card { background: #fff; border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.25);
+                 max-width: 560px; width: 100%; padding: 46px 40px; text-align: center; }
+    .hero-card h1 { font-size: 2.2rem; margin-bottom: 6px; }
+    .hero-card .tag { color: var(--muted); font-size: 1.05rem; margin-bottom: 26px; }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-actions .btn { padding: 12px 28px; font-size: 1rem; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 30px; text-align: center; }
+    .feature { font-size: .85rem; color: #475569; }
+    .feature .ico { font-size: 1.6rem; display: block; margin-bottom: 4px; }
+    @media (max-width: 520px) { .features { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>🏠 Hostel Buddy</h1>
-    <p>Smart Hostel Complaint Management System</p>
-    <span class="badge">Backend is running — frontend coming in Phase 5</span>
+  <div class="hero">
+    <div class="hero-card">
+      <h1>🏠 Hostel Buddy</h1>
+      <p class="tag">Smart Hostel Complaint Management System</p>
+      <div class="hero-actions">
+        <a class="btn btn-navy" href="login.html">Login</a>
+        <a class="btn btn-ghost" href="register.html">Register as Student</a>
+      </div>
+      <div class="features">
+        <div class="feature"><span class="ico">📝</span>Raise complaints online</div>
+        <div class="feature"><span class="ico">🔎</span>Track status in real time</div>
+        <div class="feature"><span class="ico">📊</span>Admin dashboard &amp; analytics</div>
+      </div>
+    </div>
   </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    // If already logged in, skip the landing page.
+    if (Auth.isLoggedIn()) {
+      const user = Auth.getUser();
+      location.href = Auth.homeFor(user);
+    }
+  </script>
 </body>
 </html>

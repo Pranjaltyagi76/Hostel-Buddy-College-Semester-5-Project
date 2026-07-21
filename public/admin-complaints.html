@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Complaints — Hostel Buddy Admin</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app-nav"></div>
+  <div class="container">
+    <div class="page-head"><h1>All Complaints</h1></div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="form-group grow">
+          <label for="search">Search</label>
+          <input type="text" id="search" placeholder="Complaint ID, student name, or room number…">
+        </div>
+        <div class="form-group">
+          <label for="filterCategory">Category</label>
+          <select id="filterCategory"><option value="">All</option></select>
+        </div>
+        <div class="form-group">
+          <label for="filterStatus">Status</label>
+          <select id="filterStatus"><option value="">All</option></select>
+        </div>
+        <button class="btn" id="searchBtn">Search</button>
+        <button class="btn btn-ghost" id="clearBtn">Clear</button>
+      </div>
+
+      <div id="resultArea">
+        <div class="loading"><div class="spinner"></div>Loading complaints…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage complaint modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">Complaint</h3>
+        <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/admin-complaints.js"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — Hostel Buddy</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app-nav"></div>
+  <div class="container">
+    <div class="page-head">
+      <div>
+        <h1>Admin Dashboard</h1>
+        <p class="muted">System-wide overview of complaints and students.</p>
+      </div>
+      <a class="btn btn-navy" href="admin-complaints.html">Manage Complaints →</a>
+    </div>
+
+    <div id="stats" class="stats">
+      <div class="loading" style="grid-column:1/-1;"><div class="spinner"></div>Loading dashboard…</div>
+    </div>
+
+    <div class="card" style="margin-top:22px;">
+      <h3>Analytics</h3>
+      <div class="chart-grid" style="margin-top:12px;">
+        <div class="chart-box"><canvas id="categoryChart"></canvas></div>
+        <div class="chart-box"><canvas id="statusChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:22px;">
+      <h3>Recent Complaints</h3>
+      <div id="recentArea" style="margin-top:8px;">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — Hostel Buddy</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app-nav"></div>
+  <div class="container">
+    <div class="page-head"><h1>My Profile</h1></div>
+
+    <div class="card" style="max-width: 560px;">
+      <div id="formError" class="alert alert-error"></div>
+      <div id="formSuccess" class="alert alert-success"></div>
+
+      <form id="profileForm" novalidate>
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" maxlength="100" required>
+        </div>
+        <div class="form-group">
+          <label for="room">Room Number</label>
+          <input type="text" id="room" maxlength="20" placeholder="e.g. B-204">
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" disabled>
+          <div class="hint">Email cannot be changed.</div>
+        </div>
+        <button type="submit" class="btn" id="submitBtn">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>

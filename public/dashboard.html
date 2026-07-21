@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Hostel Buddy</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app-nav"></div>
+  <div class="container">
+    <div class="page-head">
+      <div>
+        <h1>Welcome, <span id="userName">student</span> 👋</h1>
+        <p class="muted">Here's an overview of your complaints.</p>
+      </div>
+      <a class="btn" href="raise.html">＋ Raise a Complaint</a>
+    </div>
+
+    <div id="stats" class="stats">
+      <div class="loading" style="grid-column: 1/-1;"><div class="spinner"></div>Loading your dashboard…</div>
+    </div>
+
+    <div class="card" style="margin-top: 22px;">
+      <h3>Quick actions</h3>
+      <p class="muted" style="margin-bottom:14px;">Report a new issue or review the complaints you've already submitted.</p>
+      <a class="btn btn-ghost" href="raise.html">Raise a Complaint</a>
+      <a class="btn btn-ghost" href="my-complaints.html">View My Complaints</a>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
