@@ -27,7 +27,13 @@ app.use('/api/users', require('./modules/users/users.routes'));
 app.use('/api/complaints', require('./modules/complaints/complaints.routes'));
 // app.use('/api/dashboard', require('./modules/dashboard/dashboard.routes'));
 
-// Uploaded complaint images (served statically once Phase 2 adds them).
+// Uploaded complaint images, served statically.
+// DECISION (v1): these files are public to anyone who has the URL — they are
+// NOT gated behind the complaint's owner/admin check. This is an accepted
+// trade-off for the project scope: filenames are long random hex (unguessable)
+// and are only ever exposed inside access-controlled complaint views. A
+// production system would stream images through an authorized route or use
+// signed object-storage URLs. See docs/problems_faced_and_bugs_encountered.md (D4).
 app.use('/uploads', express.static(require('./config/env').uploadDir));
 
 // --- Static frontend ---

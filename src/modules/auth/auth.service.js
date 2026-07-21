@@ -45,13 +45,24 @@ async function register({ name, email, password, room_number } = {}) {
 
   // --- create ---
   const passwordHash = await bcrypt.hash(String(password), BCRYPT_ROUNDS);
-  const user = usersRepo.createUser({
-    name: String(name).trim(),
-    email: normalizedEmail,
-    passwordHash,
-    roomNumber: room_number ? String(room_number).trim() : null,
-    role: ROLES.STUDENT,
-  });
+
+  let user;
+  try {
+    user = usersRepo.createUser({
+      name: String(name).trim(),
+      email: normalizedEmail,
+      passwordHash,
+      roomNumber: room_number ? String(room_number).trim() : null,
+      role: ROLES.STUDENT,
+    });
+  } catch (err) {
+    // Backstop for the race between the check above and this insert: the DB's
+    // UNIQUE(email) constraint is the source of truth, so map it to a clean 409.
+    if (String(err.message).includes('UNIQUE constraint failed')) {
+      throw new AppError('An account with this email already exists', 409, 'EMAIL_TAKEN');
+    }
+    throw err;
+  }
 
   return toAuthResponse(user);
 }

@@ -30,6 +30,20 @@ An honest engineering log: the non-obvious problems, the bugs, what caused them,
 **Reasoning:** App validation gives friendly errors; the DB constraint is the backstop that keeps data clean even if a bug or a future script bypasses the app.
 **Lesson:** Defense in depth for data integrity is cheap and worth it.
 
+### D4 — Should complaint images be access-controlled?
+**Problem:** Uploaded complaint images are served as static files from `/uploads/<file>`. That endpoint is **not** behind the owner/admin authorization check that guards the complaint record itself, so anyone holding the URL can view the image.
+**Decision (v1):** Accept it for the project scope, and document it here and in `app.js`.
+**Reasoning:** Filenames are `Date.now()`-plus-random-hex, so they are effectively unguessable, and the URLs are only ever surfaced inside access-controlled complaint views. Fully gating images would mean streaming every image through an authenticated Express route (or issuing signed object-storage URLs), which adds real complexity for little benefit at this scale.
+**Production path:** Serve images through an authorized route that re-checks ownership/admin, or move to object storage with short-lived signed URLs.
+**Lesson:** An unauthenticated static path is a conscious trade-off, not an oversight — write it down so a reviewer sees it was a decision.
+
+### D5 — Node's built-in SQLite instead of better-sqlite3
+**Problem:** The technical design named `better-sqlite3`, but installing it triggers a native C++ build (node-gyp) that fails on a machine without Visual Studio / build tools.
+**Decision:** Use Node's built-in `node:sqlite` (`DatabaseSync`) instead — same synchronous, prepared-statement API, zero native compilation.
+**Reasoning:** Any teammate can `git clone` and `npm start` with no compiler toolchain, which matters for a group project graded on multiple machines. The SQL and schema are unchanged.
+**Trade-off:** `node:sqlite` is still marked experimental (emits a warning, silenced via `--disable-warning=ExperimentalWarning` in the npm scripts). The data-access layer is isolated, so swapping back to better-sqlite3 or moving to Postgres later touches only the repo/connection modules.
+**Lesson:** Match the dependency to the environment the team actually runs in.
+
 ---
 
 ## Bugs & problems log

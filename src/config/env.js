@@ -34,13 +34,23 @@ const config = {
   maxUploadBytes: 5 * 1024 * 1024, // 5 MB
 };
 
-// Warn loudly if security-relevant settings are left at their defaults.
+// In production, refuse to start on insecure defaults instead of only warning.
+// A graded/deployed demo must never boot with a guessable secret or password.
 if (config.env === 'production') {
-  if (config.jwtSecret === 'dev-secret-change-me') {
-    console.warn('[config] WARNING: JWT_SECRET is not set — using an insecure default.');
+  const problems = [];
+  if (!process.env.JWT_SECRET || config.jwtSecret === 'dev-secret-change-me') {
+    problems.push('JWT_SECRET must be set to a strong, random value');
+  } else if (config.jwtSecret.length < 16) {
+    problems.push('JWT_SECRET is too short (use at least 16 characters)');
   }
   if (config.admin.password === 'admin123') {
-    console.warn('[config] WARNING: ADMIN_PASSWORD is the default — change it before deploying.');
+    problems.push('ADMIN_PASSWORD must be changed from the default');
+  }
+  if (problems.length) {
+    throw new Error(
+      '[config] Refusing to start in production with insecure settings:\n  - ' +
+        problems.join('\n  - ')
+    );
   }
 }
 
