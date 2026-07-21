@@ -38,12 +38,6 @@
   </div>
 
   <script src="js/auth.js"></script>
-  <script>
-    // If already logged in, skip the landing page.
-    if (Auth.isLoggedIn()) {
-      const user = Auth.getUser();
-      location.href = Auth.homeFor(user);
-    }
-  </script>
+  <script src="js/index.js"></script>
 </body>
 </html>

@@ -8,10 +8,12 @@ const path = require('path');
 
 const requestLogger = require('./middleware/requestLogger');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
+const { securityHeaders, authLimiter } = require('./middleware/security');
 
 const app = express();
 
 // --- Global middleware ---
+app.use(securityHeaders); // security headers first, before any response is built
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
@@ -22,7 +24,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // --- API routes ---
-app.use('/api/auth', require('./modules/auth/auth.routes'));
+app.use('/api/auth', authLimiter, require('./modules/auth/auth.routes'));
 app.use('/api/users', require('./modules/users/users.routes'));
 app.use('/api/complaints', require('./modules/complaints/complaints.routes'));
 app.use('/api/dashboard', require('./modules/dashboard/dashboard.routes'));

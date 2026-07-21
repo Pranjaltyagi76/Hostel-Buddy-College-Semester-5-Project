@@ -80,6 +80,18 @@ An honest engineering log: the non-obvious problems, the bugs, what caused them,
 **Fix:** A single `api.js` wrapper injects the token, sets headers, and redirects to login on 401. All pages go through it.
 **Lesson:** Centralize the network boundary; don't repeat cross-cutting logic per page.
 
+### B6 — Integration tests silently depended on pristine seed data
+**Problem:** The admin and dashboard test suites passed on their own but failed when run *after* other suites — e.g. `admin.test` picked "any Pending complaint," then tried to log in as its owner assuming the seeded password, which broke once another suite had injected complaints from students with different passwords. The dashboard suite asserted absolute counts (13 complaints) that other suites had since changed.
+**Root cause:** Tests shared one database and made assumptions about global state instead of owning their data. Order-dependence hid until suites ran back to back.
+**Fix:** Made every suite **self-contained** — each registers its own student(s) and creates its own complaints, and asserts invariants and deltas (e.g. "total increased by exactly 3", "byStatus sums to totalComplaints") rather than absolute seed counts. Now the full suite passes in any order (`npm test`, 103 checks).
+**Lesson:** An integration test must control its own preconditions; a test that only passes first is not really passing.
+
+### B7 — A strict Content-Security-Policy blocks inline scripts
+**Problem:** Adding `helmet` with a `script-src 'self'` policy would block the one inline `<script>` on the landing page (the "redirect if already logged in" check), breaking it.
+**Root cause:** CSP treats inline scripts as unsafe by default; even a tiny inline script forces you to weaken the policy with `'unsafe-inline'`.
+**Fix:** Moved the inline script into an external file (`js/index.js`) so the policy can stay `script-src 'self'`. Inline *styles* are still allowed (`style-src 'unsafe-inline'`) because several pages use `<style>` blocks — a documented, lower-risk relaxation.
+**Lesson:** Keep scripts in external files from the start; it costs nothing and lets you ship a strict CSP.
+
 ---
 
 ## Environment / tooling notes

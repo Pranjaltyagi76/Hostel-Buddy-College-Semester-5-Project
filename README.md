@@ -25,17 +25,39 @@
 
 ---
 
+## 📸 Screenshots
+
+| Admin Dashboard (analytics) | Student — My Complaints |
+|---|---|
+| ![Admin dashboard](docs/screenshots/03-admin-dashboard.png) | ![My complaints](docs/screenshots/06-my-complaints.png) |
+
+| Admin — All Complaints (search/filter) | Student Dashboard |
+|---|---|
+| ![Admin complaints](docs/screenshots/04-admin-complaints.png) | ![Student dashboard](docs/screenshots/05-student-dashboard.png) |
+
+<details>
+<summary>More screenshots (landing, login, raise complaint)</summary>
+
+![Landing](docs/screenshots/01-landing.png)
+![Login](docs/screenshots/02-login.png)
+![Raise a complaint](docs/screenshots/07-raise-complaint.png)
+
+</details>
+
+---
+
 ## 🧱 Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | HTML5 · CSS3 · vanilla JS · Chart.js |
+| Frontend | HTML5 · CSS3 · vanilla JS · Chart.js (vendored, no CDN) |
 | Backend | Node.js · Express (layered: routes → controllers → services → repositories) |
-| Database | SQLite (dev) — Postgres-compatible schema |
+| Database | Node's built-in `node:sqlite` — no native build step; Postgres-compatible schema |
 | Auth | JWT + bcrypt password hashing, role-based access control |
+| Security | `helmet` security headers + CSP, rate-limited auth endpoints |
 | Uploads | Multer (local `/uploads`, swappable for object storage) |
 
-Why these choices and their trade-offs: **[docs/architecture.md](docs/architecture.md) §9**.
+Why these choices and their trade-offs: **[docs/architecture.md](docs/architecture.md) §9**. The database uses Node's built-in SQLite so teammates can clone and run with **no compiler toolchain** — see decision D5 in [problems_faced_and_bugs_encountered.md](docs/problems_faced_and_bugs_encountered.md).
 
 ---
 
@@ -69,7 +91,7 @@ This project is documented the way real engineering work is — decisions before
 
 ## 🚀 Getting Started
 
-> Prerequisites: Node.js 18+
+> Prerequisites: **Node.js 22.5+** (for the built-in `node:sqlite` module). No compiler or build tools needed.
 
 ```bash
 # 1. Install dependencies
@@ -78,7 +100,10 @@ npm install
 # 2. Configure environment
 cp .env.example .env      # then edit values (JWT secret, admin credentials)
 
-# 3. Start the server
+# 3. (Optional) Seed sample students + complaints for a ready-made demo
+npm run seed
+
+# 4. Start the server
 npm start
 
 # App: http://localhost:4000
@@ -86,13 +111,28 @@ npm start
 
 The admin account is seeded from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env` on first run. Students self-register from the app.
 
+### Demo logins (after `npm run seed`)
+
+| Role | Email | Password |
+|------|-------|----------|
+| Administrator | `admin@hostel.test` | `admin123` |
+| Student | `rahul@hostel.test` (and `ananya`, `karan`, `priya`, `amit`) | `student123` |
+
+### Testing
+
+```bash
+npm start          # in one terminal
+npm test           # in another — 103 API integration checks (auth, complaints, admin, dashboard)
+```
+
 ### Environment variables
 
 | Variable | Purpose |
 |----------|---------|
 | `PORT` | Server port (default 4000) |
+| `NODE_ENV` | `development` or `production` (production blocks insecure defaults) |
 | `JWT_SECRET` | Secret for signing auth tokens |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Seeded administrator login |
+| `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Seeded administrator account |
 | `DB_PATH` | SQLite database file location |
 | `UPLOAD_DIR` | Where complaint images are stored |
 
@@ -116,14 +156,18 @@ The student is read-only on status; the admin drives every transition.
 ```
 Hostel Buddy/
 ├── README.md
-├── docs/                 # requirements, architecture, design, roadmap, reviews
+├── docs/                 # requirements, architecture, design, roadmap, reviews, screenshots
 ├── src/
-│   ├── config/           # env, db connection, constants
-│   ├── middleware/       # auth, roleGuard, upload, validate, errorHandler
-│   ├── modules/          # auth · users · complaints · dashboard
-│   ├── db/               # schema.sql, seed
-│   └── app.js
-├── public/               # static frontend pages + css/js
+│   ├── config/           # env, constants
+│   ├── middleware/       # auth, upload, errorHandler, requestLogger, security
+│   ├── modules/          # auth · users · complaints · dashboard (routes/controller/service/repo)
+│   ├── db/               # connection, schema.sql, seed, seedAdmin
+│   ├── utils/            # jwt, validators
+│   ├── app.js            # wires middleware + routes
+│   └── server.js         # entry point
+├── public/               # frontend: pages + css/ + js/ + vendor/ (Chart.js)
+├── tests/                # API integration tests (auth, complaints, admin, dashboard)
+├── data/                 # SQLite database (git-ignored)
 └── uploads/              # complaint images (git-ignored)
 ```
 
@@ -131,7 +175,7 @@ Hostel Buddy/
 
 ## 🎥 Demo
 
-*A short walkthrough video demonstrating the full student → admin workflow will be linked here.*
+Screenshots are in [`docs/screenshots/`](docs/screenshots/) and above. *A short walkthrough video of the full student → admin workflow will be linked here.*
 
 ---
 

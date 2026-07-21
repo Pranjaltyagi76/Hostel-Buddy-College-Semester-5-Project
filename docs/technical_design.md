@@ -10,7 +10,7 @@ Implementation-level detail: database schema, API contract, auth mechanics, vali
 |-------|-----------|
 | Runtime | Node.js 18+ |
 | Web framework | Express 4 |
-| Database | SQLite via `better-sqlite3` (dev); Postgres-compatible schema |
+| Database | SQLite via Node's built-in `node:sqlite` (`DatabaseSync`); Postgres-compatible schema |
 | Auth | `jsonwebtoken` (JWT) + `bcryptjs` |
 | Uploads | `multer` (disk storage → `/uploads`) |
 | Validation | lightweight schema checks in a `validate` middleware |
