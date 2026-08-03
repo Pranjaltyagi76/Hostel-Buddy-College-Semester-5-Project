@@ -1,0 +1,924 @@
+<!-- ============================ 6. DATABASE DESIGN ============================ -->
+<section class="break">
+  <h2 id="s6">6. Database Design</h2>
+
+  <h3 id="s6-1">6.1 Database Design Overview</h3>
+  <p>Hostel Buddy uses a <b>relational database</b>. The decision follows directly from the shape of the data described in the SRS.</p>
+  <h4>Why relational rather than NoSQL</h4>
+  <ul>
+    <li><b>The schema is known, small and stable.</b> Two entities with fixed attributes were fully specified before implementation. The schema flexibility a document store offers would buy nothing here.</li>
+    <li><b>The data is genuinely relational.</b> Every complaint belongs to exactly one student, and the administrator's principal screen requires complaint records joined with the author's name and room (<span class="req">REQ-29</span>). A join is the natural expression of this; duplicating student details into each complaint document would create an update anomaly the moment a student changes rooms.</li>
+    <li><b>Controlled vocabularies must be enforced.</b> Categories and statuses are closed sets (<span class="req">REQ-10</span>, <span class="req">REQ-28</span>). <code>CHECK</code> constraints let the database itself reject an invalid value, giving a guarantee that survives any application bug.</li>
+    <li><b>Reporting is aggregate-heavy.</b> <span class="req">REQ-34</span>–<span class="req">REQ-36</span> are naturally expressed as <code>COUNT … GROUP BY</code>, which a relational engine executes efficiently against an index.</li>
+    <li><b>Integrity matters more than write throughput.</b> <span class="req">NFR-5</span> requires that no complaint be lost; ACID transactions and foreign keys provide this directly, whereas eventual consistency would be an unnecessary risk at this scale.</li>
+  </ul>
+  <p>The concrete engine is <b>SQLite</b> accessed through the driver built into the Node.js runtime, running in write-ahead-logging mode. It stores the entire database in a single file, requires no separate server process and needs no native compilation. The schema is written in portable SQL so that migrating to PostgreSQL for a multi-instance deployment affects only the repository layer (§11.1).</p>
+
+  <h3 id="s6-2">6.2 ER Diagram</h3>
+  <figure>
+    <svg viewBox="0 0 820 560" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <!-- USERS entity -->
+      <rect x="40" y="60" width="290" height="272" rx="6" fill="#fff" stroke="#1f4e79" stroke-width="2"/>
+      <rect x="40" y="60" width="290" height="30" rx="6" fill="#1f4e79"/>
+      <text x="185" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">USERS</text>
+      <g font-size="9.6">
+        <rect x="40" y="90" width="290" height="24" fill="#eef4fb"/>
+        <text x="52" y="106" font-weight="700" fill="#1f4e79">PK  id</text>
+        <text x="230" y="106" fill="#555" font-size="8.6">INTEGER AUTOINCREMENT</text>
+        <line x1="52" y1="108" x2="86" y2="108" stroke="#1f4e79" stroke-width="0.8"/>
+
+        <text x="52" y="130">name</text><text x="230" y="130" fill="#555" font-size="8.6">TEXT NOT NULL</text>
+        <rect x="40" y="136" width="290" height="22" fill="#f6f8fb"/>
+        <text x="52" y="151" font-weight="600">UK  email</text><text x="230" y="151" fill="#555" font-size="8.6">TEXT NOT NULL UNIQUE</text>
+        <text x="52" y="173">password_hash</text><text x="230" y="173" fill="#555" font-size="8.6">TEXT NOT NULL</text>
+        <rect x="40" y="180" width="290" height="22" fill="#f6f8fb"/>
+        <text x="52" y="195">room_number</text><text x="230" y="195" fill="#555" font-size="8.6">TEXT NULL</text>
+        <text x="52" y="217">role</text><text x="230" y="217" fill="#555" font-size="8.6">TEXT DEFAULT 'student'</text>
+        <rect x="40" y="224" width="290" height="22" fill="#f6f8fb"/>
+        <text x="52" y="239">created_at</text><text x="230" y="239" fill="#555" font-size="8.6">TEXT DEFAULT now</text>
+      </g>
+      <rect x="52" y="254" width="266" height="66" rx="4" fill="#fdf6ee" stroke="#c0733f" stroke-dasharray="3,2"/>
+      <text x="60" y="268" font-size="8.4" font-weight="700" fill="#8a4b1e">Constraints</text>
+      <text x="60" y="281" font-size="8" fill="#6b4321">CHECK (role IN ('student','admin'))</text>
+      <text x="60" y="293" font-size="8" fill="#6b4321">UNIQUE (email) — prevents duplicate accounts</text>
+      <text x="60" y="305" font-size="8" fill="#6b4321">password_hash stores a bcrypt digest, never plaintext</text>
+      <text x="60" y="317" font-size="8" fill="#6b4321">Exactly one row has role = 'admin' (seeded)</text>
+
+      <!-- COMPLAINTS entity -->
+      <rect x="490" y="60" width="290" height="330" rx="6" fill="#fff" stroke="#1f4e79" stroke-width="2"/>
+      <rect x="490" y="60" width="290" height="30" rx="6" fill="#1f4e79"/>
+      <text x="635" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">COMPLAINTS</text>
+      <g font-size="9.6">
+        <rect x="490" y="90" width="290" height="24" fill="#eef4fb"/>
+        <text x="502" y="106" font-weight="700" fill="#1f4e79">PK  id</text>
+        <text x="680" y="106" fill="#555" font-size="8.6">INTEGER AUTOINCREMENT</text>
+        <line x1="502" y1="108" x2="536" y2="108" stroke="#1f4e79" stroke-width="0.8"/>
+
+        <rect x="490" y="114" width="290" height="24" fill="#fdf1e6"/>
+        <text x="502" y="130" font-weight="700" fill="#8a4b1e">FK  user_id</text><text x="680" y="130" fill="#555" font-size="8.6">INTEGER NOT NULL</text>
+
+        <text x="502" y="152">category</text><text x="680" y="152" fill="#555" font-size="8.6">TEXT NOT NULL</text>
+        <rect x="490" y="158" width="290" height="22" fill="#f6f8fb"/>
+        <text x="502" y="173">description</text><text x="680" y="173" fill="#555" font-size="8.6">TEXT NOT NULL</text>
+        <text x="502" y="195">image_url</text><text x="680" y="195" fill="#555" font-size="8.6">TEXT NULL</text>
+        <rect x="490" y="202" width="290" height="22" fill="#f6f8fb"/>
+        <text x="502" y="217">status</text><text x="680" y="217" fill="#555" font-size="8.6">TEXT DEFAULT 'Pending'</text>
+        <text x="502" y="239">admin_remarks</text><text x="680" y="239" fill="#555" font-size="8.6">TEXT NULL</text>
+        <rect x="490" y="246" width="290" height="22" fill="#f6f8fb"/>
+        <text x="502" y="261">created_at</text><text x="680" y="261" fill="#555" font-size="8.6">TEXT DEFAULT now</text>
+        <text x="502" y="283">updated_at</text><text x="680" y="283" fill="#555" font-size="8.6">TEXT DEFAULT now</text>
+        <rect x="490" y="290" width="290" height="22" fill="#f6f8fb"/>
+        <text x="502" y="305">resolved_at</text><text x="680" y="305" fill="#555" font-size="8.6">TEXT NULL</text>
+      </g>
+      <rect x="502" y="320" width="266" height="60" rx="4" fill="#fdf6ee" stroke="#c0733f" stroke-dasharray="3,2"/>
+      <text x="510" y="334" font-size="8.4" font-weight="700" fill="#8a4b1e">Constraints</text>
+      <text x="510" y="347" font-size="8" fill="#6b4321">CHECK (category IN — 8 defined values)</text>
+      <text x="510" y="359" font-size="8" fill="#6b4321">CHECK (status IN 'Pending','In Progress',</text>
+      <text x="510" y="370" font-size="8" fill="#6b4321">        'Resolved','Closed')</text>
+      <text x="510" y="381" font-size="8" fill="#6b4321">FOREIGN KEY (user_id) REFERENCES users(id)</text>
+
+      <!-- relationship -->
+      <line x1="330" y1="176" x2="490" y2="176" stroke="#1f4e79" stroke-width="1.8"/>
+      <!-- one side (||) near users -->
+      <line x1="352" y1="166" x2="352" y2="186" stroke="#1f4e79" stroke-width="1.8"/>
+      <line x1="362" y1="166" x2="362" y2="186" stroke="#1f4e79" stroke-width="1.8"/>
+      <!-- many side (crow's foot) near complaints -->
+      <line x1="468" y1="176" x2="446" y2="164" stroke="#1f4e79" stroke-width="1.8"/>
+      <line x1="468" y1="176" x2="446" y2="188" stroke="#1f4e79" stroke-width="1.8"/>
+      <line x1="446" y1="176" x2="468" y2="176" stroke="#1f4e79" stroke-width="1.8"/>
+      <circle cx="440" cy="176" r="5" fill="#fff" stroke="#1f4e79" stroke-width="1.6"/>
+
+      <rect x="344" y="120" width="132" height="40" rx="5" fill="#eef4fb" stroke="#2e75b6"/>
+      <text x="410" y="136" text-anchor="middle" font-size="10" font-weight="700" fill="#1f4e79">raises</text>
+      <text x="410" y="151" text-anchor="middle" font-size="8.4" fill="#444">1 : 0..N</text>
+
+      <text x="410" y="204" text-anchor="middle" font-size="8.2" fill="#555">One student raises</text>
+      <text x="410" y="216" text-anchor="middle" font-size="8.2" fill="#555">zero or many complaints;</text>
+      <text x="410" y="228" text-anchor="middle" font-size="8.2" fill="#555">each complaint belongs to</text>
+      <text x="410" y="240" text-anchor="middle" font-size="8.2" fill="#555">exactly one student.</text>
+
+      <!-- indexes box -->
+      <rect x="40" y="406" width="740" height="66" rx="6" fill="#f4f8fc" stroke="#2e75b6" stroke-dasharray="4,3"/>
+      <text x="52" y="424" font-size="9.6" font-weight="700" fill="#1f4e79">Indexes (supporting the hot query paths of §2.1)</text>
+      <g font-size="8.8" fill="#333">
+        <text x="52" y="440">idx_complaints_user   → complaints(user_id)</text>
+        <text x="330" y="440">backs "my complaints" retrieval — REQ-16</text>
+        <text x="52" y="453">idx_complaints_status → complaints(status)</text>
+        <text x="330" y="453">backs status filtering and dashboard counts — REQ-31, REQ-35</text>
+        <text x="52" y="466">idx_complaints_cat    → complaints(category)</text>
+        <text x="330" y="466">backs category filtering and distribution chart — REQ-30, REQ-36</text>
+      </g>
+
+      <!-- file storage note -->
+      <rect x="40" y="486" width="740" height="52" rx="6" fill="#f7f7f7" stroke="#888" stroke-dasharray="4,3"/>
+      <text x="52" y="504" font-size="9.4" font-weight="700" fill="#444">External storage association (not a database entity)</text>
+      <text x="52" y="519" font-size="8.4" fill="#555">complaints.image_url holds a reference (path) to a file in /uploads. The image bytes are stored on the filesystem, not in the database,</text>
+      <text x="52" y="531" font-size="8.4" fill="#555">so that binary data does not inflate the database file or slow row scans. Deleting a complaint also deletes its file.</text>
+
+      <text x="410" y="34" text-anchor="middle" font-size="11" font-weight="700" fill="#1f4e79">Entity–Relationship Model (crow's-foot notation)</text>
+    </svg>
+    <figcaption>Figure 6.2 — ER Diagram for Hostel Buddy.</figcaption>
+  </figure>
+  <div class="rationale">
+    <b>Design Rationale.</b> The model is deliberately <b>two entities, not more</b>. Three plausible extra tables were considered and rejected. A separate <em>Category</em> table would allow categories to be added without a schema change, but v1.0 fixes the eight categories by requirement (<span class="req">REQ-10</span>), and a <code>CHECK</code> constraint enforces the same closed set with one fewer join on the hottest query — a lookup table becomes worthwhile only when categories become user-manageable. A separate <em>Status History</em> table would provide a full audit trail of transitions, but the SRS requires only the <em>current</em> status plus the submission and resolution dates (<span class="req">REQ-17</span>, <span class="req">REQ-25</span>, <span class="req">REQ-26</span>), so the three timestamp columns satisfy the requirement without the cost of a growing history table; this is recorded as the main extension point should auditing become a requirement. A separate <em>Admin</em> table was rejected because an administrator differs from a student only by role: one table with a <code>role</code> column keeps authentication uniform and avoids duplicating credential logic. Finally, the choice to store <b>image paths rather than image bytes</b> keeps rows narrow so that the frequent list and aggregate queries stay fast, at the accepted cost that database and filesystem must be backed up together.
+  </div>
+
+  <h3 id="s6-3">6.3 Entity Description</h3>
+  <h4>USERS</h4>
+  <p>Represents every person who can authenticate, whether student or administrator. A row is created when a visitor registers (students) or when the application starts for the first time (the single administrator). The <code>role</code> column is the sole discriminator and drives all authorisation decisions. The password is stored only as a bcrypt digest and is never returned by any interface. <code>room_number</code> is optional at the data level because a student may register before being allotted a room, and it is nullable for the administrator, who has no room. Deletion is not part of the normal lifecycle: complaints reference users, so removing a user would orphan their complaint history.</p>
+
+  <h4>COMPLAINTS</h4>
+  <p>Represents a single maintenance issue reported by one student. It is created in the <b>Pending</b> state and is thereafter advanced only by the administrator. The record carries three distinct kinds of information: the <em>description of the problem</em> (category, description, optional image), the <em>workflow state</em> (status, admin remarks), and the <em>chronology</em> (created, last updated, resolved). Separating these is what allows the student view (<span class="req">REQ-17</span>) to show submission date, current status, remarks and resolution date from a single row. <code>resolved_at</code> is written exactly once — the first time the complaint reaches Resolved — so that a later transition to Closed, or an edit of remarks, cannot falsify the resolution time.</p>
+
+  <h4>Relationship: <em>raises</em> (USERS 1 : 0..N COMPLAINTS)</h4>
+  <p>A student may have no complaints at all (a newly registered account) or many. Every complaint must have exactly one author, enforced by a <code>NOT NULL</code> foreign key. This single relationship is what makes ownership checks possible: comparing <code>complaints.user_id</code> with the authenticated caller's id is the mechanism behind <span class="req">REQ-20</span>. The administrator participates in the relationship only as a reader and never as an author, which is why no second relationship to USERS is modelled.</p>
+
+  <h3 id="s6-4">6.4 Data Dictionary</h3>
+  <table>
+    <tr><th style="width:12%">Entity</th><th style="width:16%">Attribute</th><th style="width:16%">Type</th><th style="width:12%">Key / Nullability</th><th>Description</th></tr>
+    <tr><td rowspan="7">USERS</td><td><code>id</code></td><td>INTEGER</td><td>PK, auto-increment</td><td>Surrogate primary key identifying the user.</td></tr>
+    <tr><td><code>name</code></td><td>TEXT (≤100)</td><td>NOT NULL</td><td>Full name shown in the interface and in administrator listings.</td></tr>
+    <tr><td><code>email</code></td><td>TEXT</td><td>UNIQUE, NOT NULL</td><td>Login identifier; normalised to lower case; uniqueness prevents duplicate accounts (<span class="req">REQ-2</span>).</td></tr>
+    <tr><td><code>password_hash</code></td><td>TEXT</td><td>NOT NULL</td><td>bcrypt digest (cost 10) including its salt. Never returned by any API (<span class="req">REQ-3</span>).</td></tr>
+    <tr><td><code>room_number</code></td><td>TEXT (≤20)</td><td>NULL</td><td>Hostel room identifier, e.g. "B-204"; searchable by the administrator (<span class="req">REQ-29</span>).</td></tr>
+    <tr><td><code>role</code></td><td>TEXT</td><td>NOT NULL, default <code>student</code></td><td>Authorisation discriminator; constrained to <code>student</code> or <code>admin</code>.</td></tr>
+    <tr><td><code>created_at</code></td><td>TEXT (ISO datetime)</td><td>NOT NULL, default now</td><td>Account creation timestamp; orders the student list.</td></tr>
+
+    <tr><td rowspan="10">COMPLAINTS</td><td><code>id</code></td><td>INTEGER</td><td>PK, auto-increment</td><td>Complaint identifier; shown to users as the searchable Complaint ID (<span class="req">REQ-29</span>).</td></tr>
+    <tr><td><code>user_id</code></td><td>INTEGER</td><td>FK → users(id), NOT NULL</td><td>Author of the complaint; the basis of every ownership check.</td></tr>
+    <tr><td><code>category</code></td><td>TEXT</td><td>NOT NULL, CHECK</td><td>One of: Electricity, Plumbing, Water Supply, Wi-Fi, Cleaning, Furniture, Security, Other (<span class="req">REQ-10</span>).</td></tr>
+    <tr><td><code>description</code></td><td>TEXT (≤1000)</td><td>NOT NULL</td><td>Free-text account of the issue (<span class="req">REQ-11</span>).</td></tr>
+    <tr><td><code>image_url</code></td><td>TEXT</td><td>NULL</td><td>Path to the optional uploaded image under <code>/uploads</code> (<span class="req">REQ-12</span>).</td></tr>
+    <tr><td><code>status</code></td><td>TEXT</td><td>NOT NULL, default <code>Pending</code>, CHECK</td><td>Current lifecycle state: Pending, In Progress, Resolved or Closed (<span class="req">REQ-13</span>, <span class="req">REQ-28</span>).</td></tr>
+    <tr><td><code>admin_remarks</code></td><td>TEXT (≤1000)</td><td>NULL</td><td>Administrator's note to the student, visible in the tracking view (<span class="req">REQ-24</span>).</td></tr>
+    <tr><td><code>created_at</code></td><td>TEXT (ISO datetime)</td><td>NOT NULL, default now</td><td>Submission timestamp; default sort key, newest first (<span class="req">REQ-13</span>).</td></tr>
+    <tr><td><code>updated_at</code></td><td>TEXT (ISO datetime)</td><td>NOT NULL, default now</td><td>Time of the most recent change of any kind (<span class="req">REQ-25</span>).</td></tr>
+    <tr><td><code>resolved_at</code></td><td>TEXT (ISO datetime)</td><td>NULL</td><td>Set exactly once, when the complaint first becomes Resolved; never reset (<span class="req">REQ-26</span>).</td></tr>
+  </table>
+
+  <h3 id="s6-5">6.5 Database Constraints</h3>
+  <table>
+    <tr><th style="width:20%">Constraint type</th><th style="width:26%">Definition</th><th>Purpose and requirement served</th></tr>
+    <tr><td><b>Primary key</b></td><td><code>users.id</code>, <code>complaints.id</code></td><td>Guarantees unique, stable identity for every row. Surrogate integer keys are used rather than natural keys so that a user changing email does not break existing references.</td></tr>
+    <tr><td><b>Foreign key</b></td><td><code>complaints.user_id → users.id</code></td><td>Guarantees every complaint has a real author; prevents orphan records. Enforcement is enabled explicitly on each connection.</td></tr>
+    <tr><td><b>Unique</b></td><td><code>users.email</code></td><td>Prevents duplicate accounts (<span class="req">REQ-2</span>). Acts as the authoritative backstop: even if two registrations race past the application's existence check, the database rejects the second, which the service converts into a clear <code>409</code> response.</td></tr>
+    <tr><td><b>Check (role)</b></td><td><code>role IN ('student','admin')</code></td><td>Makes an unknown role impossible to store, so authorisation logic never encounters an unexpected value.</td></tr>
+    <tr><td><b>Check (category)</b></td><td>8 permitted category values</td><td>Enforces the controlled vocabulary of <span class="req">REQ-10</span> at the storage level, keeping the category distribution chart meaningful.</td></tr>
+    <tr><td><b>Check (status)</b></td><td>4 permitted lifecycle states</td><td>Enforces <span class="req">REQ-28</span>; guarantees no complaint can exist outside the defined workflow.</td></tr>
+    <tr><td><b>Not null</b></td><td>name, email, password_hash, role, user_id, category, description, status, created_at, updated_at</td><td>Encodes the mandatory fields of the requirements so that incomplete records cannot be persisted.</td></tr>
+    <tr><td><b>Default values</b></td><td><code>status='Pending'</code>, <code>role='student'</code>, timestamps = current time</td><td>Makes the safe value the automatic one: a complaint inserted without a status is Pending, and a user created without a role is a student, so a privilege cannot be granted by omission.</td></tr>
+    <tr><td><b>Application-level rules</b></td><td>Length limits (name 100, room 20, description 1000, remarks 1000); email format; password ≥ 6 characters; image type and 5&nbsp;MB size</td><td>Validated in the service layer where a helpful message can be produced, in addition to the structural constraints above (<span class="req">REQ-8</span>, <span class="req">REQ-12</span>, <span class="req">REQ-39</span>).</td></tr>
+  </table>
+  <p class="note"><b>Defence in depth.</b> Enumerations and uniqueness are enforced twice — once in the service layer, where a friendly error message can be returned, and once in the schema, where correctness is guaranteed regardless of the calling code. The application layer exists for usability; the database layer exists for truth.</p>
+
+  <h3 id="s6-6">6.6 Normalization</h3>
+  <p>The schema is in <b>Third Normal Form (3NF)</b>. The progression is shown below.</p>
+  <table>
+    <tr><th style="width:14%">Form</th><th style="width:30%">Requirement</th><th>Evidence in this schema</th></tr>
+    <tr><td><b>1NF</b></td><td>Atomic attributes; no repeating groups.</td><td>Every column holds a single scalar value. A complaint carries exactly one category and one image reference rather than a list, so no multi-valued attribute exists.</td></tr>
+    <tr><td><b>2NF</b></td><td>1NF and no partial dependency on part of a composite key.</td><td>Both tables use a single-column surrogate primary key, so no composite key exists and partial dependency is impossible by construction.</td></tr>
+    <tr><td><b>3NF</b></td><td>2NF and no transitive dependency of a non-key attribute on another non-key attribute.</td><td>Every non-key column depends only on its table's key. Critically, the student's <code>name</code> and <code>room_number</code> are stored <b>only</b> in USERS — the administrator's listing obtains them by joining rather than by duplicating them into COMPLAINTS, which would have created a transitive dependency and an update anomaly whenever a student changed rooms.</td></tr>
+  </table>
+  <h4>Deliberate design decisions regarding normalisation</h4>
+  <ul>
+    <li><b>Categories and statuses are stored as constrained text, not foreign keys to lookup tables.</b> Strictly, a lookup table would push the design further toward a fully normalised catalogue. It was rejected because the vocabularies are fixed by requirement, <code>CHECK</code> constraints provide the same integrity guarantee, and avoiding two extra joins keeps the most frequent queries — the administrator listing and the dashboard aggregation — simpler and faster. Should categories become administrator-manageable, promoting them to a table is a localised change affecting one repository.</li>
+    <li><b><code>resolved_at</code> is retained despite being derivable in principle from a status history.</b> Because no history table exists, this column is not redundant — it is the only record of when resolution occurred, and storing it avoids an expensive reconstruction on every read.</li>
+    <li><b>No denormalisation for performance was necessary.</b> Measured query times over a realistic dataset remained at or below approximately one millisecond, so the schema retains full 3NF integrity with no cached counts or duplicated columns.</li>
+  </ul>
+</section>
+
+<!-- ============================ 7. DETAILED DESIGN ============================ -->
+<section class="break">
+  <h2 id="s7">7. Detailed Design</h2>
+
+  <h3 id="s7-1">7.1 Object-Oriented Design Overview</h3>
+  <p>Each module of §4 is realised as a small collection of collaborating classes, one per architectural layer. The design applies object-oriented principles as follows.</p>
+  <table>
+    <tr><th style="width:18%">Principle</th><th>Application</th></tr>
+    <tr><td><b>Abstraction</b></td><td>Each class exposes the operations meaningful to its collaborators and hides how they are achieved. <code>ComplaintRepository</code> publishes <code>findByUser</code>, <code>search</code> and <code>updateStatus</code>; callers never see SQL, table names or pagination arithmetic. Similarly <code>JwtUtil</code> exposes only <code>signToken</code>/<code>verifyToken</code>, hiding the algorithm and expiry policy.</td></tr>
+    <tr><td><b>Encapsulation</b></td><td>State and the rules governing it are kept together. The complaint lifecycle is manipulated exclusively through <code>ComplaintService.updateStatus()</code>; no other class may write the <code>status</code> or <code>resolved_at</code> fields. <code>UserRepository</code> encapsulates the users table and deliberately exposes two distinct read operations — one returning the full row for credential verification, one returning a public projection without the password hash — so that leaking the digest requires actively choosing the wrong method.</td></tr>
+    <tr><td><b>Separation of interface and implementation</b></td><td>Services depend on repository <em>operations</em>, not on the database engine. Replacing SQLite with PostgreSQL changes repository internals while services, controllers and routes remain untouched.</td></tr>
+    <tr><td><b>Polymorphism</b></td><td>Used where it earns its place rather than for its own sake. Express middleware are interchangeable objects implementing the same <code>(request, response, next)</code> contract, so guards, upload handling and the error handler compose freely into a pipeline. <code>AppError</code> extends the built-in <code>Error</code> type, so a single <code>catch</code> handles both deliberate application failures and unexpected runtime errors, treating each according to its actual type.</td></tr>
+    <tr><td><b>Inheritance</b></td><td>Applied sparingly — only <code>AppError extends Error</code>. Deep hierarchies were avoided because the domain has one entity type with no natural subtypes; composition and explicit delegation were preferred throughout, in keeping with the low-coupling goal.</td></tr>
+    <tr><td><b>Single responsibility</b></td><td>Controllers translate HTTP, services decide, repositories persist. A class that begins to do two of these is a signal to split it.</td></tr>
+    <tr><td><b>Dependency direction</b></td><td>Controllers depend on services; services depend on repositories; repositories depend on the database connection. No reverse dependency exists, so the layers can be unit-tested in isolation from the top down.</td></tr>
+  </table>
+
+  <h3 id="s7-2">7.2 Class Diagram</h3>
+  <figure>
+    <svg viewBox="0 0 880 700" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="8.6">
+      <defs>
+        <marker id="cd-arrow" markerWidth="10" markerHeight="10" refX="9" refY="3.2" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L9,3.2 L0,6.4" fill="none" stroke="#555" stroke-width="1.1"/>
+        </marker>
+        <marker id="cd-tri" markerWidth="12" markerHeight="12" refX="11" refY="4" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L11,4 L0,8 Z" fill="#fff" stroke="#555" stroke-width="1.1"/>
+        </marker>
+      </defs>
+
+      <!-- ===== Controllers row ===== -->
+      <text x="14" y="20" font-size="9.6" font-weight="700" fill="#2e75b6">« controller layer »</text>
+      <g>
+        <rect x="14" y="26" width="196" height="60" fill="#fff" stroke="#2e75b6" stroke-width="1.3"/>
+        <rect x="14" y="26" width="196" height="18" fill="#eaf1fb" stroke="#2e75b6"/>
+        <text x="112" y="39" text-anchor="middle" font-weight="700">AuthController</text>
+        <text x="20" y="57">+ register(req, res, next)</text>
+        <text x="20" y="70">+ login(req, res, next)</text>
+        <text x="20" y="82" fill="#777" font-size="7.6">delegates to AuthService</text>
+
+        <rect x="228" y="26" width="196" height="60" fill="#fff" stroke="#2e75b6" stroke-width="1.3"/>
+        <rect x="228" y="26" width="196" height="18" fill="#eaf1fb" stroke="#2e75b6"/>
+        <text x="326" y="39" text-anchor="middle" font-weight="700">UserController</text>
+        <text x="234" y="57">+ me() + updateMe()</text>
+        <text x="234" y="70">+ listStudents()</text>
+        <text x="234" y="82" fill="#777" font-size="7.6">delegates to UserService</text>
+
+        <rect x="442" y="26" width="216" height="60" fill="#fff" stroke="#2e75b6" stroke-width="1.3"/>
+        <rect x="442" y="26" width="216" height="18" fill="#eaf1fb" stroke="#2e75b6"/>
+        <text x="550" y="39" text-anchor="middle" font-weight="700">ComplaintController</text>
+        <text x="448" y="57">+ create() + listMine() + getOne()</text>
+        <text x="448" y="70">+ update() + remove() + listAll()</text>
+        <text x="448" y="82">+ updateStatus()</text>
+
+        <rect x="676" y="26" width="190" height="60" fill="#fff" stroke="#2e75b6" stroke-width="1.3"/>
+        <rect x="676" y="26" width="190" height="18" fill="#eaf1fb" stroke="#2e75b6"/>
+        <text x="771" y="39" text-anchor="middle" font-weight="700">DashboardController</text>
+        <text x="682" y="57">+ student(req, res, next)</text>
+        <text x="682" y="70">+ admin(req, res, next)</text>
+        <text x="682" y="82" fill="#777" font-size="7.6">read-only endpoints</text>
+      </g>
+
+      <!-- arrows controllers -> services -->
+      <g stroke="#555" stroke-width="1.1" marker-end="url(#cd-arrow)">
+        <line x1="112" y1="86" x2="112" y2="118"/>
+        <line x1="326" y1="86" x2="326" y2="118"/>
+        <line x1="550" y1="86" x2="550" y2="118"/>
+        <line x1="771" y1="86" x2="771" y2="118"/>
+      </g>
+
+      <!-- ===== Services row ===== -->
+      <text x="14" y="112" font-size="9.6" font-weight="700" fill="#1f4e79">« service layer — business rules »</text>
+      <g>
+        <rect x="14" y="122" width="196" height="96" fill="#fff" stroke="#1f4e79" stroke-width="1.8"/>
+        <rect x="14" y="122" width="196" height="18" fill="#dfeaf7" stroke="#1f4e79"/>
+        <text x="112" y="135" text-anchor="middle" font-weight="700">AuthService</text>
+        <text x="20" y="153">- BCRYPT_ROUNDS : int = 10</text>
+        <line x1="14" y1="158" x2="210" y2="158" stroke="#1f4e79"/>
+        <text x="20" y="171">+ register(dto) : AuthResult</text>
+        <text x="20" y="184">+ login(dto) : AuthResult</text>
+        <text x="20" y="197">- toAuthResponse(user)</text>
+        <text x="20" y="210" fill="#8a4b1e" font-size="7.6">enforces unique email, generic 401</text>
+
+        <rect x="228" y="122" width="196" height="96" fill="#fff" stroke="#1f4e79" stroke-width="1.8"/>
+        <rect x="228" y="122" width="196" height="18" fill="#dfeaf7" stroke="#1f4e79"/>
+        <text x="326" y="135" text-anchor="middle" font-weight="700">UserService</text>
+        <line x1="228" y1="146" x2="424" y2="146" stroke="#1f4e79"/>
+        <text x="234" y="160">+ getProfile(userId) : User</text>
+        <text x="234" y="173">+ updateProfile(userId, dto)</text>
+        <text x="234" y="186">+ listStudents() : User[]</text>
+        <text x="234" y="205" fill="#8a4b1e" font-size="7.6">validates name / room length</text>
+
+        <rect x="442" y="122" width="216" height="96" fill="#fff" stroke="#1f4e79" stroke-width="2.2"/>
+        <rect x="442" y="122" width="216" height="18" fill="#dfeaf7" stroke="#1f4e79"/>
+        <text x="550" y="135" text-anchor="middle" font-weight="700">ComplaintService</text>
+        <text x="448" y="152">- MAX_DESCRIPTION : int = 1000</text>
+        <line x1="442" y1="157" x2="658" y2="157" stroke="#1f4e79"/>
+        <text x="448" y="169">+ createComplaint() + listMine()</text>
+        <text x="448" y="181">+ getOne() + updateComplaint()</text>
+        <text x="448" y="193">+ deleteComplaint() + listAll()</text>
+        <text x="448" y="205">+ updateStatus()</text>
+        <text x="448" y="215" fill="#a12626" font-size="7.4">- loadOwnedPending() ← key invariant</text>
+
+        <rect x="676" y="122" width="190" height="96" fill="#fff" stroke="#1f4e79" stroke-width="1.8"/>
+        <rect x="676" y="122" width="190" height="18" fill="#dfeaf7" stroke="#1f4e79"/>
+        <text x="771" y="135" text-anchor="middle" font-weight="700">DashboardService</text>
+        <line x1="676" y1="146" x2="866" y2="146" stroke="#1f4e79"/>
+        <text x="682" y="160">+ studentDashboard(userId)</text>
+        <text x="682" y="173">+ adminDashboard()</text>
+        <text x="682" y="186">- zeroFilled(keys, rows)</text>
+        <text x="682" y="205" fill="#8a4b1e" font-size="7.6">composes; owns no table</text>
+      </g>
+
+      <!-- arrows services -> repos -->
+      <g stroke="#555" stroke-width="1.1" marker-end="url(#cd-arrow)">
+        <line x1="112" y1="218" x2="290" y2="266"/>
+        <line x1="326" y1="218" x2="326" y2="266"/>
+        <line x1="550" y1="218" x2="550" y2="266"/>
+        <line x1="760" y1="218" x2="606" y2="266"/>
+        <line x1="740" y1="218" x2="400" y2="266"/>
+      </g>
+      <text x="150" y="250" font-size="7.4" fill="#666">uses</text>
+      <text x="640" y="250" font-size="7.4" fill="#666">aggregates</text>
+
+      <!-- ===== Repository row ===== -->
+      <text x="14" y="262" font-size="9.6" font-weight="700" fill="#2e75b6">« repository layer — only SQL »</text>
+      <g>
+        <rect x="228" y="270" width="196" height="104" fill="#fff" stroke="#2e75b6" stroke-width="1.5"/>
+        <rect x="228" y="270" width="196" height="18" fill="#eaf1fb" stroke="#2e75b6"/>
+        <text x="326" y="283" text-anchor="middle" font-weight="700">UserRepository</text>
+        <text x="234" y="300" fill="#777" font-size="7.6">« owns table: users »</text>
+        <line x1="228" y1="305" x2="424" y2="305" stroke="#2e75b6"/>
+        <text x="234" y="318">+ createUser(dto) : User</text>
+        <text x="234" y="330">+ findByEmail(email) : Row</text>
+        <text x="234" y="342">+ findById(id) : User</text>
+        <text x="234" y="354">+ updateProfile(id, dto)</text>
+        <text x="234" y="366">+ listStudents() + countStudents()</text>
+
+        <rect x="442" y="270" width="216" height="104" fill="#fff" stroke="#2e75b6" stroke-width="1.5"/>
+        <rect x="442" y="270" width="216" height="18" fill="#eaf1fb" stroke="#2e75b6"/>
+        <text x="550" y="283" text-anchor="middle" font-weight="700">ComplaintRepository</text>
+        <text x="448" y="300" fill="#777" font-size="7.6">« owns table: complaints »</text>
+        <line x1="442" y1="305" x2="658" y2="305" stroke="#2e75b6"/>
+        <text x="448" y="318">+ create() + findById() + findByUser()</text>
+        <text x="448" y="330">+ update() + remove()</text>
+        <text x="448" y="342">+ search(filters) : {rows, total}</text>
+        <text x="448" y="354">+ updateStatus(id, dto)</text>
+        <text x="448" y="366">+ statusCounts() + categoryCounts() + recent()</text>
+      </g>
+
+      <!-- db -->
+      <g stroke="#555" stroke-width="1.1" marker-end="url(#cd-arrow)">
+        <line x1="326" y1="374" x2="380" y2="404"/>
+        <line x1="550" y1="374" x2="470" y2="404"/>
+      </g>
+      <rect x="330" y="408" width="200" height="44" fill="#f7f7f7" stroke="#666" stroke-width="1.4"/>
+      <rect x="330" y="408" width="200" height="18" fill="#e8e8e8" stroke="#666"/>
+      <text x="430" y="421" text-anchor="middle" font-weight="700">Database (DatabaseSync)</text>
+      <text x="336" y="438">+ prepare(sql) + exec(sql)</text>
+      <text x="336" y="449" fill="#777" font-size="7.6">prepared statements only — no string concatenation</text>
+
+      <!-- ===== Middleware / infra ===== -->
+      <text x="14" y="392" font-size="9.6" font-weight="700" fill="#8a4b1e">« cross-cutting infrastructure »</text>
+      <g>
+        <rect x="14" y="400" width="200" height="88" fill="#fff" stroke="#c0733f" stroke-width="1.4"/>
+        <rect x="14" y="400" width="200" height="18" fill="#fdf1e6" stroke="#c0733f"/>
+        <text x="114" y="413" text-anchor="middle" font-weight="700">AuthMiddleware</text>
+        <line x1="14" y1="424" x2="214" y2="424" stroke="#c0733f"/>
+        <text x="20" y="437">+ requireAuth(req, res, next)</text>
+        <text x="20" y="450">+ requireRole(role) : Middleware</text>
+        <text x="20" y="466" fill="#777" font-size="7.6">attaches req.user = {userId, role}</text>
+        <text x="20" y="478" fill="#777" font-size="7.6">401 unauthenticated · 403 forbidden</text>
+
+        <rect x="556" y="400" width="200" height="88" fill="#fff" stroke="#c0733f" stroke-width="1.4"/>
+        <rect x="556" y="400" width="200" height="18" fill="#fdf1e6" stroke="#c0733f"/>
+        <text x="656" y="413" text-anchor="middle" font-weight="700">UploadMiddleware</text>
+        <line x1="556" y1="424" x2="756" y2="424" stroke="#c0733f"/>
+        <text x="562" y="437">+ uploadImage(req, res, next)</text>
+        <text x="562" y="450">+ removeUploadedFile(name)</text>
+        <text x="562" y="466" fill="#777" font-size="7.6">PNG / JPEG / WEBP, max 5 MB</text>
+        <text x="562" y="478" fill="#777" font-size="7.6">randomised filenames</text>
+
+        <rect x="14" y="502" width="200" height="80" fill="#fff" stroke="#c0733f" stroke-width="1.4"/>
+        <rect x="14" y="502" width="200" height="18" fill="#fdf1e6" stroke="#c0733f"/>
+        <text x="114" y="515" text-anchor="middle" font-weight="700">JwtUtil</text>
+        <line x1="14" y1="526" x2="214" y2="526" stroke="#c0733f"/>
+        <text x="20" y="539">+ signToken(payload) : string</text>
+        <text x="20" y="552">+ verifyToken(token) : payload</text>
+        <text x="20" y="568" fill="#777" font-size="7.6">HS256 · 24-hour expiry</text>
+
+        <rect x="228" y="502" width="196" height="80" fill="#fff" stroke="#c0733f" stroke-width="1.4"/>
+        <rect x="228" y="502" width="196" height="18" fill="#fdf1e6" stroke="#c0733f"/>
+        <text x="326" y="515" text-anchor="middle" font-weight="700">SecurityMiddleware</text>
+        <line x1="228" y1="526" x2="424" y2="526" stroke="#c0733f"/>
+        <text x="234" y="539">+ securityHeaders</text>
+        <text x="234" y="552">+ authLimiter</text>
+        <text x="234" y="568" fill="#777" font-size="7.6">helmet + CSP · rate limiting</text>
+
+        <rect x="438" y="502" width="196" height="80" fill="#fff" stroke="#c0733f" stroke-width="1.4"/>
+        <rect x="438" y="502" width="196" height="18" fill="#fdf1e6" stroke="#c0733f"/>
+        <text x="536" y="515" text-anchor="middle" font-weight="700">Constants / Config</text>
+        <line x1="438" y1="526" x2="634" y2="526" stroke="#c0733f"/>
+        <text x="444" y="539">+ CATEGORIES[8] + STATUSES[4]</text>
+        <text x="444" y="552">+ ROLES + jwtSecret + limits</text>
+        <text x="444" y="568" fill="#777" font-size="7.6">single source of truth</text>
+
+        <rect x="648" y="502" width="218" height="80" fill="#fff" stroke="#a12626" stroke-width="1.4"/>
+        <rect x="648" y="502" width="218" height="18" fill="#fdecec" stroke="#a12626"/>
+        <text x="757" y="515" text-anchor="middle" font-weight="700">AppError</text>
+        <text x="654" y="530" fill="#777" font-size="7.6">« extends Error »</text>
+        <line x1="648" y1="535" x2="866" y2="535" stroke="#a12626"/>
+        <text x="654" y="548">+ status : int   + code : string</text>
+        <text x="654" y="561">+ constructor(message, status, code)</text>
+        <text x="654" y="574" fill="#777" font-size="7.6">thrown by services, mapped by ErrorHandler</text>
+      </g>
+
+      <!-- Error inheritance -->
+      <rect x="700" y="612" width="120" height="30" fill="#f4f4f4" stroke="#888"/>
+      <text x="760" y="631" text-anchor="middle" font-weight="700" fill="#555">Error</text>
+      <line x1="757" y1="582" x2="757" y2="610" stroke="#555" stroke-width="1.1" marker-end="url(#cd-tri)"/>
+      <text x="766" y="600" font-size="7.4" fill="#666">extends</text>
+
+      <!-- ErrorHandler -->
+      <rect x="438" y="612" width="196" height="46" fill="#fff" stroke="#a12626" stroke-width="1.4"/>
+      <rect x="438" y="612" width="196" height="18" fill="#fdecec" stroke="#a12626"/>
+      <text x="536" y="625" text-anchor="middle" font-weight="700">ErrorHandler</text>
+      <text x="444" y="642">+ errorHandler(err, req, res, next)</text>
+      <text x="444" y="653" fill="#777" font-size="7.6">→ { error: { message, code } }</text>
+      <line x1="648" y1="560" x2="636" y2="612" stroke="#555" stroke-width="1.1" marker-end="url(#cd-arrow)"/>
+
+      <!-- legend -->
+      <rect x="14" y="606" width="410" height="58" rx="4" fill="#fbfbfb" stroke="#ddd"/>
+      <text x="24" y="622" font-weight="700" fill="#333">Legend</text>
+      <line x1="80" y1="618" x2="112" y2="618" stroke="#555" stroke-width="1.1" marker-end="url(#cd-arrow)"/>
+      <text x="120" y="621">dependency / uses</text>
+      <line x1="230" y1="618" x2="262" y2="618" stroke="#555" stroke-width="1.1" marker-end="url(#cd-tri)"/>
+      <text x="272" y="621">generalisation (extends)</text>
+      <text x="24" y="638" fill="#555">+ public operation      - private member      « … » stereotype</text>
+      <text x="24" y="652" fill="#555">Bold border = service layer, where all business rules reside.</text>
+    </svg>
+    <figcaption>Figure 7.1 — Class Diagram (principal classes and their relationships).</figcaption>
+  </figure>
+  <div class="rationale">
+    <b>Design Rationale.</b> The class structure repeats one shape — controller, service, repository — for every module, which was chosen over a richer domain model for a specific reason: the domain has <b>one entity with a state machine and a handful of invariants</b>, not a web of interacting objects. A full domain-model approach (a <code>Complaint</code> class owning its own transition methods and persistence) would add mapping machinery without removing any real complexity at this size. The most significant single element in the diagram is the private helper <code>ComplaintService.loadOwnedPending()</code>: the ownership and Pending-only invariants of <span class="req">REQ-18</span>–<span class="req">REQ-20</span> are implemented <em>once</em> there and reused by both edit and delete, so the two operations cannot drift apart or be individually forgotten. <code>AuthService</code> deliberately holds no repository of its own and borrows <code>UserRepository</code>, keeping a single writer for the users table. <code>DashboardService</code> deliberately holds no repository at all. Inheritance appears exactly once (<code>AppError extends Error</code>) because that is the only place where substitutability is genuinely useful — a single catch site can then handle deliberate and accidental failures correctly by type.
+  </div>
+
+  <h3 id="s7-3">7.3 Class Description</h3>
+  <table>
+    <tr><th style="width:20%">Class</th><th style="width:12%">Layer</th><th>Responsibility and key design notes</th></tr>
+    <tr><td><code>AuthService</code></td><td>Service (M1)</td><td>Registers students and authenticates users. Validates input, normalises the email, enforces uniqueness, hashes the password with bcrypt and issues a token. Returns an identical generic error for "unknown email" and "wrong password" so that the API cannot be used to enumerate registered accounts. Catches the database uniqueness violation as a backstop and converts it into a clear conflict response.</td></tr>
+    <tr><td><code>UserService</code></td><td>Service (M2)</td><td>Reads and updates profiles. Permits only <code>name</code> and <code>room_number</code> to change; email and role are immutable by construction, so privilege escalation through a profile update is impossible.</td></tr>
+    <tr><td><code>ComplaintService</code></td><td>Service (M3)</td><td>The heart of the system. Validates category against the controlled vocabulary and enforces the description limit; forces the initial status to Pending, ignoring any client-supplied value; resolves ownership for reads (owner or administrator); enforces the Pending-only rule for edit and delete through <code>loadOwnedPending()</code>; applies status transitions and sets <code>resolved_at</code> only on the first transition into Resolved.</td></tr>
+    <tr><td><code>DashboardService</code></td><td>Service (M4)</td><td>Builds the two read-models by composing repository aggregates. <code>zeroFilled()</code> guarantees every status and category key is present even when its count is zero, so the client can render a complete chart without defensive logic.</td></tr>
+    <tr><td><code>UserRepository</code></td><td>Repository (M2)</td><td>Sole owner of the <code>users</code> table. Exposes <code>findByEmail</code> returning the complete row (including the hash) strictly for credential verification, and <code>findById</code>/<code>listStudents</code> returning a public projection that omits the hash — making the safe path the default one.</td></tr>
+    <tr><td><code>ComplaintRepository</code></td><td>Repository (M3)</td><td>Sole owner of the <code>complaints</code> table. Provides CRUD, the joined and paginated <code>search()</code> used by the administrator, and the aggregate operations consumed by the dashboard. Builds filter clauses with bound parameters exclusively, so search input cannot alter query structure.</td></tr>
+    <tr><td><code>AuthMiddleware</code></td><td>Infrastructure</td><td>Verifies the bearer token and attaches the caller's identity to the request; <code>requireRole()</code> is a factory returning a guard for a specific role. Because identity arrives only through this component, an endpoint that omits it simply has no caller to act upon.</td></tr>
+    <tr><td><code>UploadMiddleware</code></td><td>Infrastructure</td><td>Accepts a single optional image, restricts type and size, stores it under a randomised filename, and translates upload failures into the standard error shape. Also removes orphaned files when a later validation step rejects the request.</td></tr>
+    <tr><td><code>AppError</code> / <code>ErrorHandler</code></td><td>Infrastructure</td><td><code>AppError</code> carries an HTTP status and a machine-readable code alongside the message. <code>ErrorHandler</code> is the single place that converts any failure into the uniform response, logging server faults while returning a safe generic message for them.</td></tr>
+    <tr><td><code>JwtUtil</code>, <code>Constants</code>, <code>Config</code></td><td>Infrastructure</td><td>Isolate token mechanics, controlled vocabularies and environment configuration. Adding a complaint category is a one-line change in <code>Constants</code> plus the corresponding schema constraint.</td></tr>
+  </table>
+
+  <h3 id="s7-4">7.4 Sequence Diagrams</h3>
+  <p>Four scenarios are modelled: the two most frequent operations, the security-critical negative path, and the administrator workflow that drives the complaint lifecycle.</p>
+
+  <h4>7.4.1 Student registration and login (UC-1, UC-2)</h4>
+  <figure>
+    <svg viewBox="0 0 820 420" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="8.4">
+      <defs>
+        <marker id="sq1" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#333"/></marker>
+        <marker id="sq1o" markerWidth="10" markerHeight="10" refX="9" refY="3.2" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L9,3.2 L0,6.4" fill="none" stroke="#2f6b2f" stroke-width="1.1"/></marker>
+      </defs>
+      <!-- lifelines -->
+      <g>
+        <rect x="20" y="16" width="110" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="75" y="33" text-anchor="middle" font-weight="700">Student (browser)</text>
+        <rect x="164" y="16" width="104" height="26" rx="4" fill="#f4f4f4" stroke="#888"/><text x="216" y="33" text-anchor="middle" font-weight="700">api.js</text>
+        <rect x="300" y="16" width="112" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="356" y="33" text-anchor="middle" font-weight="700">AuthController</text>
+        <rect x="444" y="16" width="112" height="26" rx="4" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.4"/><text x="500" y="33" text-anchor="middle" font-weight="700">AuthService</text>
+        <rect x="588" y="16" width="112" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="644" y="33" text-anchor="middle" font-weight="700">UserRepository</text>
+        <rect x="726" y="16" width="80" height="26" rx="4" fill="#f7f7f7" stroke="#666"/><text x="766" y="33" text-anchor="middle" font-weight="700">Database</text>
+      </g>
+      <g stroke="#aaa" stroke-dasharray="4,4" stroke-width="1">
+        <line x1="75" y1="42" x2="75" y2="404"/><line x1="216" y1="42" x2="216" y2="404"/>
+        <line x1="356" y1="42" x2="356" y2="404"/><line x1="500" y1="42" x2="500" y2="404"/>
+        <line x1="644" y1="42" x2="644" y2="404"/><line x1="766" y1="42" x2="766" y2="404"/>
+      </g>
+
+      <text x="20" y="60" font-weight="700" fill="#1f4e79">REGISTRATION</text>
+      <g stroke="#333" stroke-width="1.1" marker-end="url(#sq1)">
+        <line x1="75" y1="72" x2="212" y2="72"/>
+        <line x1="216" y1="90" x2="352" y2="90"/>
+        <line x1="356" y1="108" x2="496" y2="108"/>
+        <line x1="500" y1="126" x2="640" y2="126"/>
+        <line x1="644" y1="144" x2="762" y2="144"/>
+      </g>
+      <text x="80" y="69">submit form (name, email, password, room)</text>
+      <text x="221" y="87">POST /api/auth/register</text>
+      <text x="361" y="105">register(dto)</text>
+      <text x="505" y="123">findByEmail(email)</text>
+      <text x="649" y="141">SELECT</text>
+
+      <g stroke="#2f6b2f" stroke-width="1.05" stroke-dasharray="5,3" marker-end="url(#sq1o)">
+        <line x1="762" y1="158" x2="648" y2="158"/>
+      </g>
+      <text x="654" y="155" fill="#2f6b2f">null (email free)</text>
+
+      <rect x="440" y="168" width="180" height="26" rx="3" fill="#fdf1e6" stroke="#c0733f"/>
+      <text x="446" y="179" fill="#6b4321">validate input · normalise email</text>
+      <text x="446" y="190" fill="#6b4321">hash = bcrypt(password, 10)</text>
+
+      <g stroke="#333" stroke-width="1.1" marker-end="url(#sq1)">
+        <line x1="500" y1="206" x2="640" y2="206"/>
+        <line x1="644" y1="222" x2="762" y2="222"/>
+      </g>
+      <text x="505" y="203">createUser(name, email, hash, room)</text>
+      <text x="649" y="219">INSERT INTO users</text>
+
+      <g stroke="#2f6b2f" stroke-width="1.05" stroke-dasharray="5,3" marker-end="url(#sq1o)">
+        <line x1="762" y1="236" x2="648" y2="236"/>
+        <line x1="640" y1="250" x2="504" y2="250"/>
+      </g>
+      <text x="654" y="233" fill="#2f6b2f">new row id</text>
+      <text x="510" y="247" fill="#2f6b2f">user (no password hash)</text>
+
+      <rect x="440" y="258" width="150" height="18" rx="3" fill="#fdf1e6" stroke="#c0733f"/>
+      <text x="446" y="270" fill="#6b4321">signToken({ userId, role })</text>
+
+      <g stroke="#2f6b2f" stroke-width="1.05" stroke-dasharray="5,3" marker-end="url(#sq1o)">
+        <line x1="496" y1="288" x2="360" y2="288"/>
+        <line x1="352" y1="302" x2="220" y2="302"/>
+        <line x1="212" y1="316" x2="79" y2="316"/>
+      </g>
+      <text x="366" y="285" fill="#2f6b2f">{ token, user }</text>
+      <text x="226" y="299" fill="#2f6b2f">201 Created</text>
+      <text x="85" y="313" fill="#2f6b2f">store token → redirect to dashboard</text>
+
+      <line x1="20" y1="328" x2="806" y2="328" stroke="#ddd"/>
+      <text x="20" y="344" font-weight="700" fill="#a12626">ALTERNATIVE — email already registered</text>
+      <g stroke="#a12626" stroke-width="1.05" stroke-dasharray="5,3" marker-end="url(#sq1)">
+        <line x1="640" y1="360" x2="504" y2="360"/>
+        <line x1="496" y1="378" x2="79" y2="378"/>
+      </g>
+      <text x="510" y="357" fill="#a12626">existing user row</text>
+      <text x="90" y="375" fill="#a12626">409 Conflict — "An account with this email already exists" (REQ-2)</text>
+      <text x="20" y="398" fill="#555" font-size="7.8">Login follows the same path but compares the bcrypt digest; any failure returns one generic 401 so that registered emails cannot be discovered (REQ-5).</text>
+    </svg>
+    <figcaption>Figure 7.2 — Sequence: student registration, with the duplicate-email alternative path.</figcaption>
+  </figure>
+
+  <h4>7.4.2 Raising a complaint with an image (UC-4, UC-5)</h4>
+  <figure>
+    <svg viewBox="0 0 820 400" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="8.4">
+      <defs>
+        <marker id="sq2" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#333"/></marker>
+        <marker id="sq2o" markerWidth="10" markerHeight="10" refX="9" refY="3.2" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L9,3.2 L0,6.4" fill="none" stroke="#2f6b2f" stroke-width="1.1"/></marker>
+      </defs>
+      <g>
+        <rect x="14" y="16" width="96" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="62" y="33" text-anchor="middle" font-weight="700">Student</text>
+        <rect x="132" y="16" width="104" height="26" rx="4" fill="#fdf1e6" stroke="#c0733f"/><text x="184" y="33" text-anchor="middle" font-weight="700">requireAuth</text>
+        <rect x="258" y="16" width="104" height="26" rx="4" fill="#fdf1e6" stroke="#c0733f"/><text x="310" y="33" text-anchor="middle" font-weight="700">uploadImage</text>
+        <rect x="384" y="16" width="120" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="444" y="33" text-anchor="middle" font-weight="700">ComplaintCtrl</text>
+        <rect x="526" y="16" width="120" height="26" rx="4" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.4"/><text x="586" y="33" text-anchor="middle" font-weight="700">ComplaintService</text>
+        <rect x="668" y="16" width="132" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="734" y="33" text-anchor="middle" font-weight="700">ComplaintRepo + DB</text>
+      </g>
+      <g stroke="#aaa" stroke-dasharray="4,4" stroke-width="1">
+        <line x1="62" y1="42" x2="62" y2="384"/><line x1="184" y1="42" x2="184" y2="384"/>
+        <line x1="310" y1="42" x2="310" y2="384"/><line x1="444" y1="42" x2="444" y2="384"/>
+        <line x1="586" y1="42" x2="586" y2="384"/><line x1="734" y1="42" x2="734" y2="384"/>
+      </g>
+
+      <g stroke="#333" stroke-width="1.1" marker-end="url(#sq2)">
+        <line x1="62" y1="66" x2="180" y2="66"/>
+        <line x1="184" y1="96" x2="306" y2="96"/>
+        <line x1="310" y1="132" x2="440" y2="132"/>
+        <line x1="444" y1="150" x2="582" y2="150"/>
+        <line x1="586" y1="214" x2="730" y2="214"/>
+      </g>
+      <text x="66" y="62">POST /api/complaints (multipart: category, description, image)</text>
+      <rect x="128" y="72" width="150" height="18" rx="3" fill="#fdf6ee" stroke="#c0733f"/>
+      <text x="134" y="84" fill="#6b4321">verify JWT → req.user; requireRole('student')</text>
+      <text x="190" y="93">pass</text>
+      <rect x="254" y="102" width="176" height="26" rx="3" fill="#fdf6ee" stroke="#c0733f"/>
+      <text x="260" y="113" fill="#6b4321">check MIME type &amp; size (≤5 MB)</text>
+      <text x="260" y="124" fill="#6b4321">store file → /uploads/&lt;random&gt;.png</text>
+      <text x="316" y="129">req.file, req.body</text>
+      <text x="450" y="147">createComplaint(userId, dto, imageUrl)</text>
+
+      <rect x="522" y="156" width="200" height="46" rx="3" fill="#e8f0fa" stroke="#1f4e79"/>
+      <text x="528" y="167" fill="#1f4e79" font-weight="700">Business rules applied here</text>
+      <text x="528" y="178" fill="#333">· category ∈ CATEGORIES  (REQ-10)</text>
+      <text x="528" y="188" fill="#333">· description non-empty, ≤1000  (REQ-11)</text>
+      <text x="528" y="198" fill="#a12626">· status forced to 'Pending' — client value ignored (REQ-13)</text>
+
+      <text x="592" y="212">create({ userId, category, description, imageUrl })</text>
+      <rect x="664" y="222" width="152" height="26" rx="3" fill="#f7f7f7" stroke="#666"/>
+      <text x="670" y="233" fill="#444">INSERT … status='Pending'</text>
+      <text x="670" y="244" fill="#444">created_at = updated_at = now</text>
+
+      <g stroke="#2f6b2f" stroke-width="1.05" stroke-dasharray="5,3" marker-end="url(#sq2o)">
+        <line x1="730" y1="262" x2="590" y2="262"/>
+        <line x1="582" y1="278" x2="448" y2="278"/>
+        <line x1="440" y1="294" x2="66" y2="294"/>
+      </g>
+      <text x="596" y="259" fill="#2f6b2f">complaint row</text>
+      <text x="454" y="275" fill="#2f6b2f">complaint</text>
+      <text x="80" y="291" fill="#2f6b2f">201 Created → confirmation, redirect to "My Complaints" (REQ-15)</text>
+
+      <line x1="14" y1="308" x2="806" y2="308" stroke="#ddd"/>
+      <text x="14" y="324" font-weight="700" fill="#a12626">ALTERNATIVES</text>
+      <text x="14" y="340" fill="#a12626">· Unsupported file type or &gt; 5 MB → uploadImage rejects with 400 before the controller is reached (REQ-12).</text>
+      <text x="14" y="354" fill="#a12626">· Validation fails in the service after the file was stored → controller deletes the orphaned file, then returns 400.</text>
+      <text x="14" y="368" fill="#a12626">· Missing or invalid token → requireAuth returns 401; the client clears its token and redirects to login.</text>
+      <text x="14" y="382" fill="#555" font-size="7.8">Middleware order (authenticate → upload → controller) is part of the contract: the file is only stored after the caller is known to be an authorised student.</text>
+    </svg>
+    <figcaption>Figure 7.3 — Sequence: raising a complaint with an optional image, including failure paths.</figcaption>
+  </figure>
+
+  <h4>7.4.3 Administrator resolves a complaint (UC-11, UC-12)</h4>
+  <figure>
+    <svg viewBox="0 0 820 400" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="8.4">
+      <defs>
+        <marker id="sq3" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#333"/></marker>
+        <marker id="sq3o" markerWidth="10" markerHeight="10" refX="9" refY="3.2" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L9,3.2 L0,6.4" fill="none" stroke="#2f6b2f" stroke-width="1.1"/></marker>
+      </defs>
+      <g>
+        <rect x="14" y="16" width="104" height="26" rx="4" fill="#fdeeea" stroke="#c0733f"/><text x="66" y="33" text-anchor="middle" font-weight="700">Administrator</text>
+        <rect x="140" y="16" width="120" height="26" rx="4" fill="#fdf1e6" stroke="#c0733f"/><text x="200" y="33" text-anchor="middle" font-weight="700">requireRole('admin')</text>
+        <rect x="284" y="16" width="116" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="342" y="33" text-anchor="middle" font-weight="700">ComplaintCtrl</text>
+        <rect x="424" y="16" width="126" height="26" rx="4" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.4"/><text x="487" y="33" text-anchor="middle" font-weight="700">ComplaintService</text>
+        <rect x="574" y="16" width="120" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="634" y="33" text-anchor="middle" font-weight="700">ComplaintRepo</text>
+        <rect x="718" y="16" width="86" height="26" rx="4" fill="#f7f7f7" stroke="#666"/><text x="761" y="33" text-anchor="middle" font-weight="700">Database</text>
+      </g>
+      <g stroke="#aaa" stroke-dasharray="4,4" stroke-width="1">
+        <line x1="66" y1="42" x2="66" y2="384"/><line x1="200" y1="42" x2="200" y2="384"/>
+        <line x1="342" y1="42" x2="342" y2="384"/><line x1="487" y1="42" x2="487" y2="384"/>
+        <line x1="634" y1="42" x2="634" y2="384"/><line x1="761" y1="42" x2="761" y2="384"/>
+      </g>
+
+      <g stroke="#333" stroke-width="1.1" marker-end="url(#sq3)">
+        <line x1="66" y1="64" x2="196" y2="64"/>
+        <line x1="200" y1="88" x2="338" y2="88"/>
+        <line x1="342" y1="106" x2="483" y2="106"/>
+        <line x1="487" y1="124" x2="630" y2="124"/>
+        <line x1="634" y1="140" x2="757" y2="140"/>
+      </g>
+      <text x="70" y="60">PATCH /api/complaints/9/status { status:'Resolved', admin_remarks:'Fixed.' }</text>
+      <text x="206" y="85">role verified</text>
+      <text x="348" y="103">updateStatus(9, dto)</text>
+      <text x="492" y="121">findById(9)</text>
+      <text x="640" y="137">SELECT</text>
+
+      <g stroke="#2f6b2f" stroke-width="1.05" stroke-dasharray="5,3" marker-end="url(#sq3o)">
+        <line x1="757" y1="154" x2="638" y2="154"/>
+        <line x1="630" y1="168" x2="491" y2="168"/>
+      </g>
+      <text x="644" y="151" fill="#2f6b2f">row</text>
+      <text x="497" y="165" fill="#2f6b2f">complaint (status='In Progress', resolved_at = null)</text>
+
+      <rect x="420" y="178" width="220" height="56" rx="3" fill="#e8f0fa" stroke="#1f4e79"/>
+      <text x="426" y="190" fill="#1f4e79" font-weight="700">Lifecycle rules</text>
+      <text x="426" y="202" fill="#333">· status ∈ STATUSES, else 400  (REQ-28)</text>
+      <text x="426" y="213" fill="#333">· remarks: omitted keeps, empty clears  (REQ-24)</text>
+      <text x="426" y="229" fill="#a12626">· setResolvedAt = (new=='Resolved' AND resolved_at IS NULL) (REQ-26)</text>
+
+      <g stroke="#333" stroke-width="1.1" marker-end="url(#sq3)">
+        <line x1="487" y1="248" x2="630" y2="248"/>
+        <line x1="634" y1="264" x2="757" y2="264"/>
+      </g>
+      <text x="492" y="245">updateStatus(9, { status, remarks, setResolvedAt:true })</text>
+      <rect x="690" y="272" width="120" height="26" rx="3" fill="#f7f7f7" stroke="#666"/>
+      <text x="696" y="283" fill="#444">UPDATE … updated_at=now,</text>
+      <text x="696" y="294" fill="#444">resolved_at = now</text>
+
+      <g stroke="#2f6b2f" stroke-width="1.05" stroke-dasharray="5,3" marker-end="url(#sq3o)">
+        <line x1="757" y1="310" x2="638" y2="310"/>
+        <line x1="630" y1="324" x2="491" y2="324"/>
+        <line x1="483" y1="338" x2="70" y2="338"/>
+      </g>
+      <text x="644" y="307" fill="#2f6b2f">updated row</text>
+      <text x="497" y="321" fill="#2f6b2f">complaint</text>
+      <text x="86" y="335" fill="#2f6b2f">200 OK → table refreshes; the student now sees "Resolved" with remarks and resolution date (REQ-21)</text>
+
+      <line x1="14" y1="348" x2="806" y2="348" stroke="#ddd"/>
+      <text x="14" y="364" fill="#a12626" font-weight="700">Key invariant:</text>
+      <text x="106" y="364" fill="#333">a later transition to <tspan font-weight="700">Closed</tspan> passes setResolvedAt = false, so <tspan font-weight="700">resolved_at is written exactly once</tspan> and never overwritten.</text>
+      <text x="14" y="380" fill="#555" font-size="7.8">A student attempting this endpoint is rejected by requireRole with 403 before any service code executes (REQ-27).</text>
+    </svg>
+    <figcaption>Figure 7.4 — Sequence: administrator advancing a complaint to Resolved.</figcaption>
+  </figure>
+
+  <h4>7.4.4 Student attempts to edit a non-Pending complaint — negative path (UC-6)</h4>
+  <figure>
+    <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="8.4">
+      <defs>
+        <marker id="sq4" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#333"/></marker>
+        <marker id="sq4r" markerWidth="10" markerHeight="10" refX="9" refY="3.2" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L9,3.2 L0,6.4" fill="none" stroke="#a12626" stroke-width="1.1"/></marker>
+      </defs>
+      <g>
+        <rect x="14" y="16" width="100" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="64" y="33" text-anchor="middle" font-weight="700">Student</text>
+        <rect x="150" y="16" width="128" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="214" y="33" text-anchor="middle" font-weight="700">ComplaintCtrl</text>
+        <rect x="318" y="16" width="150" height="26" rx="4" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.4"/><text x="393" y="33" text-anchor="middle" font-weight="700">ComplaintService</text>
+        <rect x="510" y="16" width="130" height="26" rx="4" fill="#eaf1fb" stroke="#2e75b6"/><text x="575" y="33" text-anchor="middle" font-weight="700">ComplaintRepo</text>
+        <rect x="678" y="16" width="126" height="26" rx="4" fill="#fdecec" stroke="#a12626"/><text x="741" y="33" text-anchor="middle" font-weight="700">ErrorHandler</text>
+      </g>
+      <g stroke="#aaa" stroke-dasharray="4,4" stroke-width="1">
+        <line x1="64" y1="42" x2="64" y2="286"/><line x1="214" y1="42" x2="214" y2="286"/>
+        <line x1="393" y1="42" x2="393" y2="286"/><line x1="575" y1="42" x2="575" y2="286"/><line x1="741" y1="42" x2="741" y2="286"/>
+      </g>
+
+      <g stroke="#333" stroke-width="1.1" marker-end="url(#sq4)">
+        <line x1="64" y1="66" x2="210" y2="66"/>
+        <line x1="214" y1="86" x2="389" y2="86"/>
+        <line x1="393" y1="104" x2="571" y2="104"/>
+      </g>
+      <text x="68" y="62">PUT /api/complaints/9 (edit description)</text>
+      <text x="220" y="83">updateComplaint(userId, 9, dto)</text>
+      <text x="399" y="101">findById(9)</text>
+
+      <g stroke="#2f6b2f" stroke-width="1.05" stroke-dasharray="5,3" marker-end="url(#sq4)">
+        <line x1="571" y1="120" x2="397" y2="120"/>
+      </g>
+      <text x="403" y="117" fill="#2f6b2f">complaint { user_id: 3, status: 'In Progress' }</text>
+
+      <rect x="312" y="132" width="250" height="62" rx="3" fill="#fdecec" stroke="#a12626"/>
+      <text x="318" y="145" fill="#a12626" font-weight="700">loadOwnedPending() — guard evaluation</text>
+      <text x="318" y="158" fill="#333">1. exists?           ✓ yes</text>
+      <text x="318" y="170" fill="#333">2. user_id == caller?  ✓ yes (owner)</text>
+      <text x="318" y="182" fill="#a12626" font-weight="700">3. status == 'Pending'?  ✗ NO → throw AppError(409, NOT_PENDING)</text>
+
+      <g stroke="#a12626" stroke-width="1.15" stroke-dasharray="5,3" marker-end="url(#sq4r)">
+        <line x1="397" y1="208" x2="737" y2="208"/>
+        <line x1="737" y1="232" x2="68" y2="232"/>
+      </g>
+      <text x="420" y="205" fill="#a12626">throw AppError</text>
+      <text x="90" y="228" fill="#a12626">409 Conflict { error: { message: "…can no longer be edited…", code: "NOT_PENDING" } }</text>
+
+      <text x="14" y="254" fill="#333" font-size="8.2">The client renders the message; the UI additionally omits Edit/Delete controls for non-Pending rows, so this path is normally unreachable through the interface —</text>
+      <text x="14" y="266" fill="#333" font-size="8.2">but the rule is enforced on the server regardless, because the client is never trusted (REQ-18, REQ-19).</text>
+      <text x="14" y="282" fill="#555" font-size="7.8">The same guard rejects a request from a different student with 403 FORBIDDEN before the status is even examined (REQ-20).</text>
+    </svg>
+    <figcaption>Figure 7.5 — Sequence: rejected edit of a non-Pending complaint (security-critical negative path).</figcaption>
+  </figure>
+
+  <h3 id="s7-5">7.5 Activity Diagram</h3>
+  <p>The diagram traces the complete complaint workflow across both actors, from submission to closure.</p>
+  <figure>
+    <svg viewBox="0 0 800 640" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="8.6">
+      <defs>
+        <marker id="ac" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7.5,3 L0,6 Z" fill="#444"/></marker>
+      </defs>
+      <!-- swimlanes -->
+      <rect x="14" y="14" width="380" height="612" fill="#f9fbfd" stroke="#2e75b6" stroke-width="1.3"/>
+      <rect x="394" y="14" width="392" height="612" fill="#fdfaf8" stroke="#c0733f" stroke-width="1.3"/>
+      <rect x="14" y="14" width="380" height="24" fill="#eaf1fb" stroke="#2e75b6"/>
+      <rect x="394" y="14" width="392" height="24" fill="#fdeeea" stroke="#c0733f"/>
+      <text x="204" y="31" text-anchor="middle" font-weight="700" fill="#1f4e79">STUDENT</text>
+      <text x="590" y="31" text-anchor="middle" font-weight="700" fill="#8a4b1e">ADMINISTRATOR / SYSTEM</text>
+
+      <!-- start -->
+      <circle cx="120" cy="58" r="9" fill="#333"/>
+      <line x1="120" y1="67" x2="120" y2="84" stroke="#444" stroke-width="1.2" marker-end="url(#ac)"/>
+
+      <rect x="52" y="86" width="136" height="26" rx="13" fill="#fff" stroke="#2e75b6"/><text x="120" y="103" text-anchor="middle">Log in</text>
+      <line x1="120" y1="112" x2="120" y2="128" stroke="#444" stroke-width="1.2" marker-end="url(#ac)"/>
+
+      <rect x="46" y="130" width="148" height="26" rx="13" fill="#fff" stroke="#2e75b6"/><text x="120" y="147" text-anchor="middle">Open "Raise Complaint"</text>
+      <line x1="120" y1="156" x2="120" y2="172" stroke="#444" stroke-width="1.2" marker-end="url(#ac)"/>
+
+      <rect x="34" y="174" width="172" height="38" rx="6" fill="#fff" stroke="#2e75b6"/>
+      <text x="120" y="189" text-anchor="middle">Select category, enter</text>
+      <text x="120" y="202" text-anchor="middle">description, attach image (opt.)</text>
+      <line x1="120" y1="212" x2="120" y2="228" stroke="#444" stroke-width="1.2" marker-end="url(#ac)"/>
+
+      <!-- decision validate -->
+      <polygon points="120,230 178,262 120,294 62,262" fill="#fff8e8" stroke="#c98a17" stroke-width="1.3"/>
+      <text x="120" y="258" text-anchor="middle" font-size="8">Input</text>
+      <text x="120" y="270" text-anchor="middle" font-size="8">valid?</text>
+      <text x="40" y="256" font-size="7.8" fill="#a12626">no</text>
+      <path d="M62,262 L28,262 L28,193 L34,193" fill="none" stroke="#a12626" stroke-width="1.1" marker-end="url(#ac)"/>
+      <text x="126" y="308" font-size="7.8" fill="#2f6b2f">yes</text>
+      <line x1="120" y1="294" x2="120" y2="314" stroke="#444" stroke-width="1.2" marker-end="url(#ac)"/>
+
+      <rect x="40" y="316" width="160" height="34" rx="6" fill="#fdf3e6" stroke="#c98a17" stroke-width="1.4"/>
+      <text x="120" y="331" text-anchor="middle" font-weight="700">Complaint stored</text>
+      <text x="120" y="344" text-anchor="middle" font-size="8">status = Pending</text>
+
+      <!-- cross to admin -->
+      <line x1="200" y1="333" x2="452" y2="333" stroke="#444" stroke-width="1.2" marker-end="url(#ac)" stroke-dasharray="5,3"/>
+      <text x="270" y="328" font-size="7.8" fill="#555">appears in admin queue</text>
+
+      <!-- admin side -->
+      <rect x="454" y="316" width="164" height="34" rx="6" fill="#fff" stroke="#c0733f"/>
+      <text x="536" y="331" text-anchor="middle">Review complaint</text>
+      <text x="536" y="344" text-anchor="middle" font-size="8">search / filter to locate</text>
+      <line x1="536" y1="350" x2="536" y2="366" stroke="#444" stroke-width="1.2" marker-end="url(#ac)"/>
+
+      <polygon points="536,368 600,400 536,432 472,400" fill="#fff8e8" stroke="#c98a17" stroke-width="1.3"/>
+      <text x="536" y="396" text-anchor="middle" font-size="8">Action</text>
+      <text x="536" y="408" text-anchor="middle" font-size="8">required?</text>
+
+      <path d="M600,400 L646,400 L646,318 L622,318" fill="none" stroke="#444" stroke-width="1.1" marker-end="url(#ac)"/>
+      <text x="654" y="360" font-size="7.8" fill="#555">defer /</text>
+      <text x="654" y="371" font-size="7.8" fill="#555">re-review</text>
+
+      <line x1="536" y1="432" x2="536" y2="450" stroke="#444" stroke-width="1.2" marker-end="url(#ac)"/>
+      <rect x="446" y="452" width="180" height="34" rx="6" fill="#eaf3fb" stroke="#2e75b6" stroke-width="1.4"/>
+      <text x="536" y="467" text-anchor="middle" font-weight="700">Set In Progress</text>
+      <text x="536" y="480" text-anchor="middle" font-size="8">add remarks · updated_at = now</text>
+
+      <!-- student notified (view) -->
+      <line x1="446" y1="469" x2="212" y2="469" stroke="#444" stroke-width="1.2" marker-end="url(#ac)" stroke-dasharray="5,3"/>
+      <rect x="44" y="452" width="168" height="34" rx="6" fill="#fff" stroke="#2e75b6"/>
+      <text x="128" y="467" text-anchor="middle">View updated status</text>
+      <text x="128" y="480" text-anchor="middle" font-size="8">edit / delete now locked</text>
+
+      <line x1="536" y1="486" x2="536" y2="504" stroke="#444" stroke-width="1.2" marker-end="url(#ac)"/>
+      <rect x="446" y="506" width="180" height="36" rx="6" fill="#ecf6ec" stroke="#5a8f4e" stroke-width="1.4"/>
+      <text x="536" y="521" text-anchor="middle" font-weight="700">Set Resolved</text>
+      <text x="536" y="534" text-anchor="middle" font-size="8">resolved_at recorded (first time only)</text>
+
+      <line x1="536" y1="542" x2="536" y2="560" stroke="#444" stroke-width="1.2" marker-end="url(#ac)"/>
+      <rect x="446" y="562" width="180" height="34" rx="6" fill="#eef1f5" stroke="#6b7280" stroke-width="1.4"/>
+      <text x="536" y="577" text-anchor="middle" font-weight="700">Set Closed</text>
+      <text x="536" y="590" text-anchor="middle" font-size="8">resolved_at unchanged</text>
+
+      <line x1="446" y1="579" x2="212" y2="579" stroke="#444" stroke-width="1.2" marker-end="url(#ac)" stroke-dasharray="5,3"/>
+      <rect x="44" y="562" width="168" height="34" rx="6" fill="#fff" stroke="#2e75b6"/>
+      <text x="128" y="577" text-anchor="middle">View final status,</text>
+      <text x="128" y="590" text-anchor="middle" font-size="8">remarks &amp; resolution date</text>
+
+      <circle cx="128" cy="614" r="10" fill="none" stroke="#333" stroke-width="1.6"/>
+      <circle cx="128" cy="614" r="6" fill="#333"/>
+      <line x1="128" y1="596" x2="128" y2="602" stroke="#444" stroke-width="1.2" marker-end="url(#ac)"/>
+
+      <!-- edit branch while pending -->
+      <rect x="222" y="316" width="150" height="34" rx="6" fill="#fff" stroke="#2e75b6" stroke-dasharray="4,3"/>
+      <text x="297" y="331" text-anchor="middle" font-size="8">Optional while Pending:</text>
+      <text x="297" y="344" text-anchor="middle" font-size="8">edit or delete complaint</text>
+      <path d="M200,326 L222,326" fill="none" stroke="#444" stroke-width="1.1" marker-end="url(#ac)"/>
+      <path d="M297,316 L297,300 L120,300" fill="none" stroke="#444" stroke-width="1.1" stroke-dasharray="4,3" marker-end="url(#ac)"/>
+    </svg>
+    <figcaption>Figure 7.6 — Activity Diagram: end-to-end complaint workflow across both actors.</figcaption>
+  </figure>
+
+  <h3 id="s7-6">7.6 State Diagram</h3>
+  <p>The complaint entity is the only object in the system with a non-trivial lifecycle. Its states, permitted transitions and the operations allowed in each state are shown below.</p>
+  <figure>
+    <svg viewBox="0 0 820 420" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="8.6">
+      <defs>
+        <marker id="st" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7.5,3 L0,6 Z" fill="#444"/></marker>
+      </defs>
+      <!-- initial -->
+      <circle cx="42" cy="130" r="9" fill="#333"/>
+      <line x1="51" y1="130" x2="84" y2="130" stroke="#444" stroke-width="1.3" marker-end="url(#st)"/>
+      <text x="54" y="122" font-size="7.8" fill="#555">create</text>
+
+      <!-- Pending -->
+      <rect x="88" y="98" width="150" height="66" rx="10" fill="#fdf3e6" stroke="#c98a17" stroke-width="2"/>
+      <text x="163" y="118" text-anchor="middle" font-weight="700" font-size="11">Pending</text>
+      <line x1="88" y1="124" x2="238" y2="124" stroke="#c98a17"/>
+      <text x="96" y="137" font-size="7.8">entry / created_at = now</text>
+      <text x="96" y="148" font-size="7.8" fill="#2f6b2f">student: edit ✓  delete ✓</text>
+      <text x="96" y="159" font-size="7.8" fill="#555">admin: view ✓  advance ✓</text>
+
+      <!-- In Progress -->
+      <rect x="300" y="98" width="150" height="66" rx="10" fill="#eaf3fb" stroke="#2e75b6" stroke-width="2"/>
+      <text x="375" y="118" text-anchor="middle" font-weight="700" font-size="11">In Progress</text>
+      <line x1="300" y1="124" x2="450" y2="124" stroke="#2e75b6"/>
+      <text x="308" y="137" font-size="7.8">entry / updated_at = now</text>
+      <text x="308" y="148" font-size="7.8" fill="#a12626">student: edit ✗  delete ✗</text>
+      <text x="308" y="159" font-size="7.8" fill="#555">admin: remarks ✓  advance ✓</text>
+
+      <!-- Resolved -->
+      <rect x="512" y="98" width="150" height="66" rx="10" fill="#ecf6ec" stroke="#5a8f4e" stroke-width="2"/>
+      <text x="587" y="118" text-anchor="middle" font-weight="700" font-size="11">Resolved</text>
+      <line x1="512" y1="124" x2="662" y2="124" stroke="#5a8f4e"/>
+      <text x="520" y="137" font-size="7.8" font-weight="700" fill="#2f6b2f">entry [first time] / resolved_at = now</text>
+      <text x="520" y="148" font-size="7.8" fill="#a12626">student: read-only</text>
+      <text x="520" y="159" font-size="7.8" fill="#555">admin: remarks ✓  close ✓</text>
+
+      <!-- Closed -->
+      <rect x="512" y="252" width="150" height="60" rx="10" fill="#eef1f5" stroke="#6b7280" stroke-width="2"/>
+      <text x="587" y="272" text-anchor="middle" font-weight="700" font-size="11">Closed</text>
+      <line x1="512" y1="278" x2="662" y2="278" stroke="#6b7280"/>
+      <text x="520" y="291" font-size="7.8">entry / updated_at = now</text>
+      <text x="520" y="302" font-size="7.8" fill="#555">resolved_at preserved (not reset)</text>
+
+      <!-- transitions -->
+      <line x1="238" y1="131" x2="296" y2="131" stroke="#444" stroke-width="1.4" marker-end="url(#st)"/>
+      <text x="242" y="124" font-size="7.8" fill="#333">admin: setStatus</text>
+      <text x="248" y="146" font-size="7.8" fill="#555">(In Progress)</text>
+
+      <line x1="450" y1="131" x2="508" y2="131" stroke="#444" stroke-width="1.4" marker-end="url(#st)"/>
+      <text x="452" y="124" font-size="7.8" fill="#333">admin: setStatus</text>
+      <text x="462" y="146" font-size="7.8" fill="#555">(Resolved)</text>
+
+      <line x1="587" y1="164" x2="587" y2="248" stroke="#444" stroke-width="1.4" marker-end="url(#st)"/>
+      <text x="594" y="200" font-size="7.8" fill="#333">admin: setStatus (Closed)</text>
+      <text x="594" y="212" font-size="7.8" fill="#a12626">[resolved_at NOT overwritten]</text>
+
+      <!-- deletion from pending -->
+      <line x1="163" y1="164" x2="163" y2="212" stroke="#a12626" stroke-width="1.3" marker-end="url(#st)"/>
+      <text x="170" y="186" font-size="7.8" fill="#a12626">student: delete</text>
+      <circle cx="163" cy="228" r="11" fill="none" stroke="#a12626" stroke-width="1.6"/>
+      <circle cx="163" cy="228" r="6.5" fill="#a12626"/>
+      <text x="163" y="256" text-anchor="middle" font-size="7.8" fill="#a12626">record removed</text>
+      <text x="163" y="267" text-anchor="middle" font-size="7.8" fill="#a12626">(only from Pending)</text>
+
+      <!-- self transitions -->
+      <path d="M330,98 Q330,66 375,66 Q420,66 420,98" fill="none" stroke="#666" stroke-width="1.1" marker-end="url(#st)"/>
+      <text x="375" y="60" text-anchor="middle" font-size="7.6" fill="#555">admin: update remarks (stays in state)</text>
+      <path d="M542,98 Q542,66 587,66 Q632,66 632,98" fill="none" stroke="#666" stroke-width="1.1" marker-end="url(#st)"/>
+      <text x="587" y="60" text-anchor="middle" font-size="7.6" fill="#555">admin: update remarks</text>
+      <path d="M118,98 Q118,66 163,66 Q208,66 208,98" fill="none" stroke="#666" stroke-width="1.1" marker-end="url(#st)"/>
+      <text x="163" y="60" text-anchor="middle" font-size="7.6" fill="#555">student: edit (stays Pending)</text>
+
+      <!-- final state -->
+      <line x1="662" y1="282" x2="712" y2="282" stroke="#444" stroke-width="1.4" marker-end="url(#st)"/>
+      <circle cx="732" cy="282" r="11" fill="none" stroke="#333" stroke-width="1.6"/>
+      <circle cx="732" cy="282" r="6.5" fill="#333"/>
+      <text x="732" y="308" text-anchor="middle" font-size="7.8" fill="#555">terminal</text>
+
+      <!-- rules box -->
+      <rect x="40" y="330" width="740" height="76" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+      <text x="52" y="348" font-weight="700" fill="#1f4e79">Invariants enforced by the design</text>
+      <text x="52" y="364" fill="#333">1. Transitions are driven <tspan font-weight="700">only</tspan> by the administrator; the student has no operation that changes status (REQ-27).</text>
+      <text x="52" y="378" fill="#333">2. <tspan font-weight="700">Edit and delete exist only in Pending</tspan>; attempted elsewhere the service returns 409 NOT_PENDING (REQ-18, REQ-19).</text>
+      <text x="52" y="392" fill="#333">3. <tspan font-weight="700">resolved_at is write-once</tspan> — set on first entry to Resolved, never reset by a later transition or remark update (REQ-26).</text>
+      <text x="440" y="364" fill="#333">4. No state outside the four is representable — a CHECK constraint rejects it (REQ-28).</text>
+      <text x="440" y="378" fill="#333">5. Every transition updates <tspan font-style="italic">updated_at</tspan> (REQ-25).</text>
+    </svg>
+    <figcaption>Figure 7.7 — State Diagram for the Complaint entity.</figcaption>
+  </figure>
+  <div class="rationale">
+    <b>Design Rationale.</b> The lifecycle is modelled as a <b>forward-only progression</b> rather than a freely navigable state machine. Backward transitions (for example Resolved → In Progress, to reopen a complaint) were considered and deliberately excluded from v1.0: the SRS defines the workflow as a linear progression, and permitting reversal would immediately raise questions the requirements do not answer — whether <code>resolved_at</code> should be cleared, and how a reopened complaint should be counted in the resolution statistics. Excluding them keeps the reporting figures unambiguous. The <b>write-once <code>resolved_at</code></b> rule is the single subtlest element of the design and is expressed as a guard on state entry rather than as an unconditional assignment, precisely so that Closed and remark updates cannot falsify the recorded resolution time. Attaching the student's edit/delete permission to the <em>state</em> rather than to a separate flag means the permission cannot fall out of step with the status — there is only one source of truth.
+  </div>
+</section>

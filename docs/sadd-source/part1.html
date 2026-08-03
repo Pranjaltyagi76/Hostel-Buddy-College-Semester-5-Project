@@ -1,0 +1,590 @@
+<meta charset="utf-8">
+<title>Hostel Buddy — Software Architecture and Design Document</title>
+<script>
+  window.PagedConfig = { auto: true, after: () => { window.__PAGED_DONE = true; } };
+</script>
+<style>
+  :root{
+    --ink:#1a1a1a; --muted:#555; --line:#bcbcbc; --soft:#e7e7e7;
+    --accent:#1f4e79; --accent2:#2e75b6;
+  }
+  @page{
+    size: A4;
+    margin: 22mm 18mm 20mm 18mm;
+    @top-right{ content: string(doctitle); font-family: Georgia, serif; font-size: 8.5pt; color:#777; }
+    @bottom-center{ content: "Page " counter(page); font-family: Georgia, serif; font-size: 9pt; color:#555; }
+  }
+  @page :first{ @top-right{ content: none; } @bottom-center{ content: none; } }
+  html{ font-family: Georgia, "Times New Roman", serif; color:var(--ink); font-size:10.5pt; line-height:1.5; }
+  body{ margin:0; }
+  h1,h2,h3,h4,h5{ font-family:"Segoe UI", Arial, sans-serif; color:var(--accent); line-height:1.25; }
+  h1{ font-size:18pt; string-set: doctitle "Hostel Buddy — SADD v1.0"; }
+  h2{ font-size:14.5pt; margin-top:1.3em; border-bottom:2px solid var(--soft); padding-bottom:3px; break-after:avoid; }
+  h3{ font-size:12pt; margin-top:1em; break-after:avoid; }
+  h4{ font-size:10.8pt; margin-top:.85em; color:var(--accent2); break-after:avoid; }
+  h5{ font-size:10.2pt; margin-top:.7em; color:#444; break-after:avoid; }
+  p{ margin:.45em 0; text-align:justify; }
+  ul,ol{ margin:.35em 0 .55em 0; padding-left:1.35em; }
+  li{ margin:.18em 0; }
+  code{ font-family:Consolas,monospace; font-size:9pt; background:#f2f2f2; padding:0 3px; border-radius:3px; }
+  table{ border-collapse:collapse; width:100%; margin:.55em 0; font-size:9.2pt; }
+  th,td{ border:1px solid var(--line); padding:4px 7px; text-align:left; vertical-align:top; }
+  th{ background:var(--accent); color:#fff; font-family:"Segoe UI",Arial,sans-serif; font-weight:600; }
+  tr:nth-child(even) td{ background:#f6f8fb; }
+  figure{ margin:.9em 0; break-inside:avoid; text-align:center; }
+  figure svg{ max-width:100%; height:auto; border:1px solid var(--soft); background:#fff; }
+  figure img{ max-width:100%; max-height:104mm; width:auto; border:1px solid var(--soft); border-radius:4px; }
+  figcaption{ font-size:8.8pt; color:var(--muted); margin-top:4px; font-style:italic; }
+  .break{ break-before:page; }
+  .avoid{ break-inside:avoid; }
+  .rationale{
+    background:#f4f8fc; border-left:4px solid var(--accent2); padding:8px 12px; margin:.7em 0;
+    font-size:9.6pt; break-inside:avoid;
+  }
+  .rationale b{ color:var(--accent); }
+  .req{ font-family:Consolas,monospace; font-weight:bold; color:var(--accent); font-size:9pt; }
+  .note{ font-size:9.4pt; color:var(--muted); }
+
+  /* Cover */
+  .cover{ height:247mm; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .cover .kicker{ font-family:"Segoe UI",Arial,sans-serif; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); font-size:10.5pt; }
+  .cover .title{ font-family:"Segoe UI",Arial,sans-serif; font-size:42pt; font-weight:700; color:var(--accent); margin:6px 0 2px; }
+  .cover .subtitle{ font-size:12.5pt; color:var(--muted); margin-bottom:22px; }
+  .cover .ver{ font-family:"Segoe UI",Arial,sans-serif; font-size:12.5pt; color:var(--accent2); border:1px solid var(--accent2); border-radius:20px; padding:4px 18px; }
+  .cover .meta{ margin-top:30px; font-size:11.5pt; line-height:1.85; }
+  .cover .meta b{ color:var(--accent); }
+  .rule{ width:120px; height:4px; background:var(--accent2); margin:14px auto 0; border-radius:2px; }
+
+  /* TOC */
+  .toc h2{ border:none; }
+  .toc ul{ list-style:none; padding-left:0; margin:0; }
+  .toc .lvl1{ font-family:"Segoe UI",Arial,sans-serif; font-weight:600; margin-top:7px; border-bottom:none; }
+  .toc .lvl2{ padding-left:1.5em; font-size:9.6pt; border-bottom:1px dotted #d8d8d8; padding-bottom:1px; }
+  .toc a{ color:var(--ink); text-decoration:none; display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .toc a::after{ content: target-counter(attr(href), page); color:var(--muted); white-space:nowrap; }
+</style>
+
+<!-- ============================ COVER ============================ -->
+<section class="cover">
+  <div class="kicker">Software Architecture and Design Document</div>
+  <div class="title">Hostel&nbsp;Buddy</div>
+  <div class="subtitle">Smart Hostel Complaint Management System</div>
+  <div class="rule"></div>
+  <div class="ver" style="margin-top:24px;">Version 1.0</div>
+  <div class="meta">
+    <div><b>Prepared by:</b> Group 19</div>
+    <div>Pranjal Tyagi &middot; Dinesh Saini &middot; Ajinkya &middot; Saurabh</div>
+    <div style="margin-top:14px;">Department of Computer Science and Engineering</div>
+    <div><b>IIIT Kottayam</b></div>
+    <div style="margin-top:14px;">5 August 2026</div>
+  </div>
+</section>
+
+<!-- ============================ REVISION HISTORY ============================ -->
+<section class="break">
+  <h2 id="rev">Revision History</h2>
+  <table>
+    <tr><th style="width:24%">Name</th><th style="width:18%">Date</th><th>Reason for Change</th><th style="width:12%">Version</th></tr>
+    <tr><td>Group 19</td><td>5 August 2026</td><td>Initial release of the Software Architecture and Design Document, derived from the approved SRS v1.0.</td><td>1.0</td></tr>
+  </table>
+
+  <h3 id="team">Group 19 — Team Members</h3>
+  <table>
+    <tr><th style="width:60px">#</th><th>Member Name</th><th>Roll Number</th></tr>
+    <tr><td>1</td><td>Pranjal Tyagi</td><td>2024BCD0053</td></tr>
+    <tr><td>2</td><td>Dinesh Saini</td><td>2024BCD0033</td></tr>
+    <tr><td>3</td><td>Ajinkya</td><td>2024BCS0173</td></tr>
+    <tr><td>4</td><td>Saurabh</td><td>2024BCS0185</td></tr>
+  </table>
+</section>
+
+<!-- ============================ TOC ============================ -->
+<section class="break toc">
+  <h2>Table of Contents</h2>
+  <ul>
+    <li class="lvl1"><a href="#rev">Revision History</a></li>
+    <li class="lvl1"><a href="#s1">1. Introduction</a></li>
+    <li class="lvl2"><a href="#s1-1">1.1 Purpose</a></li>
+    <li class="lvl2"><a href="#s1-2">1.2 Scope</a></li>
+    <li class="lvl2"><a href="#s1-3">1.3 Intended Audience</a></li>
+    <li class="lvl2"><a href="#s1-4">1.4 References</a></li>
+    <li class="lvl2"><a href="#s1-5">1.5 Definitions and Acronyms</a></li>
+    <li class="lvl1"><a href="#s2">2. Architectural Overview</a></li>
+    <li class="lvl2"><a href="#s2-1">2.1 Architectural Goals</a></li>
+    <li class="lvl2"><a href="#s2-2">2.2 Architectural Style</a></li>
+    <li class="lvl2"><a href="#s2-3">2.3 Design Principles</a></li>
+    <li class="lvl2"><a href="#s2-4">2.4 Technology Stack</a></li>
+    <li class="lvl2"><a href="#s2-5">2.5 Design Rationale</a></li>
+    <li class="lvl1"><a href="#s3">3. System Context</a></li>
+    <li class="lvl2"><a href="#s3-1">3.1 Context Diagram</a></li>
+    <li class="lvl2"><a href="#s3-2">3.2 External Systems</a></li>
+    <li class="lvl2"><a href="#s3-3">3.3 High-Level Data Flow</a></li>
+    <li class="lvl1"><a href="#s4">4. Module Identification and Design</a></li>
+    <li class="lvl2"><a href="#s4-1">4.1 Module Identification</a></li>
+    <li class="lvl2"><a href="#s4-2">4.2 Functional Requirement to Module Mapping</a></li>
+    <li class="lvl2"><a href="#s4-3">4.3 Module Decomposition</a></li>
+    <li class="lvl2"><a href="#s4-4">4.4 Module Description</a></li>
+    <li class="lvl2"><a href="#s4-5">4.5 Module Interaction</a></li>
+    <li class="lvl2"><a href="#s4-6">4.6 Package Diagram</a></li>
+    <li class="lvl1"><a href="#s5">5. Interface Design</a></li>
+    <li class="lvl2"><a href="#s5-1">5.1 User Interface Overview</a></li>
+    <li class="lvl2"><a href="#s5-2">5.2 Module Interfaces</a></li>
+    <li class="lvl2"><a href="#s5-3">5.3 External Interfaces</a></li>
+    <li class="lvl2"><a href="#s5-4">5.4 Communication Interfaces</a></li>
+    <li class="lvl1"><a href="#s6">6. Database Design</a></li>
+    <li class="lvl2"><a href="#s6-1">6.1 Database Design Overview</a></li>
+    <li class="lvl2"><a href="#s6-2">6.2 ER Diagram</a></li>
+    <li class="lvl2"><a href="#s6-3">6.3 Entity Description</a></li>
+    <li class="lvl2"><a href="#s6-4">6.4 Data Dictionary</a></li>
+    <li class="lvl2"><a href="#s6-5">6.5 Database Constraints</a></li>
+    <li class="lvl2"><a href="#s6-6">6.6 Normalization</a></li>
+    <li class="lvl1"><a href="#s7">7. Detailed Design</a></li>
+    <li class="lvl2"><a href="#s7-1">7.1 Object-Oriented Design Overview</a></li>
+    <li class="lvl2"><a href="#s7-2">7.2 Class Diagram</a></li>
+    <li class="lvl2"><a href="#s7-3">7.3 Class Description</a></li>
+    <li class="lvl2"><a href="#s7-4">7.4 Sequence Diagrams</a></li>
+    <li class="lvl2"><a href="#s7-5">7.5 Activity Diagram</a></li>
+    <li class="lvl2"><a href="#s7-6">7.6 State Diagram</a></li>
+    <li class="lvl1"><a href="#s8">8. User Interface Design</a></li>
+    <li class="lvl2"><a href="#s8-1">8.1 UI Design Principles</a></li>
+    <li class="lvl2"><a href="#s8-2">8.2 Wireframes</a></li>
+    <li class="lvl2"><a href="#s8-3">8.3 Navigation Flow</a></li>
+    <li class="lvl1"><a href="#s9">9. Security Design</a></li>
+    <li class="lvl2"><a href="#s9-1">9.1 Security Requirements</a></li>
+    <li class="lvl2"><a href="#s9-2">9.2 Authentication</a></li>
+    <li class="lvl2"><a href="#s9-3">9.3 Authorization</a></li>
+    <li class="lvl2"><a href="#s9-4">9.4 Data Security</a></li>
+    <li class="lvl2"><a href="#s9-5">9.5 Input Validation</a></li>
+    <li class="lvl1"><a href="#s10">10. Error Handling</a></li>
+    <li class="lvl2"><a href="#s10-1">10.1 Error Handling Strategy</a></li>
+    <li class="lvl1"><a href="#s11">11. Deployment Design</a></li>
+    <li class="lvl2"><a href="#s11-1">11.1 Deployment Overview</a></li>
+    <li class="lvl2"><a href="#s11-2">11.2 Deployment Diagram</a></li>
+    <li class="lvl2"><a href="#s11-3">11.3 Hardware Requirements</a></li>
+    <li class="lvl2"><a href="#s11-4">11.4 Software Requirements</a></li>
+    <li class="lvl2"><a href="#s11-5">11.5 Installation Requirements</a></li>
+    <li class="lvl2"><a href="#s11-6">11.6 Third-party Services</a></li>
+    <li class="lvl1"><a href="#s12">12. Traceability Matrix</a></li>
+    <li class="lvl2"><a href="#s12-1">12.1 Requirement Mapping</a></li>
+    <li class="lvl1"><a href="#s13">13. Assumptions and Limitations</a></li>
+    <li class="lvl2"><a href="#s13-1">13.1 Assumptions</a></li>
+    <li class="lvl2"><a href="#s13-2">13.2 Constraints</a></li>
+    <li class="lvl2"><a href="#s13-3">13.3 Future Enhancements</a></li>
+    <li class="lvl1"><a href="#checklist">Submission Checklist</a></li>
+    <li class="lvl1"><a href="#appA">Appendix A — Glossary</a></li>
+    <li class="lvl1"><a href="#appB">Appendix B — API Specifications</a></li>
+    <li class="lvl1"><a href="#appC">Appendix C — Additional UML Diagrams</a></li>
+    <li class="lvl1"><a href="#appD">Appendix D — Design Decisions</a></li>
+    <li class="lvl1"><a href="#appE">Appendix E — Version History</a></li>
+  </ul>
+</section>
+
+<!-- ============================ 1. INTRODUCTION ============================ -->
+<section class="break">
+  <h2 id="s1">1. Introduction</h2>
+
+  <h3 id="s1-1">1.1 Purpose</h3>
+  <p>This Software Architecture and Design Document (SADD) describes <b>how</b> the Hostel Buddy system is designed and implemented. It is the direct successor to the approved <em>Software Requirements Specification (SRS) v1.0</em>, which defined <b>what</b> the system must do.</p>
+  <p>Where the SRS states requirements in terms of externally observable behaviour (numbered <span class="req">REQ-1</span>…<span class="req">REQ-41</span>), this document translates each of those requirements into concrete architectural decisions: the layers of the system, the software modules and their responsibilities, the database schema, the classes and their interactions, and the deployment topology. Section 12 provides a traceability matrix proving that every functional requirement in the SRS is realised by at least one design element.</p>
+  <p>The document also records the <em>reasoning</em> behind each decision through the Design Rationale sections, so that a future maintainer can understand not only the shape of the system but why it took that shape.</p>
+
+  <h3 id="s1-2">1.2 Scope</h3>
+  <p><b>Hostel Buddy</b> is a three-tier web application that replaces a hostel's paper complaint register with a digital, searchable and trackable platform. Students register, raise maintenance complaints under a fixed set of categories with an optional photograph, and follow those complaints through the lifecycle <em>Pending → In Progress → Resolved → Closed</em>. A single administrator reviews every complaint, searches and filters them, advances their status and records remarks, and views analytics summarising complaint activity.</p>
+  <p>This document covers the complete design of Version 1.0: the presentation, application and data tiers; all four functional modules (Authentication, User Management, Complaint Management, Dashboard &amp; Analytics); the supporting cross-cutting infrastructure (security, upload, error handling); and the single-node deployment model.</p>
+  <p><b>Out of scope</b> (deferred, per SRS §8): email and push notifications, a separate maintenance-staff role, complaint ratings, QR-code room identification, a native mobile application, AI-based categorisation and multi-hostel support. The architecture nevertheless leaves defined extension points for these, described in §13.3.</p>
+
+  <h3 id="s1-3">1.3 Intended Audience</h3>
+  <table>
+    <tr><th style="width:26%">Reader</th><th>How to use this document</th></tr>
+    <tr><td><b>Developers</b></td><td>Primary implementation reference. Read §4 (modules), §6 (database), §7 (classes and interactions) before writing code.</td></tr>
+    <tr><td><b>Testers</b></td><td>Use §12 (traceability matrix) to derive test cases, and §7.4 sequence diagrams to understand expected message flows and failure paths.</td></tr>
+    <tr><td><b>Project Guide / Evaluators</b></td><td>Read §1–§3 for context, then the Design Rationale boxes throughout, which justify every significant decision.</td></tr>
+    <tr><td><b>Maintainers</b></td><td>Read §2.3 (design principles), §4.3 (decomposition) and Appendix D (design decisions) to understand where a change belongs and what it will affect.</td></tr>
+  </table>
+
+  <h3 id="s1-4">1.4 References</h3>
+  <table>
+    <tr><th style="width:60px">#</th><th>Title</th><th style="width:32%">Source / Version</th></tr>
+    <tr><td>R1</td><td>Hostel Buddy — Software Requirements Specification</td><td>Group 19, v1.0 (approved)</td></tr>
+    <tr><td>R2</td><td>IEEE Std 830-1998 — Recommended Practice for Software Requirements Specifications</td><td>IEEE, 1998</td></tr>
+    <tr><td>R3</td><td>IEEE Std 1016-2009 — Standard for Information Technology, Systems Design, Software Design Descriptions</td><td>IEEE, 2009</td></tr>
+    <tr><td>R4</td><td>Unified Modeling Language (UML) Specification</td><td>OMG UML 2.5.1</td></tr>
+    <tr><td>R5</td><td>Express.js Framework Documentation</td><td>Express 4.x</td></tr>
+    <tr><td>R6</td><td>Node.js API Documentation — <code>node:sqlite</code> module</td><td>Node.js 22.5+ / 24.x</td></tr>
+    <tr><td>R7</td><td>RFC 7519 — JSON Web Token (JWT)</td><td>IETF, 2015</td></tr>
+    <tr><td>R8</td><td>OWASP Top 10 — Web Application Security Risks</td><td>OWASP, 2021</td></tr>
+  </table>
+
+  <h3 id="s1-5">1.5 Definitions and Acronyms</h3>
+  <table>
+    <tr><th style="width:22%">Term</th><th>Definition</th></tr>
+    <tr><td><b>SADD</b></td><td>Software Architecture and Design Document — this document.</td></tr>
+    <tr><td><b>SRS</b></td><td>Software Requirements Specification — the approved requirements baseline (R1).</td></tr>
+    <tr><td><b>API</b></td><td>Application Programming Interface; here, the JSON/HTTP interface exposed by the application tier.</td></tr>
+    <tr><td><b>REST</b></td><td>Representational State Transfer — the architectural style of the HTTP API.</td></tr>
+    <tr><td><b>JWT</b></td><td>JSON Web Token — a signed, self-contained token carrying the user's identity and role.</td></tr>
+    <tr><td><b>RBAC</b></td><td>Role-Based Access Control — permissions granted according to the user's role.</td></tr>
+    <tr><td><b>DAL / Repository</b></td><td>Data Access Layer — the only layer permitted to execute SQL.</td></tr>
+    <tr><td><b>DTO</b></td><td>Data Transfer Object — a plain object carrying data across a layer boundary.</td></tr>
+    <tr><td><b>CRUD</b></td><td>Create, Read, Update, Delete.</td></tr>
+    <tr><td><b>Middleware</b></td><td>A function in the Express pipeline that processes a request before it reaches a controller.</td></tr>
+    <tr><td><b>CSP</b></td><td>Content Security Policy — an HTTP header restricting which resources a page may load.</td></tr>
+    <tr><td><b>WAL</b></td><td>Write-Ahead Logging — a SQLite journalling mode improving read concurrency.</td></tr>
+    <tr><td><b>bcrypt</b></td><td>An adaptive password-hashing function with a configurable work factor.</td></tr>
+    <tr><td><b>Complaint Lifecycle</b></td><td>The fixed state sequence Pending → In Progress → Resolved → Closed.</td></tr>
+  </table>
+</section>
+
+<!-- ============================ 2. ARCHITECTURAL OVERVIEW ============================ -->
+<section class="break">
+  <h2 id="s2">2. Architectural Overview</h2>
+
+  <h3 id="s2-1">2.1 Architectural Goals</h3>
+  <p>The architecture is shaped by the non-functional requirements of the SRS (<span class="req">NFR-1</span>…<span class="req">NFR-13</span>). Each goal below states the quality attribute, the driving requirement and the architectural mechanism that delivers it.</p>
+  <table>
+    <tr><th style="width:16%">Goal</th><th style="width:14%">Driven by</th><th>Architectural mechanism</th></tr>
+    <tr><td><b>Security</b></td><td>NFR-8…NFR-13</td><td>bcrypt password hashing; stateless JWT authentication; role guards at the route layer plus ownership checks in the service layer; server-side validation; security headers and a strict Content Security Policy.</td></tr>
+    <tr><td><b>Maintainability</b></td><td>NFR (Quality)</td><td>Four independent feature modules, each internally split into routes → controller → service → repository. A change to persistence touches only repositories.</td></tr>
+    <tr><td><b>Scalability</b></td><td>NFR-4</td><td>A stateless application tier (no server-side session store) so instances can be replicated behind a load balancer; indexed, paginated queries; aggregation pushed into SQL.</td></tr>
+    <tr><td><b>Performance</b></td><td>NFR-1…NFR-3</td><td>Indexes on the three hot query paths; <code>GROUP BY</code> aggregation instead of in-memory counting; bounded page sizes; static assets served directly.</td></tr>
+    <tr><td><b>Reliability</b></td><td>NFR-5…NFR-7</td><td>Durable relational storage with WAL journalling; database-level <code>CHECK</code> constraints as a data-integrity backstop; one central error handler so no failure escapes unhandled.</td></tr>
+    <tr><td><b>Portability</b></td><td>NFR (Quality)</td><td>Browser-based client requiring no installation; a database driver built into the runtime, so the system builds without a native compiler toolchain.</td></tr>
+    <tr><td><b>Testability</b></td><td>—</td><td>Business rules concentrated in services (callable without HTTP) and a documented REST contract enabling black-box integration tests.</td></tr>
+  </table>
+
+  <h3 id="s2-2">2.2 Architectural Style</h3>
+
+  <h4>2.2.1 Selected Style</h4>
+  <p>Hostel Buddy adopts a <b>three-tier client–server architecture</b> whose application tier is internally organised as a <b>layered (n-tier) architecture</b>, exposing a <b>RESTful API</b> consumed by a thin browser client.</p>
+
+  <h5>Reason for Selection</h5>
+  <ul>
+    <li><b>The problem is data-centric and CRUD-dominated.</b> The system's essential complexity is validating, storing, retrieving and reporting on complaint records — precisely the shape a layered architecture handles best.</li>
+    <li><b>Requirements demand a strict authority boundary.</b> <span class="req">REQ-18</span>/<span class="req">REQ-19</span> (edit only while Pending) and <span class="req">REQ-20</span> (no cross-student access) must hold regardless of which client calls. A layered design lets these invariants live in one server-side layer that every path must traverse.</li>
+    <li><b>Two distinct clients share one behaviour set.</b> Students and the administrator use different screens but the same rules; a REST API with role-based authorisation serves both without duplicating logic.</li>
+    <li><b>Team scale and skills.</b> A four-member team benefits from a familiar, well-documented structure with clear file-level ownership rather than a distributed or event-driven design.</li>
+  </ul>
+
+  <h5>Advantages</h5>
+  <ul>
+    <li><b>Separation of concerns</b> — each layer has exactly one reason to change; SQL exists in one layer only.</li>
+    <li><b>Substitutability</b> — the database can be replaced (SQLite → PostgreSQL) by rewriting repositories alone; the browser client could be replaced by a mobile app with no server change.</li>
+    <li><b>Security by construction</b> — every request passes the same authentication and authorisation middleware; rules cannot be bypassed by adding a new route.</li>
+    <li><b>Testability</b> — services are plain functions independent of HTTP, and the API is testable end-to-end.</li>
+    <li><b>Horizontal scalability</b> — statelessness removes server affinity.</li>
+  </ul>
+
+  <h5>Limitations</h5>
+  <ul>
+    <li><b>Layer traversal overhead</b> — a trivial read still passes route → controller → service → repository. Accepted: the indirection is a few function calls, negligible against I/O.</li>
+    <li><b>Some boilerplate</b> — each module repeats a four-file pattern. Accepted as the cost of uniformity; it makes the codebase predictable.</li>
+    <li><b>Single deployable unit</b> — the whole application scales as one. Accepted for v1; modules are cleanly separated, so extraction into services is possible later.</li>
+    <li><b>No independent module deployment</b> — unlike microservices, a change to any module requires redeploying the application. Acceptable at this scale and release cadence.</li>
+  </ul>
+
+  <h5>Architecture Diagram</h5>
+  <figure>
+    <svg viewBox="0 0 860 620" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7.5,3 L0,6 Z" fill="#444"/>
+        </marker>
+      </defs>
+
+      <!-- PRESENTATION TIER -->
+      <rect x="30" y="24" width="800" height="118" rx="8" fill="#eef4fb" stroke="#2e75b6" stroke-width="1.6"/>
+      <text x="44" y="44" font-size="11" font-weight="700" fill="#1f4e79">PRESENTATION TIER — Browser Client (static HTML / CSS / vanilla JS)</text>
+      <g font-size="10">
+        <rect x="52" y="56" width="132" height="34" rx="5" fill="#fff" stroke="#9dbfe0"/><text x="118" y="77" text-anchor="middle">Student Pages</text>
+        <rect x="196" y="56" width="132" height="34" rx="5" fill="#fff" stroke="#9dbfe0"/><text x="262" y="77" text-anchor="middle">Admin Pages</text>
+        <rect x="340" y="56" width="120" height="34" rx="5" fill="#fff" stroke="#9dbfe0"/><text x="400" y="77" text-anchor="middle">Auth Pages</text>
+        <rect x="472" y="56" width="116" height="34" rx="5" fill="#f6f9fd" stroke="#9dbfe0"/><text x="530" y="77" text-anchor="middle">Chart.js</text>
+        <rect x="600" y="56" width="212" height="34" rx="5" fill="#dfeaf7" stroke="#2e75b6"/><text x="706" y="70" text-anchor="middle" font-weight="700" font-size="9.5">api.js — single network boundary</text><text x="706" y="83" text-anchor="middle" font-size="8.5" fill="#555">attaches JWT · handles 401</text>
+      </g>
+      <text x="52" y="112" font-size="9" fill="#555">No business rules reside in this tier. It renders data and issues API calls only.</text>
+      <text x="52" y="128" font-size="9" fill="#555">Session token held in browser localStorage.</text>
+
+      <!-- arrow down -->
+      <line x1="430" y1="142" x2="430" y2="176" stroke="#444" stroke-width="1.6" marker-end="url(#ar)"/>
+      <text x="440" y="163" font-size="9.5" fill="#333">JSON over HTTP(S) — Authorization: Bearer &lt;JWT&gt;</text>
+
+      <!-- APPLICATION TIER -->
+      <rect x="30" y="180" width="800" height="300" rx="8" fill="#fbfcfe" stroke="#1f4e79" stroke-width="1.8"/>
+      <text x="44" y="200" font-size="11" font-weight="700" fill="#1f4e79">APPLICATION TIER — Node.js / Express (stateless)</text>
+
+      <!-- cross-cutting middleware -->
+      <rect x="48" y="210" width="764" height="42" rx="6" fill="#fdf1e6" stroke="#c0733f"/>
+      <text x="58" y="226" font-size="9.5" font-weight="700" fill="#8a4b1e">Cross-cutting Middleware Pipeline</text>
+      <g font-size="8.6" fill="#6b4321">
+        <text x="62" y="243">securityHeaders (helmet + CSP)</text>
+        <text x="212" y="243">rateLimiter</text>
+        <text x="282" y="243">bodyParser</text>
+        <text x="352" y="243">requestLogger</text>
+        <text x="440" y="243">requireAuth</text>
+        <text x="512" y="243">requireRole</text>
+        <text x="588" y="243">uploadImage</text>
+        <text x="668" y="243">errorHandler</text>
+      </g>
+
+      <!-- layers -->
+      <text x="48" y="272" font-size="9.5" font-weight="700" fill="#1f4e79">Layered structure, applied within every feature module</text>
+      <g font-size="10">
+        <rect x="48" y="280" width="764" height="30" rx="5" fill="#eaf1fb" stroke="#2e75b6"/><text x="60" y="300" font-weight="600">Routes</text><text x="150" y="300" font-size="9" fill="#444">URL + verb → handler; declares which middleware guards the endpoint</text>
+        <rect x="48" y="316" width="764" height="30" rx="5" fill="#eaf1fb" stroke="#2e75b6"/><text x="60" y="336" font-weight="600">Controllers</text><text x="150" y="336" font-size="9" fill="#444">Parse HTTP request, invoke service, shape HTTP response (thin)</text>
+        <rect x="48" y="352" width="764" height="34" rx="5" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.5"/><text x="60" y="366" font-weight="700">Services</text><text x="150" y="366" font-size="9" fill="#333">ALL business rules: validation, complaint lifecycle, ownership &amp; Pending-only guards</text><text x="150" y="379" font-size="8.5" fill="#666">Knows nothing about HTTP or SQL — the authority boundary of the system</text>
+        <rect x="48" y="392" width="764" height="30" rx="5" fill="#eaf1fb" stroke="#2e75b6"/><text x="60" y="412" font-weight="600">Repositories</text><text x="150" y="412" font-size="9" fill="#444">The only layer that executes SQL; returns plain objects</text>
+      </g>
+
+      <!-- feature modules -->
+      <g font-size="9.5">
+        <rect x="48" y="430" width="182" height="34" rx="5" fill="#ecf6ec" stroke="#5a8f4e"/><text x="139" y="451" text-anchor="middle">Authentication</text>
+        <rect x="240" y="430" width="182" height="34" rx="5" fill="#ecf6ec" stroke="#5a8f4e"/><text x="331" y="451" text-anchor="middle">User Management</text>
+        <rect x="432" y="430" width="182" height="34" rx="5" fill="#ecf6ec" stroke="#5a8f4e"/><text x="523" y="451" text-anchor="middle">Complaint Management</text>
+        <rect x="624" y="430" width="188" height="34" rx="5" fill="#ecf6ec" stroke="#5a8f4e"/><text x="718" y="451" text-anchor="middle">Dashboard &amp; Analytics</text>
+      </g>
+
+      <!-- arrow down -->
+      <line x1="430" y1="480" x2="430" y2="512" stroke="#444" stroke-width="1.6" marker-end="url(#ar)"/>
+      <text x="440" y="500" font-size="9.5" fill="#333">SQL (prepared statements)</text>
+
+      <!-- DATA TIER -->
+      <rect x="30" y="516" width="800" height="86" rx="8" fill="#f7f7f7" stroke="#666" stroke-width="1.6"/>
+      <text x="44" y="536" font-size="11" font-weight="700" fill="#333">DATA TIER</text>
+      <g font-size="10">
+        <rect x="60" y="548" width="330" height="40" rx="5" fill="#fff" stroke="#999"/>
+        <text x="225" y="565" text-anchor="middle" font-weight="600">Relational Database (SQLite / node:sqlite)</text>
+        <text x="225" y="580" text-anchor="middle" font-size="8.6" fill="#555">users · complaints · indexes · CHECK constraints · WAL</text>
+        <rect x="410" y="548" width="330" height="40" rx="5" fill="#fff" stroke="#999"/>
+        <text x="575" y="565" text-anchor="middle" font-weight="600">File Storage — /uploads</text>
+        <text x="575" y="580" text-anchor="middle" font-size="8.6" fill="#555">complaint images, randomised filenames</text>
+      </g>
+    </svg>
+    <figcaption>Figure 2.1 — Layered three-tier architecture of Hostel Buddy.</figcaption>
+  </figure>
+
+  <div class="rationale">
+    <b>Design Rationale.</b> A layered architecture was chosen over the two realistic alternatives. A <em>monolithic MVC application with server-rendered pages</em> would have been marginally faster to build but would couple presentation to business logic, making the planned mobile client (§13.3) impossible without rewriting the server. A <em>microservice architecture</em> would provide independent deployability the project does not need, while adding network partitioning, distributed transactions and operational overhead that a four-person team cannot justify for a single hostel. The layered monolith with a REST boundary captures the main benefit of both — a reusable, client-agnostic API with enforced internal separation — at the cost of only per-module boilerplate. The single most important consequence is that <b>business rules live in the service layer</b>: because <span class="req">REQ-18</span>–<span class="req">REQ-20</span> are invariants rather than transport concerns, placing them in services guarantees they hold for every caller, present or future.
+  </div>
+
+  <h3 id="s2-3">2.3 Design Principles</h3>
+  <table>
+    <tr><th style="width:24%">Principle</th><th>Application in Hostel Buddy</th></tr>
+    <tr><td><b>Modularity</b></td><td>The system is decomposed into four feature modules aligned with major functional responsibilities (not with screens or tables). Each is self-contained in its own directory with a uniform internal structure.</td></tr>
+    <tr><td><b>High cohesion</b></td><td>Every element inside a module serves one responsibility: the Complaint module owns complaint creation, editing, lifecycle transitions and retrieval — and nothing else.</td></tr>
+    <tr><td><b>Low coupling</b></td><td>Modules interact only through published service functions, never by reaching into another module's repository or database tables. The Dashboard module, for example, composes counts exposed by the Complaint and User repositories rather than issuing its own joins across their tables.</td></tr>
+    <tr><td><b>Separation of concerns</b></td><td>Transport (routes/controllers), policy (services) and persistence (repositories) are strictly separated. A controller contains no rule; a service contains no SQL.</td></tr>
+    <tr><td><b>Single responsibility</b></td><td>Each file has one reason to change. <code>jwt.js</code> changes only if the token scheme changes; <code>upload.js</code> only if file handling changes.</td></tr>
+    <tr><td><b>Defence in depth</b></td><td>Critical rules are enforced at more than one level: role guards at routes <em>and</em> ownership checks in services; enum validation in services <em>and</em> <code>CHECK</code> constraints in the schema.</td></tr>
+    <tr><td><b>Don't repeat yourself (DRY)</b></td><td>Cross-cutting behaviour is centralised: one error handler, one authentication middleware, one client-side network wrapper, one source of truth for categories/statuses/roles (<code>constants.js</code>).</td></tr>
+    <tr><td><b>Reuse</b></td><td>The same REST API serves both user roles and would serve a future mobile client unchanged. Shared helpers (validators, JWT, UI utilities) are used across modules and pages.</td></tr>
+    <tr><td><b>Fail fast, fail safe</b></td><td>Invalid input is rejected at the earliest layer that can judge it; unexpected errors are converted into a uniform response that never leaks internals; the server refuses to start in production with insecure configuration.</td></tr>
+    <tr><td><b>Configuration over hard-coding</b></td><td>Ports, secrets, credentials and paths come from environment variables via a single typed configuration module; no secret appears in source.</td></tr>
+  </table>
+
+  <h3 id="s2-4">2.4 Technology Stack</h3>
+  <table>
+    <tr><th style="width:19%">Layer</th><th style="width:29%">Technology</th><th>Reason for selection</th></tr>
+    <tr><td>Presentation</td><td>HTML5, CSS3, vanilla JavaScript (ES2020)</td><td>No build step or framework runtime; the UI is small and form-driven. Keeps the client trivially deployable and readable by every team member.</td></tr>
+    <tr><td>Charting</td><td>Chart.js 4 (served locally)</td><td>Satisfies <span class="req">REQ-36</span> (category distribution chart) with minimal code. Vendored rather than loaded from a CDN so the demo works offline and the strict CSP needs no external origin.</td></tr>
+    <tr><td>Application runtime</td><td>Node.js 22.5+ (24.x used)</td><td>Single language across client and server; mature HTTP ecosystem; ships the database driver in the runtime itself.</td></tr>
+    <tr><td>Web framework</td><td>Express 4</td><td>Minimal and unopinionated, which allows the explicit layering in §2.2 rather than imposing a competing structure. Its middleware pipeline maps directly onto the cross-cutting concerns.</td></tr>
+    <tr><td>Database</td><td>SQLite via built-in <code>node:sqlite</code></td><td>Real SQL with constraints and indexes, zero configuration, single-file storage. Being built into Node it requires <b>no native compilation</b>, so any team member can clone and run without a C++ toolchain. Schema is written to remain PostgreSQL-compatible.</td></tr>
+    <tr><td>Authentication</td><td><code>jsonwebtoken</code> (JWT, HS256)</td><td>Stateless tokens remove the session store, directly serving the scalability goal (<span class="req">NFR-4</span>).</td></tr>
+    <tr><td>Password hashing</td><td><code>bcryptjs</code> (cost factor 10)</td><td>Adaptive, salted hashing as required by <span class="req">NFR-8</span>; pure-JS implementation avoids native builds.</td></tr>
+    <tr><td>File upload</td><td><code>multer</code> 2.x</td><td>Standard multipart handling for <span class="req">REQ-12</span>, with built-in MIME-type filtering and size limits.</td></tr>
+    <tr><td>HTTP security</td><td><code>helmet</code>, <code>express-rate-limit</code></td><td>Security headers and a Content Security Policy (<span class="req">NFR-11</span>/<span class="req">NFR-12</span>); brute-force mitigation on authentication endpoints.</td></tr>
+    <tr><td>Configuration</td><td><code>dotenv</code></td><td>Keeps secrets out of source control and makes environment promotion (dev → production) a configuration change only.</td></tr>
+    <tr><td>Version control</td><td>Git / GitHub</td><td>Phase-wise commit history documenting the incremental construction of the system.</td></tr>
+  </table>
+
+  <h3 id="s2-5">2.5 Design Rationale</h3>
+  <p>The following table summarises the architecture-level decisions, the alternatives considered and the trade-offs consciously accepted. Detailed records are in Appendix D.</p>
+  <table>
+    <tr><th style="width:20%">Decision</th><th style="width:24%">Alternative considered</th><th>Justification and accepted trade-off</th></tr>
+    <tr><td><b>Layered monolith with REST API</b></td><td>Server-rendered MVC; microservices</td><td>Gives a client-agnostic API and enforced internal separation without distributed-system complexity. Trade-off: the whole application scales as a unit.</td></tr>
+    <tr><td><b>Business rules in the service layer</b></td><td>Rules in route handlers or controllers</td><td>A route-level check protects only that route; a service-level invariant holds for every caller. Trade-off: a small amount of indirection.</td></tr>
+    <tr><td><b>Stateless JWT authentication</b></td><td>Server-side sessions with a session store</td><td>Removes shared state so instances replicate freely (<span class="req">NFR-4</span>). Trade-off: a token cannot be revoked before expiry; mitigated by a 24-hour lifetime.</td></tr>
+    <tr><td><b>Relational database with enum <code>CHECK</code> constraints</b></td><td>Document store; application-only validation</td><td>The data is highly structured with a fixed vocabulary; constraints keep data valid even if application code is bypassed by a script. Trade-off: schema changes require migration.</td></tr>
+    <tr><td><b>Built-in <code>node:sqlite</code> driver</b></td><td><code>better-sqlite3</code> (native module)</td><td>Eliminates the native build step that fails without Visual Studio build tools, so every team member can run the project. Trade-off: the module is marked experimental; isolation in the repository layer makes replacement cheap.</td></tr>
+    <tr><td><b>Aggregation performed in SQL</b></td><td>Fetch rows and count in JavaScript</td><td>Keeps payloads small and uses the engine best suited to counting; measured at ~1&nbsp;ms for the full admin dashboard over 2,000 complaints. Trade-off: logic expressed in SQL rather than application code.</td></tr>
+    <tr><td><b>Local filesystem for images</b></td><td>Cloud object storage (S3)</td><td>Simplest working solution for a single-node demo. Trade-off: images are not shared across replicas — documented as the first change required when scaling out.</td></tr>
+    <tr><td><b>Single administrator role (no maintenance staff)</b></td><td>Three-role model with work assignment</td><td>Preserves the complete complaint workflow at a fraction of the complexity, as scoped by the SRS. Trade-off: no per-technician assignment or workload tracking.</td></tr>
+  </table>
+</section>
+
+<!-- ============================ 3. SYSTEM CONTEXT ============================ -->
+<section class="break">
+  <h2 id="s3">3. System Context</h2>
+
+  <h3 id="s3-1">3.1 Context Diagram</h3>
+  <p>The context diagram establishes the system boundary: what lies inside Hostel Buddy, which external actors interact with it, and what information crosses the boundary.</p>
+  <figure>
+    <svg viewBox="0 0 840 470" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <defs>
+        <marker id="c-ar" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7.5,3 L0,6 Z" fill="#555"/>
+        </marker>
+      </defs>
+
+      <!-- central system -->
+      <circle cx="420" cy="235" r="106" fill="#eef4fb" stroke="#1f4e79" stroke-width="2.4"/>
+      <text x="420" y="222" text-anchor="middle" font-size="15" font-weight="700" fill="#1f4e79">Hostel Buddy</text>
+      <text x="420" y="242" text-anchor="middle" font-size="10" fill="#333">Complaint Management</text>
+      <text x="420" y="257" text-anchor="middle" font-size="10" fill="#333">System</text>
+
+      <!-- Student actor -->
+      <g stroke="#333" stroke-width="1.8" fill="none">
+        <circle cx="88" cy="150" r="13" fill="#eaf1fb"/>
+        <line x1="88" y1="163" x2="88" y2="200"/><line x1="66" y1="177" x2="110" y2="177"/>
+        <line x1="88" y1="200" x2="70" y2="228"/><line x1="88" y1="200" x2="106" y2="228"/>
+      </g>
+      <text x="88" y="248" text-anchor="middle" font-size="12" font-weight="700">Student</text>
+
+      <!-- Administrator actor -->
+      <g stroke="#333" stroke-width="1.8" fill="none">
+        <circle cx="752" cy="150" r="13" fill="#fdeeea"/>
+        <line x1="752" y1="163" x2="752" y2="200"/><line x1="730" y1="177" x2="774" y2="177"/>
+        <line x1="752" y1="200" x2="734" y2="228"/><line x1="752" y1="200" x2="770" y2="228"/>
+      </g>
+      <text x="752" y="248" text-anchor="middle" font-size="12" font-weight="700">Administrator</text>
+
+      <!-- Student flows -->
+      <path d="M126,188 Q250,150 316,196" fill="none" stroke="#2e75b6" stroke-width="1.5" marker-end="url(#c-ar)"/>
+      <text x="196" y="150" font-size="8.8" fill="#1f4e79">registration / login credentials</text>
+      <text x="196" y="162" font-size="8.8" fill="#1f4e79">complaint details + optional image</text>
+      <text x="196" y="174" font-size="8.8" fill="#1f4e79">profile updates</text>
+
+      <path d="M316,268 Q240,318 128,268" fill="none" stroke="#5a8f4e" stroke-width="1.5" marker-end="url(#c-ar)"/>
+      <text x="150" y="330" font-size="8.8" fill="#2f6b2f">session token · complaint status</text>
+      <text x="150" y="342" font-size="8.8" fill="#2f6b2f">admin remarks · resolution date</text>
+      <text x="150" y="354" font-size="8.8" fill="#2f6b2f">personal statistics</text>
+
+      <!-- Admin flows -->
+      <path d="M714,188 Q590,150 524,196" fill="none" stroke="#c0733f" stroke-width="1.5" marker-end="url(#c-ar)"/>
+      <text x="556" y="150" font-size="8.8" fill="#8a4b1e">login credentials</text>
+      <text x="556" y="162" font-size="8.8" fill="#8a4b1e">search / filter criteria</text>
+      <text x="556" y="174" font-size="8.8" fill="#8a4b1e">status change + remarks</text>
+
+      <path d="M524,268 Q600,318 712,268" fill="none" stroke="#5a8f4e" stroke-width="1.5" marker-end="url(#c-ar)"/>
+      <text x="560" y="330" font-size="8.8" fill="#2f6b2f">all complaints (paginated)</text>
+      <text x="560" y="342" font-size="8.8" fill="#2f6b2f">student list · analytics</text>
+      <text x="560" y="354" font-size="8.8" fill="#2f6b2f">category / status distribution</text>
+
+      <!-- Internal stores (inside boundary, shown below) -->
+      <g>
+        <rect x="300" y="382" width="110" height="42" rx="5" fill="#fff" stroke="#666"/>
+        <text x="355" y="399" text-anchor="middle" font-size="9" font-weight="600">Database</text>
+        <text x="355" y="413" text-anchor="middle" font-size="8" fill="#555">users · complaints</text>
+        <rect x="430" y="382" width="110" height="42" rx="5" fill="#fff" stroke="#666"/>
+        <text x="485" y="399" text-anchor="middle" font-size="9" font-weight="600">File Storage</text>
+        <text x="485" y="413" text-anchor="middle" font-size="8" fill="#555">complaint images</text>
+      </g>
+      <line x1="390" y1="340" x2="360" y2="380" stroke="#777" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <line x1="452" y1="340" x2="482" y2="380" stroke="#777" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <text x="420" y="446" text-anchor="middle" font-size="8.5" fill="#777" font-style="italic">Internal persistent stores (inside the system boundary — no external service dependency)</text>
+
+      <!-- Web browser note -->
+      <rect x="24" y="24" width="180" height="40" rx="5" fill="#f7f9fc" stroke="#aab8c8" stroke-dasharray="4,3"/>
+      <text x="114" y="40" text-anchor="middle" font-size="9" font-weight="600" fill="#445">Web Browser</text>
+      <text x="114" y="54" text-anchor="middle" font-size="8" fill="#667">access channel for both actors</text>
+    </svg>
+    <figcaption>Figure 3.1 — System Context Diagram.</figcaption>
+  </figure>
+  <div class="rationale">
+    <b>Design Rationale.</b> The boundary is drawn to make Hostel Buddy <b>self-contained</b>: both the database and image storage sit inside it, and there is no dependency on any third-party service. This is deliberate — the SRS scopes v1.0 to a single hostel with notifications explicitly deferred, so introducing an external mail gateway or object store would add failure modes and credentials to manage without serving any current requirement. Only two human actors cross the boundary, and they are distinguished solely by role, which is why a single API with role-based authorisation is sufficient rather than two separate interfaces. The browser is shown as the access channel rather than an actor, because it carries no application logic of its own.
+  </div>
+
+  <h3 id="s3-2">3.2 External Systems</h3>
+  <p>Hostel Buddy v1.0 integrates with <b>no external systems, third-party APIs or paid services</b>. All processing and storage occur within the deployed application and its own data stores. The only components outside the application process are infrastructure the system depends on rather than services it calls:</p>
+  <table>
+    <tr><th style="width:22%">External component</th><th style="width:16%">Type</th><th>Interaction</th></tr>
+    <tr><td>Web browser</td><td>Client platform</td><td>Renders the interface; issues HTTP requests; stores the session token in <code>localStorage</code>; supplies image files from device storage or camera through the file-picker.</td></tr>
+    <tr><td>Host operating system / filesystem</td><td>Platform service</td><td>Persists the database file and uploaded images.</td></tr>
+    <tr><td>Network / TLS terminator</td><td>Infrastructure</td><td>Transports requests; in deployment, terminates HTTPS in front of the application (<span class="req">NFR-12</span>).</td></tr>
+  </table>
+  <p class="note">Planned future integrations — an SMTP gateway for email notification and a push-notification service — are identified in §13.3 together with the extension point at which they attach (a hook in the complaint service after a status transition).</p>
+
+  <h3 id="s3-3">3.3 High-Level Data Flow</h3>
+  <p>The diagram below traces how information moves from user input, through validation and business rules, into persistent storage, and back out as reports and status views.</p>
+  <figure>
+    <svg viewBox="0 0 850 420" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <defs>
+        <marker id="d-ar" markerWidth="8" markerHeight="8" refX="6.8" refY="2.8" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L6.8,2.8 L0,5.6 Z" fill="#444"/>
+        </marker>
+      </defs>
+      <!-- row 1 : write path -->
+      <text x="16" y="26" font-size="10.5" font-weight="700" fill="#1f4e79">WRITE PATH — raising or updating a complaint</text>
+      <g font-size="9">
+        <rect x="16" y="38" width="112" height="46" rx="5" fill="#eaf1fb" stroke="#2e75b6"/><text x="72" y="58" text-anchor="middle" font-weight="600">User Input</text><text x="72" y="72" text-anchor="middle" font-size="8" fill="#555">form + image</text>
+        <rect x="152" y="38" width="112" height="46" rx="5" fill="#f7f7f7" stroke="#888"/><text x="208" y="58" text-anchor="middle" font-weight="600">Client check</text><text x="208" y="72" text-anchor="middle" font-size="8" fill="#555">fast feedback</text>
+        <rect x="288" y="38" width="124" height="46" rx="5" fill="#fdf1e6" stroke="#c0733f"/><text x="350" y="53" text-anchor="middle" font-weight="600">Middleware</text><text x="350" y="66" text-anchor="middle" font-size="8" fill="#555">authenticate · role</text><text x="350" y="77" text-anchor="middle" font-size="8" fill="#555">store upload</text>
+        <rect x="436" y="38" width="124" height="46" rx="5" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.4"/><text x="498" y="53" text-anchor="middle" font-weight="700">Service</text><text x="498" y="66" text-anchor="middle" font-size="8" fill="#333">validate · apply rules</text><text x="498" y="77" text-anchor="middle" font-size="8" fill="#333">force status=Pending</text>
+        <rect x="584" y="38" width="112" height="46" rx="5" fill="#eaf1fb" stroke="#2e75b6"/><text x="640" y="58" text-anchor="middle" font-weight="600">Repository</text><text x="640" y="72" text-anchor="middle" font-size="8" fill="#555">prepared SQL</text>
+        <rect x="720" y="38" width="114" height="46" rx="5" fill="#fff" stroke="#666"/><text x="777" y="58" text-anchor="middle" font-weight="600">Database</text><text x="777" y="72" text-anchor="middle" font-size="8" fill="#555">+ /uploads</text>
+      </g>
+      <g stroke="#444" stroke-width="1.3" marker-end="url(#d-ar)">
+        <line x1="128" y1="61" x2="150" y2="61"/><line x1="264" y1="61" x2="286" y2="61"/>
+        <line x1="412" y1="61" x2="434" y2="61"/><line x1="560" y1="61" x2="582" y2="61"/>
+        <line x1="696" y1="61" x2="718" y2="61"/>
+      </g>
+      <text x="425" y="103" font-size="8.4" fill="#a12626" text-anchor="middle">Any rejection short-circuits here → central error handler → uniform JSON error { message, code } → user sees a clear message</text>
+
+      <line x1="16" y1="120" x2="834" y2="120" stroke="#ddd"/>
+
+      <!-- row 2 : read path -->
+      <text x="16" y="146" font-size="10.5" font-weight="700" fill="#1f4e79">READ PATH — viewing complaints and dashboards</text>
+      <g font-size="9">
+        <rect x="16" y="158" width="114" height="46" rx="5" fill="#fff" stroke="#666"/><text x="73" y="178" text-anchor="middle" font-weight="600">Database</text><text x="73" y="192" text-anchor="middle" font-size="8" fill="#555">indexed queries</text>
+        <rect x="154" y="158" width="124" height="46" rx="5" fill="#eaf1fb" stroke="#2e75b6"/><text x="216" y="173" text-anchor="middle" font-weight="600">Repository</text><text x="216" y="186" text-anchor="middle" font-size="8" fill="#555">filter · paginate</text><text x="216" y="197" text-anchor="middle" font-size="8" fill="#555">GROUP BY counts</text>
+        <rect x="302" y="158" width="124" height="46" rx="5" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.4"/><text x="364" y="173" text-anchor="middle" font-weight="700">Service</text><text x="364" y="186" text-anchor="middle" font-size="8" fill="#333">authorise access</text><text x="364" y="197" text-anchor="middle" font-size="8" fill="#333">compose read-model</text>
+        <rect x="450" y="158" width="112" height="46" rx="5" fill="#eaf1fb" stroke="#2e75b6"/><text x="506" y="178" text-anchor="middle" font-weight="600">Controller</text><text x="506" y="192" text-anchor="middle" font-size="8" fill="#555">JSON response</text>
+        <rect x="586" y="158" width="112" height="46" rx="5" fill="#f7f7f7" stroke="#888"/><text x="642" y="178" text-anchor="middle" font-weight="600">api.js</text><text x="642" y="192" text-anchor="middle" font-size="8" fill="#555">attach token</text>
+        <rect x="722" y="158" width="112" height="46" rx="5" fill="#ecf6ec" stroke="#5a8f4e"/><text x="778" y="173" text-anchor="middle" font-weight="600">Rendered UI</text><text x="778" y="186" text-anchor="middle" font-size="8" fill="#555">tables · badges</text><text x="778" y="197" text-anchor="middle" font-size="8" fill="#555">charts</text>
+      </g>
+      <g stroke="#444" stroke-width="1.3" marker-end="url(#d-ar)">
+        <line x1="130" y1="181" x2="152" y2="181"/><line x1="278" y1="181" x2="300" y2="181"/>
+        <line x1="426" y1="181" x2="448" y2="181"/><line x1="562" y1="181" x2="584" y2="181"/>
+        <line x1="698" y1="181" x2="720" y2="181"/>
+      </g>
+
+      <line x1="16" y1="222" x2="834" y2="222" stroke="#ddd"/>
+
+      <!-- data at rest / lifecycle -->
+      <text x="16" y="248" font-size="10.5" font-weight="700" fill="#1f4e79">STATE TRANSITION — the complaint record over its lifetime</text>
+      <g font-size="9">
+        <rect x="40" y="264" width="140" height="38" rx="5" fill="#fdf3e6" stroke="#c98a17"/><text x="110" y="280" text-anchor="middle" font-weight="600">Pending</text><text x="110" y="293" text-anchor="middle" font-size="7.8" fill="#555">student may edit / delete</text>
+        <rect x="230" y="264" width="140" height="38" rx="5" fill="#eaf3fb" stroke="#2e75b6"/><text x="300" y="280" text-anchor="middle" font-weight="600">In Progress</text><text x="300" y="293" text-anchor="middle" font-size="7.8" fill="#555">locked to student</text>
+        <rect x="420" y="264" width="140" height="38" rx="5" fill="#ecf6ec" stroke="#5a8f4e"/><text x="490" y="280" text-anchor="middle" font-weight="600">Resolved</text><text x="490" y="293" text-anchor="middle" font-size="7.8" fill="#555">resolved_at recorded</text>
+        <rect x="610" y="264" width="140" height="38" rx="5" fill="#eef1f5" stroke="#6b7280"/><text x="680" y="280" text-anchor="middle" font-weight="600">Closed</text><text x="680" y="293" text-anchor="middle" font-size="7.8" fill="#555">archived, immutable</text>
+      </g>
+      <g stroke="#444" stroke-width="1.3" marker-end="url(#d-ar)">
+        <line x1="180" y1="283" x2="228" y2="283"/><line x1="370" y1="283" x2="418" y2="283"/><line x1="560" y1="283" x2="608" y2="283"/>
+      </g>
+      <text x="395" y="322" text-anchor="middle" font-size="8.4" fill="#555">All transitions are driven exclusively by the administrator; the student's view is read-only with respect to status.</text>
+
+      <!-- summary boxes -->
+      <g font-size="8.6">
+        <rect x="40" y="340" width="240" height="62" rx="5" fill="#f8fafc" stroke="#cbd5e1"/>
+        <text x="52" y="356" font-weight="700" fill="#1f4e79">Data entering the system</text>
+        <text x="52" y="370" fill="#444">credentials · profile fields</text>
+        <text x="52" y="382" fill="#444">category · description · image</text>
+        <text x="52" y="394" fill="#444">status transitions · remarks · filters</text>
+
+        <rect x="300" y="340" width="240" height="62" rx="5" fill="#f8fafc" stroke="#cbd5e1"/>
+        <text x="312" y="356" font-weight="700" fill="#1f4e79">Data stored</text>
+        <text x="312" y="370" fill="#444">user records (hashed passwords)</text>
+        <text x="312" y="382" fill="#444">complaint records + timestamps</text>
+        <text x="312" y="394" fill="#444">image files on disk</text>
+
+        <rect x="560" y="340" width="240" height="62" rx="5" fill="#f8fafc" stroke="#cbd5e1"/>
+        <text x="572" y="356" font-weight="700" fill="#1f4e79">Data leaving the system</text>
+        <text x="572" y="370" fill="#444">session tokens · profiles</text>
+        <text x="572" y="382" fill="#444">complaint lists &amp; detail views</text>
+        <text x="572" y="394" fill="#444">aggregated counts for charts</text>
+      </g>
+    </svg>
+    <figcaption>Figure 3.2 — High-level data flow: write path, read path and record lifecycle.</figcaption>
+  </figure>
+  <p>Three properties of this flow are architecturally significant. First, <b>the service layer is on every path</b> — no request reaches the database without passing the layer that owns the rules. Second, <b>validation is duplicated deliberately</b>: the client checks for responsiveness, but the server re-validates because the client is never trusted. Third, <b>aggregation happens in the data tier</b>, so dashboard responses carry a handful of numbers rather than thousands of rows.</p>
+</section>

@@ -1,0 +1,714 @@
+<!-- ============================ 8. UI DESIGN ============================ -->
+<section class="break">
+  <h2 id="s8">8. User Interface Design</h2>
+
+  <h3 id="s8-1">8.1 UI Design Principles</h3>
+  <table>
+    <tr><th style="width:20%">Principle</th><th>Application in Hostel Buddy</th></tr>
+    <tr><td><b>Consistency</b></td><td>One stylesheet, one navigation component and one colour system across all nine pages. A lifecycle state is represented by the same coloured badge everywhere it appears — amber Pending, blue In Progress, green Resolved, grey Closed — so a user learns the vocabulary once. Primary actions always use the same button style and sit in the same position.</td></tr>
+    <tr><td><b>Role clarity</b></td><td>The two roles are visually distinguishable at a glance: the student interface uses a navy header, the administrator interface a maroon one. This prevents the common demonstration error of losing track of which account is signed in.</td></tr>
+    <tr><td><b>Usability &amp; error prevention</b></td><td>Controls that would fail are <b>not rendered</b> rather than shown disabled: Edit and Delete appear only on Pending rows, so a student is never invited to attempt a forbidden action. Required fields are validated on the client for immediate feedback, and a live character counter shows the remaining description budget before submission is attempted.</td></tr>
+    <tr><td><b>Feedback</b></td><td>Every asynchronous operation has a visible state: a spinner while loading, a success banner on completion, an inline error banner carrying the server's message on failure, and a disabled button with changed label ("Submitting…") to prevent double submission.</td></tr>
+    <tr><td><b>Recognition over recall</b></td><td>Categories are chosen from a dropdown rather than typed; statuses are shown as labelled badges rather than codes; dates are formatted in the reader's locale rather than as raw timestamps.</td></tr>
+    <tr><td><b>Progressive disclosure</b></td><td>Lists show only the columns needed to scan and identify a complaint; full detail — description, image, remarks, all timestamps — is revealed in a modal on demand, keeping the table readable.</td></tr>
+    <tr><td><b>Responsiveness</b></td><td>Fluid layouts using CSS grid and flexbox; statistic cards reflow from a row to a column, charts stack vertically, and the navigation collapses to a toggle menu on narrow screens. Tables scroll horizontally within their container so the page itself never scrolls sideways.</td></tr>
+    <tr><td><b>Accessibility</b></td><td>Semantic HTML elements (headings, tables, labels bound to inputs); text and background combinations chosen for adequate contrast; status conveyed by both colour and text so the interface does not depend on colour perception alone; keyboard-operable forms and controls.</td></tr>
+    <tr><td><b>Safety</b></td><td>Irreversible actions require confirmation before proceeding. All values rendered from the server are escaped before insertion into the page, so stored text cannot execute as markup.</td></tr>
+  </table>
+
+  <h3 id="s8-2">8.2 Wireframes</h3>
+  <p>The following figures show the realised interface for the principal screens, consistent with the wireframes approved in the SRS (§3.1).</p>
+
+  <figure>
+    <img src="02-login.png" alt="Login screen">
+    <figcaption>Figure 8.1 — Login (UC-2). A single form serves both roles; the server determines the role and the client routes to the corresponding dashboard.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="05-student-dashboard.png" alt="Student dashboard">
+    <figcaption>Figure 8.2 — Student Dashboard (UC-8). Five summary cards realise <span class="req">REQ-33</span>; the primary action is placed top-right.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="07-raise-complaint.png" alt="Raise complaint form">
+    <figcaption>Figure 8.3 — Raise Complaint (UC-4, UC-5). Category dropdown enforces the controlled vocabulary; the image field is explicitly marked optional.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="06-my-complaints.png" alt="My complaints list">
+    <figcaption>Figure 8.4 — My Complaints (UC-6, UC-7). Note that <b>Edit and Delete appear only on the Pending row</b>, making the rule of <span class="req">REQ-18</span>/<span class="req">REQ-19</span> visible in the interface itself.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="03-admin-dashboard.png" alt="Admin dashboard with charts">
+    <figcaption>Figure 8.5 — Administrator Dashboard (UC-13). Statistic cards, category distribution doughnut and status bar chart realise <span class="req">REQ-34</span>–<span class="req">REQ-37</span>.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="04-admin-complaints.png" alt="Admin all complaints with search and filter">
+    <figcaption>Figure 8.6 — All Complaints (UC-9, UC-10, UC-11). Search box and two filters realise <span class="req">REQ-29</span>–<span class="req">REQ-32</span>; the Manage action opens the status/remarks modal.</figcaption>
+  </figure>
+
+  <h3 id="s8-3">8.3 Navigation Flow</h3>
+  <figure>
+    <svg viewBox="0 0 820 470" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="8.6">
+      <defs>
+        <marker id="nv" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7.5,3 L0,6 Z" fill="#444"/></marker>
+        <marker id="nvr" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7.5,3 L0,6 Z" fill="#a12626"/></marker>
+      </defs>
+
+      <!-- public zone -->
+      <rect x="14" y="30" width="230" height="180" rx="8" fill="#f7f9fc" stroke="#94a3b8" stroke-dasharray="5,3"/>
+      <text x="129" y="48" text-anchor="middle" font-weight="700" fill="#556">PUBLIC (no session)</text>
+
+      <rect x="80" y="58" width="100" height="30" rx="6" fill="#fff" stroke="#2e75b6"/><text x="130" y="77" text-anchor="middle" font-weight="600">Landing</text>
+      <rect x="34" y="112" width="90" height="30" rx="6" fill="#fff" stroke="#2e75b6"/><text x="79" y="131" text-anchor="middle" font-weight="600">Login</text>
+      <rect x="140" y="112" width="90" height="30" rx="6" fill="#fff" stroke="#2e75b6"/><text x="185" y="131" text-anchor="middle" font-weight="600">Register</text>
+
+      <line x1="110" y1="88" x2="86" y2="108" stroke="#444" stroke-width="1.2" marker-end="url(#nv)"/>
+      <line x1="152" y1="88" x2="178" y2="108" stroke="#444" stroke-width="1.2" marker-end="url(#nv)"/>
+      <path d="M124,127 L140,127" stroke="#666" stroke-width="1" marker-end="url(#nv)"/>
+      <path d="M140,138 L124,138" stroke="#666" stroke-width="1" marker-end="url(#nv)"/>
+      <text x="129" y="158" text-anchor="middle" font-size="7.6" fill="#666">cross-links between forms</text>
+      <text x="129" y="176" text-anchor="middle" font-size="7.6" fill="#2f6b2f">successful auth issues a token,</text>
+      <text x="129" y="187" text-anchor="middle" font-size="7.6" fill="#2f6b2f">then routes by role →</text>
+      <text x="129" y="202" text-anchor="middle" font-size="7.4" fill="#555">an existing session skips this zone entirely</text>
+
+      <!-- role decision -->
+      <polygon points="300,127 352,152 300,177 248,152" fill="#fff8e8" stroke="#c98a17" stroke-width="1.3"/>
+      <text x="300" y="149" text-anchor="middle" font-size="8">role</text>
+      <text x="300" y="160" text-anchor="middle" font-size="8">?</text>
+      <line x1="230" y1="140" x2="252" y2="147" stroke="#444" stroke-width="1.2" marker-end="url(#nv)"/>
+
+      <!-- student zone -->
+      <rect x="384" y="14" width="418" height="200" rx="8" fill="#f7fbff" stroke="#2e75b6"/>
+      <text x="593" y="32" text-anchor="middle" font-weight="700" fill="#1f4e79">STUDENT ZONE  (requireStudent)</text>
+      <rect x="404" y="44" width="112" height="30" rx="6" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.5"/><text x="460" y="63" text-anchor="middle" font-weight="700">Dashboard</text>
+      <rect x="404" y="94" width="112" height="30" rx="6" fill="#fff" stroke="#2e75b6"/><text x="460" y="113" text-anchor="middle">Raise Complaint</text>
+      <rect x="404" y="144" width="112" height="30" rx="6" fill="#fff" stroke="#2e75b6"/><text x="460" y="163" text-anchor="middle">Profile</text>
+      <rect x="566" y="94" width="126" height="30" rx="6" fill="#fff" stroke="#2e75b6"/><text x="629" y="113" text-anchor="middle">My Complaints</text>
+      <rect x="708" y="88" width="84" height="42" rx="6" fill="#f4f8fc" stroke="#2e75b6" stroke-dasharray="4,3"/>
+      <text x="750" y="104" text-anchor="middle" font-size="7.8">View / Edit</text>
+      <text x="750" y="116" text-anchor="middle" font-size="7.8">modal</text>
+      <text x="750" y="127" text-anchor="middle" font-size="7" fill="#a12626">Edit: Pending only</text>
+
+      <line x1="352" y1="145" x2="400" y2="70" stroke="#444" stroke-width="1.2" marker-end="url(#nv)"/>
+      <text x="356" y="100" font-size="7.6" fill="#2f6b2f">student</text>
+      <g stroke="#666" stroke-width="1" marker-end="url(#nv)">
+        <line x1="460" y1="74" x2="460" y2="90"/>
+        <line x1="460" y1="124" x2="460" y2="140"/>
+        <line x1="516" y1="109" x2="562" y2="109"/>
+        <line x1="692" y1="109" x2="704" y2="109"/>
+      </g>
+      <path d="M566,101 L520,66" fill="none" stroke="#666" stroke-width="1" marker-end="url(#nv)"/>
+      <text x="536" y="88" font-size="7.4" fill="#666">nav bar links all pages</text>
+      <text x="593" y="196" text-anchor="middle" font-size="7.6" fill="#555">After a successful submission the user is redirected to My Complaints.</text>
+      <text x="593" y="207" text-anchor="middle" font-size="7.6" fill="#555">The top navigation is present on every page in the zone.</text>
+
+      <!-- admin zone -->
+      <rect x="384" y="230" width="418" height="150" rx="8" fill="#fdf9f8" stroke="#c0733f"/>
+      <text x="593" y="248" text-anchor="middle" font-weight="700" fill="#8a4b1e">ADMINISTRATOR ZONE  (requireAdmin)</text>
+      <rect x="410" y="266" width="130" height="32" rx="6" fill="#fdeeea" stroke="#c0733f" stroke-width="1.5"/><text x="475" y="286" text-anchor="middle" font-weight="700">Admin Dashboard</text>
+      <rect x="586" y="266" width="130" height="32" rx="6" fill="#fff" stroke="#c0733f"/><text x="651" y="286" text-anchor="middle">All Complaints</text>
+      <rect x="586" y="318" width="130" height="40" rx="6" fill="#fdf6ee" stroke="#c0733f" stroke-dasharray="4,3"/>
+      <text x="651" y="334" text-anchor="middle" font-size="7.8">Manage modal</text>
+      <text x="651" y="346" text-anchor="middle" font-size="7.8">status + remarks</text>
+
+      <line x1="352" y1="160" x2="404" y2="272" stroke="#444" stroke-width="1.2" marker-end="url(#nv)"/>
+      <text x="336" y="220" font-size="7.6" fill="#8a4b1e">admin</text>
+      <g stroke="#666" stroke-width="1" marker-end="url(#nv)">
+        <line x1="540" y1="282" x2="582" y2="282"/>
+        <line x1="651" y1="298" x2="651" y2="314"/>
+      </g>
+      <path d="M586,292 L544,292" stroke="#666" stroke-width="1" marker-end="url(#nv)"/>
+      <text x="593" y="372" text-anchor="middle" font-size="7.6" fill="#555">Updating a complaint refreshes the underlying list in place.</text>
+
+      <!-- guards / logout -->
+      <rect x="14" y="240" width="340" height="120" rx="8" fill="#fdecec" stroke="#a12626" stroke-dasharray="5,3"/>
+      <text x="184" y="258" text-anchor="middle" font-weight="700" fill="#a12626">ROUTE GUARDS &amp; SESSION EXIT</text>
+      <text x="26" y="276" fill="#333">· A page in a protected zone checks the stored session before rendering.</text>
+      <text x="26" y="290" fill="#333">· No session → redirect to Login.</text>
+      <text x="26" y="304" fill="#333">· Wrong role → redirect to that role's own dashboard (never a 403 page).</text>
+      <text x="26" y="318" fill="#333">· Any API response of 401 → token cleared, redirect to Login.</text>
+      <text x="26" y="332" fill="#333">· Logout → token cleared, redirect to Login.</text>
+      <text x="26" y="348" fill="#a12626" font-size="7.8">Client-side guards are for navigation only; the server independently enforces every rule.</text>
+
+      <line x1="404" y1="60" x2="360" y2="252" stroke="#a12626" stroke-width="1.1" stroke-dasharray="4,3" marker-end="url(#nvr)"/>
+      <line x1="410" y1="278" x2="360" y2="290" stroke="#a12626" stroke-width="1.1" stroke-dasharray="4,3" marker-end="url(#nvr)"/>
+
+      <!-- back to landing -->
+      <path d="M120,240 L120,150" fill="none" stroke="#a12626" stroke-width="1.1" stroke-dasharray="4,3" marker-end="url(#nvr)"/>
+      <text x="126" y="230" font-size="7.4" fill="#a12626">logout / 401</text>
+
+      <text x="14" y="400" font-size="8.2" fill="#555">Legend: solid arrows = user-initiated navigation.  Dashed red = automatic redirect enforced by a guard.  Dashed boxes = modal overlays, not separate pages.</text>
+      <text x="14" y="414" font-size="8.2" fill="#555">Modals are used for detail and edit so that the user never loses the list context behind them.</text>
+      <text x="14" y="434" font-size="8.2" fill="#333"><tspan font-weight="700">Design note:</tspan> a user who is signed in and visits the landing page is routed straight to their dashboard, so the</text>
+      <text x="14" y="446" font-size="8.2" fill="#333">public zone is never shown to an authenticated user and the "sign in again" dead end is avoided.</text>
+    </svg>
+    <figcaption>Figure 8.7 — Navigation Flow Diagram with route guards.</figcaption>
+  </figure>
+  <div class="rationale">
+    <b>Design Rationale.</b> Navigation is partitioned into three <b>zones</b> rather than a flat page list, because access control is the property that actually determines where a user may go. Modelling it this way makes the guard rules explicit and reviewable. A user in the wrong zone is <b>redirected to their own dashboard rather than shown an error page</b>: the situation is a navigation mistake, not a security incident, and a redirect is a more helpful response than a denial. Detail and edit are presented as <b>modals rather than separate pages</b> so the surrounding list is preserved, which matters most on the administrator screen where a filter has usually just been applied and would otherwise be lost. Critically, these client-side guards are treated purely as navigation convenience — every one of them is duplicated as a server-side check, because a determined user can bypass anything the browser enforces.
+  </div>
+</section>
+
+<!-- ============================ 9. SECURITY DESIGN ============================ -->
+<section class="break">
+  <h2 id="s9">9. Security Design</h2>
+
+  <h3 id="s9-1">9.1 Security Requirements</h3>
+  <p>The security design addresses the requirements of SRS §5.3 (<span class="req">NFR-8</span>–<span class="req">NFR-13</span>). The table states each requirement together with the threat it counters.</p>
+  <table>
+    <tr><th style="width:16%">Property</th><th style="width:26%">Requirement</th><th>Principal threats addressed</th></tr>
+    <tr><td><b>Authentication</b></td><td>Only a registered user may obtain a session (<span class="req">NFR-13</span>).</td><td>Impersonation; unauthenticated access to complaint data; credential brute-forcing; account enumeration.</td></tr>
+    <tr><td><b>Authorisation</b></td><td>Role-based access control; a student may reach only their own data (<span class="req">NFR-9</span>, <span class="req">NFR-10</span>).</td><td>Privilege escalation (a student performing administrator actions); horizontal access violation (reading or modifying another student's complaint); insecure direct object reference.</td></tr>
+    <tr><td><b>Confidentiality</b></td><td>Passwords stored irreversibly; data encrypted in transit (<span class="req">NFR-8</span>, <span class="req">NFR-12</span>).</td><td>Credential disclosure following a database compromise; interception of credentials or tokens on the network.</td></tr>
+    <tr><td><b>Integrity</b></td><td>All input validated and sanitised; workflow-owned fields not client-settable (<span class="req">NFR-11</span>).</td><td>SQL injection; cross-site scripting; workflow bypass by submitting a forged status; malicious file upload.</td></tr>
+    <tr><td><b>Availability</b></td><td>Abuse-resistant endpoints and bounded resource use.</td><td>Brute-force login floods; oversized uploads; unbounded result sets exhausting memory.</td></tr>
+    <tr><td><b>Privacy</b></td><td>Personal data exposed only to its owner and the administrator.</td><td>Leakage of student names, rooms and complaint contents to other students.</td></tr>
+  </table>
+
+  <h3 id="s9-2">9.2 Authentication</h3>
+  <p><b>Mechanism.</b> Credentials are exchanged once for a signed, time-limited token which is then presented on every subsequent request.</p>
+  <ul>
+    <li><b>Registration.</b> Input is validated, the email normalised to lower case and checked for uniqueness, and the password hashed with bcrypt at cost factor 10 before any storage occurs. The plaintext password exists only for the duration of the request and is never written to the database or to a log.</li>
+    <li><b>Login.</b> The submitted password is compared against the stored digest using bcrypt's constant-time comparison. On success a JWT is issued containing only the user identifier and role — no personal data and no secret — signed with HS256 using a server-held secret and expiring after 24 hours.</li>
+    <li><b>Session verification.</b> Every protected request carries the token in the <code>Authorization</code> header. The authentication middleware verifies the signature and expiry and attaches the resulting identity to the request. A request without a valid token never reaches a controller.</li>
+    <li><b>Account enumeration resistance.</b> "Unknown email" and "incorrect password" return an <b>identical</b> generic message and status, so the API cannot be used to discover which addresses are registered.</li>
+    <li><b>Administrator provisioning.</b> There is no administrator self-registration endpoint. The single administrator is seeded from configuration at start-up, and the seeding operation is idempotent, so restarting the application cannot create a second privileged account.</li>
+    <li><b>Brute-force mitigation.</b> Authentication endpoints are rate-limited per client address in production; exceeding the limit returns <code>429</code> without revealing whether any attempted credential was valid.</li>
+    <li><b>Logout.</b> The client discards the stored token. Because sessions are stateless there is no server record to clear.</li>
+  </ul>
+  <p class="note"><b>Accepted trade-off.</b> A stateless token cannot be revoked before it expires — a token stolen at minute one remains usable until the 24-hour expiry. This was accepted deliberately in exchange for horizontal scalability (§2.5). The mitigations are the bounded lifetime and mandatory HTTPS; a server-side revocation list is the documented upgrade path should the threat model change.</p>
+
+  <h3 id="s9-3">9.3 Authorization</h3>
+  <p>Authorisation is applied in <b>two independent layers</b>, so that no single omission can expose data.</p>
+  <table>
+    <tr><th style="width:22%">Layer</th><th style="width:22%">Mechanism</th><th>What it protects</th></tr>
+    <tr><td><b>Route-level (vertical)</b></td><td><code>requireRole('student')</code> / <code>requireRole('admin')</code></td><td>Prevents a role from invoking an operation reserved for the other role — for example a student calling the status-transition endpoint, which is rejected with <code>403</code> before any business code executes.</td></tr>
+    <tr><td><b>Service-level (horizontal)</b></td><td>Ownership comparison inside the service</td><td>Prevents a legitimately authenticated student from acting on <em>another student's</em> record. The complaint's stored author is compared with the authenticated caller; a mismatch yields <code>403</code> regardless of which route was used.</td></tr>
+    <tr><td><b>State-level</b></td><td>Lifecycle guard inside the service</td><td>Prevents a legitimate owner from performing an operation that the record's state forbids — editing or deleting a complaint that has left Pending yields <code>409</code>.</td></tr>
+  </table>
+  <h4>Permission matrix</h4>
+  <table>
+    <tr><th style="width:34%">Operation</th><th style="width:22%">Student (own record)</th><th style="width:22%">Student (other's record)</th><th>Administrator</th></tr>
+    <tr><td>Create complaint</td><td>✔ permitted</td><td>— not applicable</td><td>✘ 403 (students only)</td></tr>
+    <tr><td>View complaint</td><td>✔ permitted</td><td>✘ 403</td><td>✔ permitted (all)</td></tr>
+    <tr><td>Edit / delete complaint</td><td>✔ only while Pending, else 409</td><td>✘ 403</td><td>✘ 403</td></tr>
+    <tr><td>List all complaints, search, filter</td><td>✘ 403</td><td>✘ 403</td><td>✔ permitted</td></tr>
+    <tr><td>Change status / add remarks</td><td>✘ 403</td><td>✘ 403</td><td>✔ permitted</td></tr>
+    <tr><td>View own profile / dashboard</td><td>✔ permitted</td><td>✘ 403</td><td>✔ own admin dashboard</td></tr>
+    <tr><td>List registered students</td><td>✘ 403</td><td>✘ 403</td><td>✔ permitted</td></tr>
+  </table>
+  <p><b>Why the duplication is deliberate.</b> A route guard protects one route; if a second endpoint were later added for the same operation and the guard forgotten, the rule would silently disappear. Placing the ownership and state rules in the service means they are enforced for every caller, present and future — the reasoning recorded as design decision D1 in Appendix D.</p>
+
+  <h3 id="s9-4">9.4 Data Security</h3>
+  <table>
+    <tr><th style="width:22%">Asset</th><th>Protection</th></tr>
+    <tr><td><b>Passwords</b></td><td>Stored only as bcrypt digests with a per-password salt and cost factor 10, making offline brute-forcing expensive and precomputed-table attacks ineffective. The digest is never returned by any interface: the repository exposes a public projection omitting it, and only the credential-verification path reads the full row.</td></tr>
+    <tr><td><b>Session tokens</b></td><td>Signed with a server-held secret so they cannot be forged or altered; they carry no sensitive payload and expire after 24 hours. The signing secret is supplied by environment configuration and never committed to version control.</td></tr>
+    <tr><td><b>Data in transit</b></td><td>HTTPS is required in deployment. Strict-Transport-Security instructs browsers to refuse subsequent plaintext connections to the origin.</td></tr>
+    <tr><td><b>Data at rest</b></td><td>The database is a single file whose protection relies on host filesystem permissions; only the application account requires access. Backups must include both the database file and the upload directory to remain consistent.</td></tr>
+    <tr><td><b>Uploaded images</b></td><td>Only three image MIME types are accepted and the extension is derived from the verified type rather than from the user-supplied filename, so an executable cannot be stored under an image name. Files are written with a randomly generated name, which also prevents one upload from overwriting another. Size is capped at 5&nbsp;MB.</td></tr>
+    <tr><td><b>Secrets and configuration</b></td><td>All secrets are read from environment variables through a single configuration module. The environment file is excluded from version control and only a placeholder template is committed. In production the application <b>refuses to start</b> if the signing secret is missing or left at its development default, or if the administrator password is unchanged — an insecure deployment fails loudly instead of running silently.</td></tr>
+    <tr><td><b>Error output</b></td><td>Server faults are logged in full internally but returned to the client as a generic message, so stack traces, file paths and SQL fragments are never disclosed.</td></tr>
+  </table>
+  <p class="note"><b>Known limitation, consciously accepted.</b> Uploaded images are served from a static path that is not itself behind the ownership check applied to the complaint record. Filenames are long and randomly generated, so URLs are impractical to guess, and they are surfaced only within authorised views. Recorded as decision D4 (Appendix D); the production remedy is to stream images through an authorising route or to issue short-lived signed URLs from object storage.</p>
+
+  <h3 id="s9-5">9.5 Input Validation</h3>
+  <p>The system treats <b>all client input as untrusted</b>. Client-side checks exist solely for responsiveness; every rule is re-applied on the server, which is the only authority.</p>
+  <table>
+    <tr><th style="width:22%">Threat</th><th>Countermeasure</th></tr>
+    <tr><td><b>SQL injection</b></td><td>Every database operation uses a prepared statement with bound parameters, including the administrator's free-text search. No query is assembled by string concatenation of user input, so input cannot alter query structure. Filter values are additionally checked against the permitted vocabularies before reaching the repository.</td></tr>
+    <tr><td><b>Cross-site scripting (XSS)</b></td><td>All server-supplied values are escaped before insertion into the page, so a complaint description containing markup is displayed as text and never executed. A Content Security Policy restricting scripts to the application's own origin provides a second line of defence; achieving this required moving the last inline script into an external file (decision B7, Appendix D).</td></tr>
+    <tr><td><b>Workflow bypass</b></td><td>Fields owned by the workflow are never accepted from the client. A complaint's status is forced to Pending on creation regardless of any submitted value, and can subsequently be changed only through the administrator-only transition endpoint.</td></tr>
+    <tr><td><b>Mass assignment / privilege escalation</b></td><td>Profile updates apply only an explicit allow-list of fields (name, room number). Role and email are not assignable through any interface, so a user cannot promote themselves to administrator by adding a field to a request.</td></tr>
+    <tr><td><b>Malicious file upload</b></td><td>MIME type allow-list, server-derived extension, randomised filename and a size limit; rejected uploads are removed, as are files orphaned when a later validation step fails.</td></tr>
+    <tr><td><b>Invalid enumeration values</b></td><td>Category and status are validated against the controlled vocabulary in the service and constrained again by the database schema, so an invalid value cannot be stored even if application validation were bypassed.</td></tr>
+    <tr><td><b>Oversized or malformed payloads</b></td><td>Length limits on all text fields; bounded page sizes on listings; malformed JSON is rejected with a validation error rather than propagating as a server fault.</td></tr>
+    <tr><td><b>Cross-site request forgery</b></td><td>Structurally mitigated: the session token is held in browser storage and sent explicitly in a header rather than in a cookie, so a third-party site cannot cause an authenticated request to be issued implicitly.</td></tr>
+  </table>
+</section>
+
+<!-- ============================ 10. ERROR HANDLING ============================ -->
+<section class="break">
+  <h2 id="s10">10. Error Handling</h2>
+
+  <h3 id="s10-1">10.1 Error Handling Strategy</h3>
+  <p>The system distinguishes <b>expected failures</b> — a validation problem, a permission denial, a missing record — from <b>unexpected faults</b>, and handles each appropriately. Expected failures are part of the design and produce precise, actionable messages; unexpected faults are logged in full and reported generically.</p>
+
+  <h4>Mechanism</h4>
+  <ul>
+    <li><b>Deliberate failures are thrown as a typed application error</b> carrying a message, an HTTP status and a machine-readable code. A service that detects a rule violation simply throws; it does not construct an HTTP response, which keeps business logic free of transport concerns.</li>
+    <li><b>A single central handler</b> is registered last in the middleware pipeline and converts every error — thrown deliberately or raised unexpectedly — into one uniform response shape. Because it is the only place that formats errors, the contract cannot drift between endpoints.</li>
+    <li><b>Uniform response envelope:</b> every failure returns <code>{ error: { message, code } }</code>. The client therefore has exactly one error path to implement.</li>
+    <li><b>Fault masking:</b> for any status of 500 or above the true message is written to the server log while the client receives a generic apology, so internal details are never disclosed.</li>
+    <li><b>Fail fast:</b> input is rejected at the earliest layer competent to judge it — malformed uploads in middleware, business-rule violations in the service — so invalid data never reaches persistence.</li>
+    <li><b>Resource cleanup:</b> when a request fails after a file has already been stored, the orphaned file is deleted before the error is returned, so failed submissions cannot accumulate on disk.</li>
+    <li><b>Startup validation:</b> configuration is checked when the process starts. In production, insecure settings cause an immediate, explanatory exit rather than a silently vulnerable deployment.</li>
+  </ul>
+
+  <h4>Error catalogue</h4>
+  <table>
+    <tr><th style="width:10%">Status</th><th style="width:22%">Code</th><th style="width:30%">Raised when</th><th>User-visible outcome</th></tr>
+    <tr><td><code>400</code></td><td><code>VALIDATION_ERROR</code></td><td>Missing or malformed field; invalid category or status; description too long.</td><td>Inline message naming the problem, e.g. "Description is required".</td></tr>
+    <tr><td><code>400</code></td><td><code>INVALID_FILE_TYPE</code></td><td>Upload is not PNG, JPEG or WEBP.</td><td>"Only PNG, JPEG, or WEBP images are allowed."</td></tr>
+    <tr><td><code>400</code></td><td><code>FILE_TOO_LARGE</code></td><td>Upload exceeds 5&nbsp;MB.</td><td>"Image is too large (max 5 MB)."</td></tr>
+    <tr><td><code>401</code></td><td><code>UNAUTHENTICATED</code></td><td>Absent, malformed or expired token.</td><td>Token cleared and user returned to the login screen.</td></tr>
+    <tr><td><code>401</code></td><td><code>INVALID_CREDENTIALS</code></td><td>Unknown email <em>or</em> wrong password.</td><td>Deliberately identical generic message for both cases.</td></tr>
+    <tr><td><code>403</code></td><td><code>FORBIDDEN</code></td><td>Wrong role for the endpoint, or a student acting on another student's record.</td><td>"You do not have permission to perform this action."</td></tr>
+    <tr><td><code>404</code></td><td><code>NOT_FOUND</code></td><td>Referenced complaint or user does not exist; unknown API path.</td><td>"Complaint not found."</td></tr>
+    <tr><td><code>409</code></td><td><code>EMAIL_TAKEN</code></td><td>Registration with an already-registered address, including the concurrent-registration race caught by the database constraint.</td><td>"An account with this email already exists."</td></tr>
+    <tr><td><code>409</code></td><td><code>NOT_PENDING</code></td><td>Attempt to edit or delete a complaint that has left the Pending state.</td><td>"This complaint can no longer be edited or deleted because it is already being handled."</td></tr>
+    <tr><td><code>429</code></td><td><code>RATE_LIMITED</code></td><td>Too many authentication attempts from one address (production).</td><td>"Too many attempts. Please try again later."</td></tr>
+    <tr><td><code>500</code></td><td><code>INTERNAL_ERROR</code></td><td>Any unanticipated fault.</td><td>Generic message; full details recorded server-side only.</td></tr>
+  </table>
+
+  <h4>Client-side handling</h4>
+  <p>The browser client concentrates all error handling in its single network wrapper. It reads the uniform envelope, displays the server's message in the page's alert region, and treats <code>401</code> specially by clearing the stored session and returning the user to the login screen. Because every page issues requests through this one component, no page needs its own error logic and behaviour cannot diverge between screens — the reasoning recorded as decision B5 in Appendix D.</p>
+
+  <h4>Logging and recovery</h4>
+  <ul>
+    <li>Each request is logged with method, path, resulting status and duration, giving a simple audit and performance trail.</li>
+    <li>Server faults are logged with their full stack trace; client errors are not, to keep the log signal-to-noise ratio useful.</li>
+    <li>A failed request leaves no partial state: writes are single statements, and files stored during a subsequently rejected request are removed.</li>
+    <li>Recovery is by retry — all operations except complaint creation are idempotent, so a client may safely repeat a request after a transient failure.</li>
+  </ul>
+</section>
+
+<!-- ============================ 11. DEPLOYMENT DESIGN ============================ -->
+<section class="break">
+  <h2 id="s11">11. Deployment Design</h2>
+
+  <h3 id="s11-1">11.1 Deployment Overview</h3>
+  <p>The system is deployed as a <b>single self-contained Node.js process</b> that serves both the REST API and the static frontend, backed by a file-based database and a local upload directory. Three environments are defined.</p>
+  <table>
+    <tr><th style="width:16%">Environment</th><th style="width:22%">Purpose</th><th>Configuration</th></tr>
+    <tr><td><b>Development</b></td><td>Local implementation and debugging by team members.</td><td>Runs on <code>localhost:4000</code> over HTTP. Verbose request logging; rate limiting disabled so it cannot interfere with rapid iteration or the test suite; database seeded with demonstration data.</td></tr>
+    <tr><td><b>Testing</b></td><td>Executing the integration suite against a running instance.</td><td>Identical to development but started from a freshly seeded database so results are reproducible. The suite exercises the API exactly as a client would.</td></tr>
+    <tr><td><b>Production / Demonstration</b></td><td>Public deployment for classmates and evaluation.</td><td>HTTPS terminated by a reverse proxy; strong signing secret and changed administrator password supplied by environment variables — the application refuses to start otherwise; rate limiting active; concise logging; database and uploads on persistent storage.</td></tr>
+  </table>
+  <p><b>Scaling path.</b> Because the application tier holds no session state, the single instance can be replicated behind a load balancer without code change. Two components must then be externalised: the database must move to a networked engine such as PostgreSQL (a change confined to the repository layer), and the upload directory must move to shared object storage. This ordering is deliberate — the design keeps both substitutions localised so that scaling is a configuration and infrastructure exercise rather than a rewrite.</p>
+
+  <h3 id="s11-2">11.2 Deployment Diagram</h3>
+  <figure>
+    <svg viewBox="0 0 840 560" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="8.6">
+      <defs>
+        <marker id="dp" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7.5,3 L0,6 Z" fill="#444"/></marker>
+      </defs>
+
+      <!-- client nodes -->
+      <g>
+        <!-- 3D box: student device -->
+        <polygon points="24,60 44,44 184,44 164,60" fill="#dfe9f5" stroke="#2e75b6"/>
+        <polygon points="164,60 184,44 184,128 164,144" fill="#cddcee" stroke="#2e75b6"/>
+        <rect x="24" y="60" width="140" height="84" fill="#eef4fb" stroke="#2e75b6" stroke-width="1.4"/>
+        <text x="94" y="78" text-anchor="middle" font-weight="700" fill="#1f4e79">«device»</text>
+        <text x="94" y="91" text-anchor="middle" font-weight="700">Student Device</text>
+        <rect x="34" y="100" width="120" height="34" rx="3" fill="#fff" stroke="#9dbfe0"/>
+        <text x="94" y="113" text-anchor="middle" font-size="8">«execution environment»</text>
+        <text x="94" y="126" text-anchor="middle" font-size="8" font-weight="600">Web Browser</text>
+
+        <polygon points="24,220 44,204 184,204 164,220" fill="#f5e4de" stroke="#c0733f"/>
+        <polygon points="164,220 184,204 184,288 164,304" fill="#eed3ca" stroke="#c0733f"/>
+        <rect x="24" y="220" width="140" height="84" fill="#fdeeea" stroke="#c0733f" stroke-width="1.4"/>
+        <text x="94" y="238" text-anchor="middle" font-weight="700" fill="#8a4b1e">«device»</text>
+        <text x="94" y="251" text-anchor="middle" font-weight="700">Admin Device</text>
+        <rect x="34" y="260" width="120" height="34" rx="3" fill="#fff" stroke="#d8a882"/>
+        <text x="94" y="273" text-anchor="middle" font-size="8">«execution environment»</text>
+        <text x="94" y="286" text-anchor="middle" font-size="8" font-weight="600">Web Browser</text>
+      </g>
+
+      <!-- network -->
+      <g stroke="#444" stroke-width="1.4" marker-end="url(#dp)">
+        <line x1="188" y1="102" x2="286" y2="150"/>
+        <line x1="188" y1="262" x2="286" y2="214"/>
+      </g>
+      <text x="196" y="112" font-size="7.8" fill="#333">«HTTPS»</text>
+      <text x="196" y="123" font-size="7.6" fill="#555">TCP/IP · JSON</text>
+      <text x="196" y="252" font-size="7.8" fill="#333">«HTTPS»</text>
+
+      <!-- server node -->
+      <polygon points="290,60 312,42 812,42 790,60" fill="#e6e6e6" stroke="#555"/>
+      <polygon points="790,60 812,42 812,470 790,488" fill="#dcdcdc" stroke="#555"/>
+      <rect x="290" y="60" width="500" height="428" fill="#fbfbfb" stroke="#555" stroke-width="1.6"/>
+      <text x="540" y="80" text-anchor="middle" font-weight="700" fill="#333">«device»  Application Server Host</text>
+      <text x="540" y="93" text-anchor="middle" font-size="7.8" fill="#666">Linux or Windows · 1 vCPU · 1 GB RAM · 10 GB storage</text>
+
+      <!-- reverse proxy -->
+      <rect x="312" y="104" width="200" height="52" rx="4" fill="#fff8e8" stroke="#c98a17" stroke-width="1.4"/>
+      <text x="412" y="120" text-anchor="middle" font-weight="700">«execution environment»</text>
+      <text x="412" y="133" text-anchor="middle" font-weight="700">Reverse Proxy</text>
+      <text x="412" y="147" text-anchor="middle" font-size="7.8" fill="#555">TLS termination · forwards to :4000</text>
+      <line x1="412" y1="156" x2="412" y2="176" stroke="#444" stroke-width="1.3" marker-end="url(#dp)"/>
+      <text x="418" y="170" font-size="7.6" fill="#555">HTTP (loopback)</text>
+
+      <!-- node runtime -->
+      <rect x="312" y="180" width="460" height="176" rx="5" fill="#eef4fb" stroke="#2e75b6" stroke-width="1.6"/>
+      <text x="542" y="198" text-anchor="middle" font-weight="700" fill="#1f4e79">«execution environment»  Node.js Runtime (v22.5+)</text>
+
+      <rect x="326" y="208" width="432" height="66" rx="4" fill="#fff" stroke="#1f4e79" stroke-width="1.3"/>
+      <text x="542" y="224" text-anchor="middle" font-weight="700">«artifact»  hostel-buddy application</text>
+      <text x="336" y="240" font-size="7.8">Express server · middleware pipeline</text>
+      <text x="336" y="252" font-size="7.8">M1 Authentication · M2 Users · M3 Complaints · M4 Dashboard</text>
+      <text x="336" y="264" font-size="7.8" fill="#666">stateless — no session store, so instances may be replicated</text>
+
+      <rect x="326" y="284" width="210" height="58" rx="4" fill="#fff" stroke="#2e75b6"/>
+      <text x="431" y="300" text-anchor="middle" font-weight="700">«artifact» static frontend</text>
+      <text x="336" y="314" font-size="7.8">9 pages · css · js · Chart.js (local)</text>
+      <text x="336" y="326" font-size="7.8" fill="#666">served by the same process</text>
+
+      <rect x="548" y="284" width="210" height="58" rx="4" fill="#fff" stroke="#2e75b6"/>
+      <text x="653" y="300" text-anchor="middle" font-weight="700">«artifact» configuration</text>
+      <text x="558" y="314" font-size="7.8">environment variables (.env)</text>
+      <text x="558" y="326" font-size="7.8" fill="#a12626">secret &amp; admin password required</text>
+
+      <!-- storage -->
+      <line x1="420" y1="356" x2="420" y2="384" stroke="#444" stroke-width="1.3" marker-end="url(#dp)"/>
+      <text x="426" y="374" font-size="7.6" fill="#555">SQL (in-process)</text>
+      <line x1="660" y1="356" x2="660" y2="384" stroke="#444" stroke-width="1.3" marker-end="url(#dp)"/>
+      <text x="666" y="374" font-size="7.6" fill="#555">file I/O</text>
+
+      <rect x="316" y="388" width="212" height="70" rx="4" fill="#f4f4f4" stroke="#666" stroke-width="1.4"/>
+      <text x="422" y="405" text-anchor="middle" font-weight="700">«database»  SQLite file</text>
+      <text x="326" y="420" font-size="7.8">data/hostel.db  (+ WAL journal)</text>
+      <text x="326" y="432" font-size="7.8">tables: users · complaints</text>
+      <text x="326" y="446" font-size="7.6" fill="#8a4b1e">production path → PostgreSQL (repository layer only)</text>
+
+      <rect x="552" y="388" width="212" height="70" rx="4" fill="#f4f4f4" stroke="#666" stroke-width="1.4"/>
+      <text x="658" y="405" text-anchor="middle" font-weight="700">«file system»  uploads/</text>
+      <text x="562" y="420" font-size="7.8">complaint images</text>
+      <text x="562" y="432" font-size="7.8">randomised filenames · ≤5 MB each</text>
+      <text x="562" y="446" font-size="7.6" fill="#8a4b1e">production path → object storage (S3)</text>
+
+      <!-- deployment note -->
+      <rect x="24" y="330" width="248" height="158" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+      <text x="36" y="348" font-weight="700" fill="#1f4e79">Deployment characteristics</text>
+      <text x="36" y="366" fill="#333">· Single deployable artifact — one process</text>
+      <text x="36" y="379" fill="#333">· No external service dependencies</text>
+      <text x="36" y="392" fill="#333">· API and frontend share one origin</text>
+      <text x="36" y="405" fill="#333">  (so no CORS configuration required)</text>
+      <text x="36" y="418" fill="#333">· Schema applied automatically at start-up</text>
+      <text x="36" y="431" fill="#333">· Administrator seeded idempotently</text>
+      <text x="36" y="444" fill="#333">· Stateless tier → horizontally replicable</text>
+      <text x="36" y="461" fill="#a12626" font-size="7.8">Backups must capture the database file and</text>
+      <text x="36" y="472" fill="#a12626" font-size="7.8">the uploads directory together to stay consistent.</text>
+
+      <text x="290" y="512" font-size="8" fill="#555">Nodes are drawn as UML 3-D boxes; «artifact» boxes are deployable components; arrows are communication paths labelled with their protocol.</text>
+      <text x="290" y="526" font-size="8" fill="#555">The dashed production paths indicate the two substitutions required to scale beyond a single instance.</text>
+    </svg>
+    <figcaption>Figure 11.1 — Deployment Diagram.</figcaption>
+  </figure>
+  <div class="rationale">
+    <b>Design Rationale.</b> A <b>single-node deployment</b> was chosen because it matches the actual load — one hostel, a few hundred students, a handful of complaints per day — and because every additional moving part is a component that can fail during a demonstration. Serving the frontend from the same process as the API removes an entire class of problems (cross-origin configuration, a second deployment target, version skew between client and server) at no meaningful cost, since the static assets are a few hundred kilobytes. Placing a <b>reverse proxy in front for TLS termination</b> rather than terminating TLS in the application keeps certificate management outside the application lifecycle, so renewing a certificate does not require redeploying the software. The file-based database and local upload directory are the two components that do not survive horizontal scaling; both are deliberately isolated behind narrow interfaces — the repository layer and the upload middleware respectively — so that the migration path is a bounded change rather than an architectural revision. This is the clearest example in the design of the general principle that <em>the components most likely to change are the ones kept most isolated</em>.
+  </div>
+
+  <h3 id="s11-3">11.3 Hardware Requirements</h3>
+  <table>
+    <tr><th style="width:26%">Component</th><th style="width:32%">Minimum</th><th>Recommended (demonstration deployment)</th></tr>
+    <tr><td><b>Server CPU</b></td><td>1 vCPU</td><td>2 vCPU — the workload is I/O-bound, not compute-bound; bcrypt hashing on login is the only CPU-intensive operation.</td></tr>
+    <tr><td><b>Server memory</b></td><td>512 MB</td><td>1 GB — the Node process, the in-process database engine and OS overhead fit comfortably.</td></tr>
+    <tr><td><b>Server storage</b></td><td>2 GB</td><td>10 GB — application and dependencies occupy well under 200 MB; the remainder is headroom for the database and uploaded images (each capped at 5 MB).</td></tr>
+    <tr><td><b>Network</b></td><td>Any broadband connection with a public endpoint</td><td>Stable connection; payloads are small apart from image uploads.</td></tr>
+    <tr><td><b>Client device</b></td><td>Any desktop, laptop, tablet or smartphone able to run a modern browser</td><td>No installation, no minimum specification beyond the browser; the interface is responsive down to mobile widths.</td></tr>
+  </table>
+  <p class="note">The measured query performance (all hot paths at or below approximately one millisecond over a 2,000-complaint dataset) confirms that these modest specifications are appropriate; the system is limited by the single-writer characteristic of the file-based database long before it is limited by CPU or memory.</p>
+
+  <h3 id="s11-4">11.4 Software Requirements</h3>
+  <table>
+    <tr><th style="width:24%">Layer</th><th style="width:30%">Software</th><th>Notes</th></tr>
+    <tr><td>Server operating system</td><td>Linux, Windows or macOS</td><td>No platform-specific dependency; paths are resolved relative to the project root so the same configuration works across platforms.</td></tr>
+    <tr><td>Runtime</td><td>Node.js 22.5 or later</td><td>Required for the built-in SQLite module. Development and verification were carried out on Node.js 24.</td></tr>
+    <tr><td>Package manager</td><td>npm 10+</td><td>Bundled with Node.js.</td></tr>
+    <tr><td>Database engine</td><td>SQLite (embedded in the runtime)</td><td>No separate server process, service account or driver installation. <b>No native compiler toolchain is required</b> — a deliberate choice so any team member can build the project.</td></tr>
+    <tr><td>Application dependencies</td><td>express, jsonwebtoken, bcryptjs, multer, helmet, express-rate-limit, dotenv</td><td>All pure-JavaScript packages; installed by a single command.</td></tr>
+    <tr><td>Client-side library</td><td>Chart.js 4</td><td>Vendored into the repository and served locally, so the application works offline and requires no external origin in its Content Security Policy.</td></tr>
+    <tr><td>Reverse proxy (production)</td><td>Nginx, Caddy or an equivalent</td><td>Terminates HTTPS and forwards to the application port.</td></tr>
+    <tr><td>Client</td><td>Chrome, Firefox, Edge or Safari (current versions)</td><td>Requires JavaScript and <code>localStorage</code>.</td></tr>
+    <tr><td>Development tooling</td><td>Git</td><td>Version control; the repository history documents the phase-wise construction.</td></tr>
+  </table>
+
+  <h3 id="s11-5">11.5 Installation Requirements</h3>
+  <p>Installation is a four-step procedure requiring no build step and no compiler.</p>
+  <table>
+    <tr><th style="width:8%">Step</th><th style="width:26%">Action</th><th>Detail</th></tr>
+    <tr><td>1</td><td>Obtain the source</td><td>Clone the repository. Runtime directories (database, uploads) are excluded from version control and are created automatically.</td></tr>
+    <tr><td>2</td><td>Install dependencies</td><td>A single package-install command retrieves the pure-JavaScript dependencies. No native build occurs, so no compiler toolchain is needed.</td></tr>
+    <tr><td>3</td><td>Configure the environment</td><td>Copy the committed template to the environment file and set the port, signing secret, administrator credentials and storage paths. In production the signing secret must be strong and the administrator password must be changed, or the application will refuse to start.</td></tr>
+    <tr><td>4</td><td>Start the application</td><td>On first start the schema is applied automatically and the administrator account is seeded idempotently. An optional seeding command populates sample students and complaints for demonstration.</td></tr>
+  </table>
+  <h4>Post-installation verification</h4>
+  <ul>
+    <li>The health endpoint responds successfully, confirming the process is serving requests.</li>
+    <li>The administrator can sign in with the configured credentials.</li>
+    <li>The integration suite is executed against the running instance; all checks across the authentication, complaint, administrator and dashboard suites pass.</li>
+    <li>The acceptance scenario of SRS §10 is exercised end to end: register, raise a complaint with an image, edit it while Pending, have the administrator advance it through the lifecycle, and confirm the student sees the updated status, remarks and resolution date.</li>
+  </ul>
+  <h4>Operational procedures</h4>
+  <ul>
+    <li><b>Backup:</b> copy the database file together with the upload directory; the two must be captured as a set, since complaint records reference image files by path.</li>
+    <li><b>Upgrade:</b> stop the process, update the source, reinstall dependencies, restart. Schema additions are applied idempotently at start-up.</li>
+    <li><b>Log inspection:</b> request lines carry method, path, status and duration; server faults include a full stack trace for diagnosis.</li>
+  </ul>
+
+  <h3 id="s11-6">11.6 Third-party Services</h3>
+  <p>Version 1.0 uses <b>no third-party services</b>: no email or SMS gateway, no payment provider, no map or analytics service, no external authentication provider and no cloud storage. This was a deliberate scoping decision — it removes external credentials, network dependencies, cost and privacy considerations from the project, and means the system can be demonstrated with no internet connectivity beyond reaching the host itself.</p>
+  <p>The third-party <b>software libraries</b> used are listed in §11.4; all are open-source packages installed locally and none involves a runtime call to an external service. The client-side charting library is vendored into the repository rather than loaded from a content delivery network, so no request leaves the origin at run time.</p>
+  <table>
+    <tr><th style="width:30%">Anticipated future service</th><th style="width:24%">Purpose</th><th>Integration point</th></tr>
+    <tr><td>SMTP gateway</td><td>Email notification on status change</td><td>A hook in the complaint service invoked after a successful status transition; requires no change to the API contract.</td></tr>
+    <tr><td>Push notification provider</td><td>Real-time alerts to students</td><td>The same post-transition hook, with device registration added to the user record.</td></tr>
+    <tr><td>Object storage</td><td>Durable, shared image storage for multi-instance deployment</td><td>Replacement of the upload middleware's storage engine; the surrounding pipeline is unchanged.</td></tr>
+  </table>
+</section>
+
+<!-- ============================ 12. TRACEABILITY ============================ -->
+<section class="break">
+  <h2 id="s12">12. Traceability Matrix</h2>
+  <p>This matrix demonstrates that every functional requirement of the SRS is realised by identifiable design elements and verified by at least one test. Test-case identifiers refer to the integration suites described in Appendix C (<b>TC-A</b> authentication, <b>TC-C</b> complaints, <b>TC-M</b> administrator management, <b>TC-D</b> dashboard), which together comprise 103 automated checks.</p>
+
+  <h3 id="s12-1">12.1 Requirement Mapping</h3>
+  <table>
+    <tr>
+      <th style="width:8%">SRS ID</th><th style="width:24%">Requirement</th><th style="width:14%">Module</th>
+      <th style="width:20%">Class / Component</th><th style="width:16%">Sequence Diagram</th><th style="width:10%">Test Case</th>
+    </tr>
+    <tr><td>REQ-1</td><td>Register a student account</td><td>M1 Authentication</td><td>AuthService.register, UserRepository.createUser</td><td>Fig. 7.2</td><td>TC-A1</td></tr>
+    <tr><td>REQ-2</td><td>Reject duplicate email</td><td>M1</td><td>AuthService.register; UNIQUE(email) constraint</td><td>Fig. 7.2 (alt)</td><td>TC-A2</td></tr>
+    <tr><td>REQ-3</td><td>Store passwords protected</td><td>M1</td><td>AuthService (bcrypt); UserRepository public projection</td><td>Fig. 7.2</td><td>TC-A3</td></tr>
+    <tr><td>REQ-4</td><td>Authenticate and establish session</td><td>M1</td><td>AuthService.login, JwtUtil.signToken</td><td>Fig. 7.2</td><td>TC-A4</td></tr>
+    <tr><td>REQ-5</td><td>Generic invalid-login error</td><td>M1</td><td>AuthService.login (single error object)</td><td>Fig. 7.2 (alt)</td><td>TC-A5</td></tr>
+    <tr><td>REQ-6</td><td>Single seeded administrator</td><td>M1 / M5</td><td>AdminSeeder (idempotent)</td><td>—</td><td>TC-A11</td></tr>
+    <tr><td>REQ-7</td><td>Logout terminates session</td><td>M1</td><td>Client Auth.logout; stateless token expiry</td><td>—</td><td>TC-A7</td></tr>
+    <tr><td>REQ-8</td><td>Validate credential input</td><td>M1</td><td>AuthService, Validators</td><td>Fig. 7.2</td><td>TC-A3</td></tr>
+    <tr><td>REQ-9</td><td>Submit a complaint</td><td>M3 Complaints</td><td>ComplaintService.createComplaint</td><td>Fig. 7.3</td><td>TC-C1</td></tr>
+    <tr><td>REQ-10</td><td>Restrict to defined categories</td><td>M3</td><td>ComplaintService.validateCategory; CHECK constraint</td><td>Fig. 7.3</td><td>TC-C4</td></tr>
+    <tr><td>REQ-11</td><td>Require a description</td><td>M3</td><td>ComplaintService.validateDescription</td><td>Fig. 7.3</td><td>TC-C4</td></tr>
+    <tr><td>REQ-12</td><td>Optional image within limits</td><td>M3 / M5</td><td>UploadMiddleware.uploadImage</td><td>Fig. 7.3</td><td>TC-C2, TC-C5</td></tr>
+    <tr><td>REQ-13</td><td>Initial state Pending + timestamp</td><td>M3</td><td>ComplaintService.createComplaint; column default</td><td>Fig. 7.3</td><td>TC-C1</td></tr>
+    <tr><td>REQ-14</td><td>Associate with submitting student</td><td>M3</td><td>ComplaintRepository.create (user_id)</td><td>Fig. 7.3</td><td>TC-C1</td></tr>
+    <tr><td>REQ-15</td><td>Confirm submission</td><td>M3</td><td>ComplaintController.create (201)</td><td>Fig. 7.3</td><td>TC-C1</td></tr>
+    <tr><td>REQ-16</td><td>List own complaints</td><td>M3</td><td>ComplaintService.listMine, Repository.findByUser</td><td>Fig. 7.3</td><td>TC-C6</td></tr>
+    <tr><td>REQ-17</td><td>Show status, dates, remarks</td><td>M3</td><td>ComplaintRepository projection; UI list/modal</td><td>Fig. 7.4</td><td>TC-M11</td></tr>
+    <tr><td>REQ-18</td><td>Edit only while Pending</td><td>M3</td><td>ComplaintService.loadOwnedPending</td><td>Fig. 7.5</td><td>TC-C11</td></tr>
+    <tr><td>REQ-19</td><td>Delete only while Pending</td><td>M3</td><td>ComplaintService.loadOwnedPending</td><td>Fig. 7.5</td><td>TC-C11, TC-C12</td></tr>
+    <tr><td>REQ-20</td><td>No access to other students' complaints</td><td>M3</td><td>ComplaintService.getOne / loadOwnedPending</td><td>Fig. 7.5</td><td>TC-C8</td></tr>
+    <tr><td>REQ-21</td><td>Reflect administrator changes</td><td>M3</td><td>ComplaintRepository.findByUser (current row)</td><td>Fig. 7.4</td><td>TC-M11</td></tr>
+    <tr><td>REQ-22</td><td>View all complaints</td><td>M3</td><td>ComplaintService.listAll, Repository.search</td><td>Fig. 7.4</td><td>TC-M1</td></tr>
+    <tr><td>REQ-23</td><td>Change status within lifecycle</td><td>M3</td><td>ComplaintService.updateStatus</td><td>Fig. 7.4</td><td>TC-M10</td></tr>
+    <tr><td>REQ-24</td><td>Add or update remarks</td><td>M3</td><td>ComplaintService.updateStatus (remarks policy)</td><td>Fig. 7.4</td><td>TC-M10, TC-M13</td></tr>
+    <tr><td>REQ-25</td><td>Record last-change time</td><td>M3</td><td>ComplaintRepository.updateStatus (updated_at)</td><td>Fig. 7.4</td><td>TC-M10</td></tr>
+    <tr><td>REQ-26</td><td>Record resolution date once</td><td>M3</td><td>ComplaintService (setResolvedAt guard)</td><td>Fig. 7.4</td><td>TC-M12, TC-M13</td></tr>
+    <tr><td>REQ-27</td><td>Restrict transitions to administrator</td><td>M1 / M3</td><td>requireRole('admin') on the transition route</td><td>Fig. 7.4</td><td>TC-M14</td></tr>
+    <tr><td>REQ-28</td><td>Reject undefined states</td><td>M3</td><td>ComplaintService.updateStatus; CHECK constraint</td><td>Fig. 7.4</td><td>TC-M14</td></tr>
+    <tr><td>REQ-29</td><td>Search by ID, name, room</td><td>M3</td><td>ComplaintRepository.buildFilters / search</td><td>Fig. 7.4</td><td>TC-M6…M8</td></tr>
+    <tr><td>REQ-30</td><td>Filter by category</td><td>M3</td><td>ComplaintService.listAll, Repository.search</td><td>Fig. 7.4</td><td>TC-M4</td></tr>
+    <tr><td>REQ-31</td><td>Filter by status</td><td>M3</td><td>ComplaintService.listAll, Repository.search</td><td>Fig. 7.4</td><td>TC-M3</td></tr>
+    <tr><td>REQ-32</td><td>Combine criteria, paginate</td><td>M3</td><td>ComplaintRepository.search (bound params, LIMIT/OFFSET)</td><td>Fig. 7.4</td><td>TC-M9</td></tr>
+    <tr><td>REQ-33</td><td>Student statistics</td><td>M4 Dashboard</td><td>DashboardService.studentDashboard</td><td>Fig. 7.4</td><td>TC-D1, TC-D5</td></tr>
+    <tr><td>REQ-34</td><td>Total students and complaints</td><td>M4</td><td>DashboardService.adminDashboard; countStudents</td><td>—</td><td>TC-D2, TC-D3</td></tr>
+    <tr><td>REQ-35</td><td>Counts per status</td><td>M4</td><td>ComplaintRepository.statusCounts</td><td>—</td><td>TC-D2, TC-D6</td></tr>
+    <tr><td>REQ-36</td><td>Category distribution chart</td><td>M4</td><td>ComplaintRepository.categoryCounts; zeroFilled; Chart.js</td><td>—</td><td>TC-D2</td></tr>
+    <tr><td>REQ-37</td><td>Recent complaints list</td><td>M4</td><td>ComplaintRepository.recent</td><td>—</td><td>TC-D4</td></tr>
+    <tr><td>REQ-38</td><td>View and update own profile</td><td>M2 Users</td><td>UserService.getProfile / updateProfile</td><td>Fig. 7.2</td><td>TC-A6, TC-A9</td></tr>
+    <tr><td>REQ-39</td><td>Validate profile changes</td><td>M2</td><td>UserService.updateProfile (length checks)</td><td>—</td><td>TC-A9</td></tr>
+    <tr><td>REQ-40</td><td>Administrator views student list</td><td>M2</td><td>UserService.listStudents; requireRole('admin')</td><td>—</td><td>TC-A11</td></tr>
+    <tr><td>REQ-41</td><td>Administrator manages accounts</td><td>M2</td><td>UserRepository (administrator-guarded operations)</td><td>—</td><td>TC-A10</td></tr>
+  </table>
+
+  <h4>Non-functional requirement coverage</h4>
+  <table>
+    <tr><th style="width:12%">SRS ID</th><th style="width:30%">Requirement</th><th>Design element realising it</th></tr>
+    <tr><td>NFR-1…3</td><td>Response-time budgets</td><td>Indexes on the three hot paths; aggregation in SQL; bounded pagination. Measured at ≤ ~1 ms per query over 2,000 complaints (§2.1, §6.2).</td></tr>
+    <tr><td>NFR-4</td><td>Scale to thousands of records</td><td>Stateless application tier; indexed, paginated queries; documented database substitution path (§11.1).</td></tr>
+    <tr><td>NFR-5…7</td><td>Durability, confirmation of destructive actions, backup</td><td>Relational storage with WAL and foreign keys; confirmation before deletion; documented backup procedure (§11.5).</td></tr>
+    <tr><td>NFR-8</td><td>Password hashing</td><td>bcrypt cost 10; digest never returned (§9.4).</td></tr>
+    <tr><td>NFR-9, NFR-10</td><td>Role-based and per-owner access control</td><td>Route guards plus service-level ownership checks (§9.3).</td></tr>
+    <tr><td>NFR-11</td><td>Input validation and sanitisation</td><td>Service validation, prepared statements, output escaping, CSP (§9.5).</td></tr>
+    <tr><td>NFR-12</td><td>Secure transport</td><td>HTTPS via reverse proxy; HSTS header (§9.4, §11.2).</td></tr>
+    <tr><td>NFR-13</td><td>Authentication required for data access</td><td>requireAuth on every protected route (§9.2).</td></tr>
+  </table>
+  <p class="note"><b>Coverage summary.</b> All 41 functional requirements and all 13 non-functional requirements of the SRS are traceable to design elements; 39 of the 41 functional requirements are additionally covered by at least one automated test, the exceptions being <span class="req">REQ-7</span> (client-side session discard, verified manually) and <span class="req">REQ-41</span> (administrator account management, partially implemented as the student listing in v1.0).</p>
+</section>
+
+<!-- ============================ 13. ASSUMPTIONS ============================ -->
+<section class="break">
+  <h2 id="s13">13. Assumptions and Limitations</h2>
+
+  <h3 id="s13-1">13.1 Assumptions</h3>
+  <ol>
+    <li><b>Single hostel, single administrator.</b> One privileged account manages all complaints. The data model has no hostel or block dimension.</li>
+    <li><b>Trusted administrator.</b> The administrator is assumed to act in good faith; the design protects students from one another and from unauthenticated access, not from the administrator.</li>
+    <li><b>Valid, unique email per student.</b> Email is the login identifier. Addresses are not verified by a confirmation link in v1.0, so a student may register with an address they do not control.</li>
+    <li><b>Modern browser with JavaScript and local storage.</b> The client is a JavaScript application; it does not degrade to a non-scripted mode.</li>
+    <li><b>Moderate concurrency.</b> A few hundred students with occasional complaints. Write concurrency stays well within the capacity of a single-writer embedded database.</li>
+    <li><b>Small images.</b> Complaint photographs are a few megabytes at most; no server-side resizing or thumbnailing is performed.</li>
+    <li><b>Reliable host.</b> The server and its storage are available during hostel operating hours; no clustering or automatic failover is provided.</li>
+    <li><b>Deployment behind TLS.</b> Any real deployment terminates HTTPS in front of the application, as the design depends on this for transport confidentiality.</li>
+    <li><b>Server-controlled clock.</b> All timestamps are generated by the database on the server; client clocks are neither trusted nor used.</li>
+    <li><b>Stable categories.</b> The eight complaint categories are fixed for v1.0 and are not administrator-editable.</li>
+  </ol>
+
+  <h3 id="s13-2">13.2 Constraints</h3>
+  <table>
+    <tr><th style="width:24%">Constraint</th><th style="width:34%">Consequence for the design</th><th>Mitigation</th></tr>
+    <tr><td><b>Academic timeline and team size</b></td><td>Scope was fixed to the SRS baseline; notifications, staff roles and multi-hostel support were excluded.</td><td>Extension points documented in §13.3 so deferred features attach without redesign.</td></tr>
+    <tr><td><b>No paid infrastructure</b></td><td>No managed database, object storage, mail gateway or push service.</td><td>Self-contained deployment; substitution paths recorded for each (§11.6).</td></tr>
+    <tr><td><b>No native build toolchain on team machines</b></td><td>Ruled out database drivers requiring compilation, which drove the choice of the runtime's built-in engine.</td><td>Data access isolated in repositories, so the engine can be replaced without touching business logic.</td></tr>
+    <tr><td><b>Single-writer embedded database</b></td><td>Concurrent writes serialise; this is the first ceiling the system would meet under load.</td><td>Documented migration to a networked engine, confined to the repository layer.</td></tr>
+    <tr><td><b>Local filesystem storage</b></td><td>Uploaded images are not shared between application instances, blocking horizontal scaling until addressed.</td><td>Upload storage isolated behind one middleware component.</td></tr>
+    <tr><td><b>Stateless tokens</b></td><td>A session cannot be revoked before its expiry.</td><td>Short 24-hour lifetime; revocation list identified as the upgrade path.</td></tr>
+    <tr><td><b>Unauthenticated static image path</b></td><td>Complaint images are retrievable by anyone holding the exact URL.</td><td>Long random filenames; documented as decision D4 with the production remedy specified.</td></tr>
+    <tr><td><b>No build pipeline for the frontend</b></td><td>Assets are served unbundled and unminified.</td><td>Total payload is small; bundling is a deployment optimisation, not a design change.</td></tr>
+    <tr><td><b>English-only interface</b></td><td>No localisation infrastructure in v1.0.</td><td>User-facing strings are confined to the presentation layer, so extraction for translation is straightforward.</td></tr>
+  </table>
+
+  <h3 id="s13-3">13.3 Future Enhancements</h3>
+  <p>Each deferred feature is listed with the specific extension point at which it attaches, demonstrating that the architecture anticipates it.</p>
+  <table>
+    <tr><th style="width:26%">Enhancement</th><th style="width:30%">Extension point</th><th>Design impact</th></tr>
+    <tr><td><b>Email / push notifications</b></td><td>A hook in the complaint service invoked after a successful status transition.</td><td>Additive. Requires a notification service in M5 and a delivery worker; the API contract and all existing modules are unchanged.</td></tr>
+    <tr><td><b>Maintenance-staff role</b></td><td>The role vocabulary in the constants module, plus an assignment column on the complaint entity.</td><td>Moderate. Adds a third role to the permission matrix and an assignment step to the lifecycle; the guard mechanism itself already supports arbitrary roles.</td></tr>
+    <tr><td><b>Complaint status history / audit trail</b></td><td>A new history table written by the single transition method in the complaint service.</td><td>Low risk. Because every transition passes through one method, capturing history requires one insertion at one place.</td></tr>
+    <tr><td><b>Complaint ratings</b></td><td>Additional columns on the complaint entity, written by a new student-only service operation permitted in the Resolved state.</td><td>Additive, guarded by the existing state machine.</td></tr>
+    <tr><td><b>Administrator-managed categories</b></td><td>Promotion of the category vocabulary from a constant plus CHECK constraint to a lookup table with a foreign key.</td><td>Confined to the constants module, the schema and the complaint repository.</td></tr>
+    <tr><td><b>Multi-hostel support</b></td><td>A hostel entity referenced by users and complaints, with the identifier added to the authorisation context.</td><td>The most invasive change: every query gains a scoping predicate. The centralised repository layer keeps it mechanical.</td></tr>
+    <tr><td><b>Native mobile application</b></td><td>The existing REST API, consumed by a new client.</td><td>None on the server — the client-agnostic API was the primary motivation for the layered style (§2.2).</td></tr>
+    <tr><td><b>AI-based complaint categorisation</b></td><td>A classification step inside the create operation of the complaint service, suggesting a category from the description.</td><td>Additive; the category remains user-confirmable, so the controlled vocabulary and its constraint are unaffected.</td></tr>
+    <tr><td><b>QR-code room identification</b></td><td>A pre-fill parameter on the raise-complaint screen resolving to a room number.</td><td>Presentation-tier only.</td></tr>
+    <tr><td><b>Horizontal scaling</b></td><td>Repository layer (networked database) and upload middleware (object storage).</td><td>Two bounded substitutions; the application tier is already stateless and requires no change.</td></tr>
+  </table>
+</section>
+
+<!-- ============================ CHECKLIST + APPENDICES ============================ -->
+<section class="break">
+  <h2 id="checklist">Submission Checklist</h2>
+  <table>
+    <tr><th style="width:44%">Item</th><th style="width:14%">Completed</th><th>Location in this document</th></tr>
+    <tr><td>Architecture Diagram</td><td>☑ Yes</td><td>Figure 2.1 (§2.2.1)</td></tr>
+    <tr><td>Module Decomposition</td><td>☑ Yes</td><td>Figure 4.1 (§4.3)</td></tr>
+    <tr><td>Module Interaction</td><td>☑ Yes</td><td>Figure 4.5 (§4.5)</td></tr>
+    <tr><td>Database Design</td><td>☑ Yes</td><td>§6.1–§6.6</td></tr>
+    <tr><td>ER Diagram</td><td>☑ Yes</td><td>Figure 6.2 (§6.2)</td></tr>
+    <tr><td>Data Dictionary</td><td>☑ Yes</td><td>§6.4</td></tr>
+    <tr><td>Class Diagram</td><td>☑ Yes</td><td>Figure 7.1 (§7.2)</td></tr>
+    <tr><td>Sequence Diagrams (minimum 3)</td><td>☑ Yes — 4 provided</td><td>Figures 7.2, 7.3, 7.4, 7.5 (§7.4)</td></tr>
+    <tr><td>Deployment Diagram</td><td>☑ Yes</td><td>Figure 11.1 (§11.2)</td></tr>
+    <tr><td>Traceability Matrix</td><td>☑ Yes</td><td>§12.1 — all 41 functional requirements</td></tr>
+  </table>
+  <p class="note">Additional diagrams beyond the required set: System Context (Figure 3.1), High-Level Data Flow (Figure 3.2), Package Diagram (Figure 4.6), Activity Diagram (Figure 7.6), State Diagram (Figure 7.7), Navigation Flow (Figure 8.7) and six interface figures (§8.2).</p>
+
+  <h2 id="appA">Appendix A — Glossary</h2>
+  <table>
+    <tr><th style="width:24%">Term</th><th>Definition</th></tr>
+    <tr><td>Complaint</td><td>A maintenance issue reported by a student, comprising a category, description, optional image, lifecycle status, administrator remarks and timestamps.</td></tr>
+    <tr><td>Category</td><td>The type of issue, drawn from a fixed set of eight values.</td></tr>
+    <tr><td>Lifecycle / Status</td><td>The stage of a complaint: Pending, In Progress, Resolved or Closed.</td></tr>
+    <tr><td>Pending</td><td>A newly submitted complaint not yet acted upon; the only state in which its author may edit or delete it.</td></tr>
+    <tr><td>In Progress</td><td>A complaint the administrator has begun handling; locked to the student.</td></tr>
+    <tr><td>Resolved</td><td>A complaint whose issue has been fixed; the moment of first reaching this state is recorded permanently.</td></tr>
+    <tr><td>Closed</td><td>A resolved complaint finalised with no further action required.</td></tr>
+    <tr><td>Remarks</td><td>Notes recorded by the administrator and visible to the complaint's author.</td></tr>
+    <tr><td>Module</td><td>A cohesive unit of the system owning one major functional responsibility (§4.1).</td></tr>
+    <tr><td>Layer</td><td>A horizontal division within a module: routes, controller, service, repository.</td></tr>
+    <tr><td>Service layer</td><td>The layer holding all business rules; the authority boundary of the system.</td></tr>
+    <tr><td>Repository</td><td>The only component permitted to execute SQL against a given table.</td></tr>
+    <tr><td>Middleware</td><td>A pipeline function processing a request before it reaches a controller.</td></tr>
+    <tr><td>Guard</td><td>Middleware or a service check that rejects an unauthorised request.</td></tr>
+    <tr><td>Read-model</td><td>A projection assembled purely for display, owning no storage (the Dashboard module).</td></tr>
+    <tr><td>Stateless</td><td>Holding no per-user server-side session, so any instance can serve any request.</td></tr>
+    <tr><td>Idempotent</td><td>An operation producing the same result when repeated, e.g. administrator seeding.</td></tr>
+    <tr><td>Write-once field</td><td>A column set at most once in a record's lifetime; here, the resolution timestamp.</td></tr>
+    <tr><td>Defence in depth</td><td>Enforcing a rule at more than one layer so a single omission is not sufficient to breach it.</td></tr>
+    <tr><td>JWT</td><td>JSON Web Token — a signed token carrying user identity and role.</td></tr>
+    <tr><td>bcrypt</td><td>Adaptive password-hashing function with a configurable work factor.</td></tr>
+    <tr><td>RBAC</td><td>Role-Based Access Control.</td></tr>
+    <tr><td>CSP</td><td>Content Security Policy restricting which resources a page may load.</td></tr>
+    <tr><td>WAL</td><td>Write-Ahead Logging, a journalling mode improving read concurrency.</td></tr>
+    <tr><td>3NF</td><td>Third Normal Form — the normalisation level of this schema (§6.6).</td></tr>
+  </table>
+
+  <h2 id="appB">Appendix B — API Specifications</h2>
+  <p>Base path <code>/api</code>. All protected endpoints require the header <code>Authorization: Bearer &lt;token&gt;</code>. Failures return <code>{ error: { message, code } }</code>.</p>
+  <table>
+    <tr><th style="width:9%">Method</th><th style="width:22%">Path</th><th style="width:12%">Access</th><th style="width:26%">Request</th><th>Success response</th></tr>
+    <tr><td>GET</td><td><code>/health</code></td><td>Public</td><td>—</td><td><code>200</code> service liveness indicator</td></tr>
+    <tr><td>POST</td><td><code>/auth/register</code></td><td>Public</td><td>name, email, password, room_number</td><td><code>201</code> { token, user }</td></tr>
+    <tr><td>POST</td><td><code>/auth/login</code></td><td>Public</td><td>email, password</td><td><code>200</code> { token, user }</td></tr>
+    <tr><td>GET</td><td><code>/users/me</code></td><td>Authenticated</td><td>—</td><td><code>200</code> user (no password hash)</td></tr>
+    <tr><td>PUT</td><td><code>/users/me</code></td><td>Authenticated</td><td>name, room_number</td><td><code>200</code> updated user</td></tr>
+    <tr><td>GET</td><td><code>/users</code></td><td>Administrator</td><td>—</td><td><code>200</code> array of students</td></tr>
+    <tr><td>POST</td><td><code>/complaints</code></td><td>Student</td><td>multipart: category, description, image?</td><td><code>201</code> complaint (status Pending)</td></tr>
+    <tr><td>GET</td><td><code>/complaints/mine</code></td><td>Student</td><td>—</td><td><code>200</code> array, newest first</td></tr>
+    <tr><td>GET</td><td><code>/complaints/:id</code></td><td>Owner or Administrator</td><td>—</td><td><code>200</code> complaint</td></tr>
+    <tr><td>PUT</td><td><code>/complaints/:id</code></td><td>Student (owner, Pending)</td><td>multipart: category, description, image?</td><td><code>200</code> updated complaint</td></tr>
+    <tr><td>DELETE</td><td><code>/complaints/:id</code></td><td>Student (owner, Pending)</td><td>—</td><td><code>200</code> { deleted, id }</td></tr>
+    <tr><td>GET</td><td><code>/complaints</code></td><td>Administrator</td><td>q, category, status, page, limit</td><td><code>200</code> { data[], pagination }</td></tr>
+    <tr><td>PATCH</td><td><code>/complaints/:id/status</code></td><td>Administrator</td><td>status, admin_remarks?</td><td><code>200</code> updated complaint</td></tr>
+    <tr><td>GET</td><td><code>/dashboard/student</code></td><td>Student</td><td>—</td><td><code>200</code> counts by state</td></tr>
+    <tr><td>GET</td><td><code>/dashboard/admin</code></td><td>Administrator</td><td>—</td><td><code>200</code> totals, byStatus, byCategory, recent[]</td></tr>
+    <tr><td>GET</td><td><code>/uploads/:file</code></td><td>Public (see D4)</td><td>—</td><td><code>200</code> image bytes</td></tr>
+  </table>
+
+  <h2 id="appC">Appendix C — Additional UML Diagrams and Verification</h2>
+  <h4>C.1 Diagram index</h4>
+  <table>
+    <tr><th style="width:16%">Figure</th><th style="width:34%">Diagram</th><th>Section</th></tr>
+    <tr><td>Figure 2.1</td><td>Layered architecture</td><td>§2.2.1</td></tr>
+    <tr><td>Figure 3.1</td><td>System context</td><td>§3.1</td></tr>
+    <tr><td>Figure 3.2</td><td>High-level data flow</td><td>§3.3</td></tr>
+    <tr><td>Figure 4.1</td><td>Module decomposition</td><td>§4.3</td></tr>
+    <tr><td>Figure 4.5</td><td>Module interaction</td><td>§4.5</td></tr>
+    <tr><td>Figure 4.6</td><td>Package diagram</td><td>§4.6</td></tr>
+    <tr><td>Figure 6.2</td><td>Entity–relationship model</td><td>§6.2</td></tr>
+    <tr><td>Figure 7.1</td><td>Class diagram</td><td>§7.2</td></tr>
+    <tr><td>Figures 7.2–7.5</td><td>Sequence diagrams (registration, complaint submission, resolution, rejected edit)</td><td>§7.4</td></tr>
+    <tr><td>Figure 7.6</td><td>Activity diagram</td><td>§7.5</td></tr>
+    <tr><td>Figure 7.7</td><td>State diagram</td><td>§7.6</td></tr>
+    <tr><td>Figures 8.1–8.6</td><td>Interface screens</td><td>§8.2</td></tr>
+    <tr><td>Figure 8.7</td><td>Navigation flow</td><td>§8.3</td></tr>
+    <tr><td>Figure 11.1</td><td>Deployment diagram</td><td>§11.2</td></tr>
+  </table>
+  <h4>C.2 Verification suites referenced by the traceability matrix</h4>
+  <table>
+    <tr><th style="width:14%">Prefix</th><th style="width:26%">Suite</th><th style="width:12%">Checks</th><th>Principal coverage</th></tr>
+    <tr><td><b>TC-A</b></td><td>Authentication &amp; accounts</td><td>24</td><td>Registration, duplicate rejection, password protection, login, generic error, token guards, role guard, profile read/update, administrator listing.</td></tr>
+    <tr><td><b>TC-C</b></td><td>Complaint core (student)</td><td>24</td><td>Creation with and without image, validation, upload type rejection, own-list retrieval, cross-student denial, edit and delete permitted only while Pending.</td></tr>
+    <tr><td><b>TC-M</b></td><td>Administrator management</td><td>32</td><td>Full listing, search by identifier/name/room, category and status filters, invalid filter rejection, pagination, full lifecycle transition, write-once resolution timestamp, role denial.</td></tr>
+    <tr><td><b>TC-D</b></td><td>Dashboard &amp; analytics</td><td>23</td><td>Student and administrator statistics, zero-filled distributions, aggregate consistency invariants, recent ordering, role separation.</td></tr>
+    <tr><td colspan="2"><b>Total</b></td><td><b>103</b></td><td>All suites are self-contained and order-independent, so they may be executed individually or together against a running instance.</td></tr>
+  </table>
+
+  <h2 id="appD">Appendix D — Design Decisions</h2>
+  <p>The significant decisions taken during design and construction, each with its alternatives and the trade-off accepted. Identifiers correspond to the project's engineering log.</p>
+  <table>
+    <tr><th style="width:8%">ID</th><th style="width:26%">Decision</th><th>Rationale and accepted trade-off</th></tr>
+    <tr><td><b>D1</b></td><td>Enforce the ownership and Pending-only rules in the <b>service</b> layer, not in route handlers.</td><td>A route-level check protects a single route; if another entry point to the same operation were added later, the rule would silently vanish. Placing the invariant with the business logic guarantees it for every caller. Trade-off: the check is fractionally further from the request boundary.</td></tr>
+    <tr><td><b>D2</b></td><td>Stateless JWT sessions rather than server-side session storage.</td><td>Removes shared state, so instances replicate without affinity — directly serving the scalability requirement. Trade-off: tokens cannot be revoked before expiry; mitigated by a 24-hour lifetime, with a revocation list as the documented upgrade.</td></tr>
+    <tr><td><b>D3</b></td><td>Enforce controlled vocabularies in <b>both</b> the application and the database.</td><td>Application validation produces helpful messages; the database constraint guarantees correctness even if application code is bypassed by a script or a future bug. Trade-off: a category change requires editing two places, which is acceptable for values fixed by requirement.</td></tr>
+    <tr><td><b>D4</b></td><td>Serve complaint images from an unauthenticated static path.</td><td>Filenames are long and randomly generated, and URLs appear only inside authorised views, so guessing is impractical. Fully gating images would require streaming every file through an authorising route for little practical gain at this scale. Trade-off explicitly recorded; production remedy is an authorising route or signed object-storage URLs.</td></tr>
+    <tr><td><b>D5</b></td><td>Use the runtime's built-in SQLite driver instead of a native-compiled package.</td><td>The native package requires a C++ toolchain that was unavailable on team machines, blocking installation entirely. The built-in driver offers the same synchronous prepared-statement interface with no build step, so any member can clone and run the project. Trade-off: the module is marked experimental; isolation within the repository layer makes substitution inexpensive.</td></tr>
+    <tr><td><b>B3</b></td><td>Make the resolution timestamp <b>write-once</b>.</td><td>An unconditional assignment on every save meant a later remark edit, or the transition to Closed, silently overwrote the true resolution time. Expressing it as a guarded state-entry action fixed the defect and preserves the integrity of resolution statistics. Lesson recorded: "the first time X happens" is a distinct rule from "whenever X is true".</td></tr>
+    <tr><td><b>B4</b></td><td>Never accept workflow-owned fields from the client.</td><td>A creation request could otherwise submit a status and bypass the lifecycle. The service now ignores any client-supplied status and forces Pending; status changes only through the administrator-only transition endpoint.</td></tr>
+    <tr><td><b>B5</b></td><td>Centralise all client network access in one wrapper.</td><td>Scattered request code duplicated token handling and left unauthenticated responses producing blank screens. A single wrapper attaches the token, applies headers and handles session expiry uniformly, so no page carries its own cross-cutting logic.</td></tr>
+    <tr><td><b>B6</b></td><td>Make every test suite self-contained and order-independent.</td><td>Suites that assumed pristine seed data passed in isolation but failed when run after others — a test that only passes first is not passing. Each suite now creates its own data and asserts invariants and deltas rather than absolute counts.</td></tr>
+    <tr><td><b>B7</b></td><td>Move the last inline script into an external file to permit a strict CSP.</td><td>A single inline script would have forced the policy to be weakened for all scripts. Externalising it allows scripts to be restricted to the application's own origin, materially reducing cross-site scripting risk. Lesson recorded: keep scripts external from the outset.</td></tr>
+    <tr><td><b>D6</b></td><td>Package source by feature first, layer second.</td><td>Layer-first packaging scatters a single change across four distant directories. Feature-first keeps everything needed for one requirement together, reducing navigation cost and merge conflicts on a shared codebase.</td></tr>
+    <tr><td><b>D7</b></td><td>Model the lifecycle as forward-only, with no reopening.</td><td>Backward transitions would raise questions the requirements do not answer (whether to clear the resolution time; how to count a reopened complaint in statistics). Excluding them keeps reporting unambiguous. Recorded as a candidate enhancement should reopening become a requirement.</td></tr>
+  </table>
+
+  <h2 id="appE">Appendix E — Version History</h2>
+  <table>
+    <tr><th style="width:12%">Version</th><th style="width:18%">Date</th><th style="width:22%">Author</th><th>Summary of changes</th></tr>
+    <tr><td>1.0</td><td>5 August 2026</td><td>Group 19</td><td>Initial Software Architecture and Design Document derived from the approved SRS v1.0. Establishes the layered three-tier architecture, five-module decomposition, relational database design in 3NF, detailed class and interaction design, security and error-handling strategies, single-node deployment model, and full traceability of all 41 functional requirements.</td></tr>
+  </table>
+  <h4>Relationship to the Software Requirements Specification</h4>
+  <table>
+    <tr><th style="width:26%">Document</th><th style="width:12%">Version</th><th>Relationship</th></tr>
+    <tr><td>Software Requirements Specification</td><td>1.0</td><td>Defines <em>what</em> the system must do. This SADD is derived from it; every requirement it states is traced to a design element in §12.</td></tr>
+    <tr><td>Software Architecture and Design Document</td><td>1.0 (this document)</td><td>Defines <em>how</em> those requirements are satisfied. Supersedes no part of the SRS; where the two are read together, the SRS remains authoritative on required behaviour.</td></tr>
+  </table>
+  <p class="note">This document will be revised if the SRS baseline changes or if review feedback requires architectural amendment. Design decisions superseded in a later revision will be retained in Appendix D with their outcome recorded, so the reasoning history remains available.</p>
+</section>
+
+<script src="paged.polyfill.js"></script>

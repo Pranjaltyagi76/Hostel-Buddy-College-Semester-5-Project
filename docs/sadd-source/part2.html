@@ -1,0 +1,548 @@
+<!-- ============================ 4. MODULES ============================ -->
+<section class="break">
+  <h2 id="s4">4. Module Identification and Design</h2>
+
+  <h3 id="s4-1">4.1 Module Identification</h3>
+  <p>System functionality was grouped into modules by <b>major functional responsibility</b>, not by screen or by database table. The seven system features of the SRS (§4.1–§4.7) were examined for shared data, shared rules and common reasons to change; features that manipulate the same core concept under the same rules were collapsed into a single module.</p>
+
+  <h4>Criteria applied</h4>
+  <table>
+    <tr><th style="width:22%">Criterion</th><th>How it was applied</th></tr>
+    <tr><td><b>Functional cohesion</b></td><td>Every element of a module contributes to one responsibility. Complaint submission, editing, deletion, retrieval and lifecycle transitions all operate on the complaint concept under one consistent rule set, so they form one module rather than four.</td></tr>
+    <tr><td><b>Low coupling</b></td><td>Modules communicate only through published service functions. No module reads another module's table directly, so a change to one module's storage cannot silently break another.</td></tr>
+    <tr><td><b>Single reason to change</b></td><td>Authentication is separated from User Management because credential policy (hashing, token lifetime) evolves independently of profile data.</td></tr>
+    <tr><td><b>Separation of concerns</b></td><td>Cross-cutting behaviour used by every module — authentication checks, file upload, error translation, security headers — was extracted into a shared infrastructure layer instead of being duplicated.</td></tr>
+    <tr><td><b>Maintainability</b></td><td>Each module is a self-contained directory with an identical internal structure, so a developer can locate any behaviour without a map of the codebase.</td></tr>
+    <tr><td><b>Read/write asymmetry</b></td><td>Dashboard &amp; Analytics is a distinct module because it is a read-only projection over data owned by others; separating it keeps reporting queries from complicating transactional logic.</td></tr>
+  </table>
+
+  <h4>Identified modules</h4>
+  <table>
+    <tr><th style="width:8%">ID</th><th style="width:24%">Module</th><th>Primary responsibility</th><th style="width:20%">SRS features covered</th></tr>
+    <tr><td><b>M1</b></td><td>Authentication Module</td><td>Establishes and verifies identity: registration, login, password hashing, token issue, and the guards that protect every other endpoint.</td><td>§4.1 (partly)</td></tr>
+    <tr><td><b>M2</b></td><td>User Management Module</td><td>Owns the user record after identity is established: profile retrieval and update, and the administrator's view of registered students.</td><td>§4.1 (partly), §4.7</td></tr>
+    <tr><td><b>M3</b></td><td>Complaint Management Module</td><td>Owns the complaint concept end to end: submission with image, retrieval, student edit/delete, administrator search and filtering, and lifecycle transitions with remarks.</td><td>§4.2, §4.3, §4.4, §4.5</td></tr>
+    <tr><td><b>M4</b></td><td>Dashboard &amp; Analytics Module</td><td>Read-only reporting: composes per-student and system-wide statistics and category/status distributions for visualisation.</td><td>§4.6</td></tr>
+    <tr><td><b>M5</b></td><td>Infrastructure &amp; Cross-Cutting Layer</td><td>Shared services consumed by all modules: configuration, database connection and schema, security middleware, upload handling, error translation, logging, JWT and validation utilities.</td><td>Supports all; realises NFRs</td></tr>
+  </table>
+  <p class="note"><b>Deliberately avoided:</b> a module per screen (e.g. a "Login Page module"), a module per table (e.g. a "Users table module"), and a "utility" grab-bag. M5 is not a grab-bag — it contains only genuinely cross-cutting concerns, each in its own single-responsibility file.</p>
+
+  <h3 id="s4-2">4.2 Functional Requirement to Module Mapping</h3>
+  <p>Every functional requirement in the SRS is implemented by at least one module. Requirements are grouped by their SRS feature for readability; the full requirement-to-class-to-test mapping appears in §12.</p>
+  <table>
+    <tr><th style="width:14%">SRS Feature</th><th style="width:26%">Functional Requirement</th><th style="width:24%">Module Responsible</th><th>Supporting modules</th></tr>
+    <tr><td>§4.1 User Authentication &amp; Account Management</td><td><span class="req">REQ-1</span> Register student account<br><span class="req">REQ-2</span> Unique email enforcement<br><span class="req">REQ-3</span> Protected password storage<br><span class="req">REQ-4</span> Authenticate and establish session<br><span class="req">REQ-5</span> Generic invalid-login error<br><span class="req">REQ-6</span> Single seeded administrator<br><span class="req">REQ-7</span> Logout / session termination<br><span class="req">REQ-8</span> Validate credentials input</td><td><b>M1 — Authentication</b></td><td>M2 (user record persistence), M5 (JWT, hashing, validation, seeding)</td></tr>
+    <tr><td>§4.2 Complaint Submission</td><td><span class="req">REQ-9</span> Submit complaint<br><span class="req">REQ-10</span> Restrict to defined categories<br><span class="req">REQ-11</span> Require description<br><span class="req">REQ-12</span> Optional image within limits<br><span class="req">REQ-13</span> Initial state Pending + timestamp<br><span class="req">REQ-14</span> Associate with submitting student<br><span class="req">REQ-15</span> Confirm submission</td><td><b>M3 — Complaint Management</b></td><td>M1 (identity of submitter), M5 (upload middleware, constants)</td></tr>
+    <tr><td>§4.3 Complaint Tracking &amp; History</td><td><span class="req">REQ-16</span> List own complaints<br><span class="req">REQ-17</span> Display status, dates, remarks<br><span class="req">REQ-18</span> Edit only while Pending<br><span class="req">REQ-19</span> Delete only while Pending<br><span class="req">REQ-20</span> No access to others' complaints<br><span class="req">REQ-21</span> Reflect administrator changes</td><td><b>M3 — Complaint Management</b></td><td>M1 (authenticated identity for ownership checks)</td></tr>
+    <tr><td>§4.4 Complaint Management (Administrator)</td><td><span class="req">REQ-22</span> View all complaints<br><span class="req">REQ-23</span> Change status within lifecycle<br><span class="req">REQ-24</span> Add/update remarks<br><span class="req">REQ-25</span> Record last-change time<br><span class="req">REQ-26</span> Record resolution date once<br><span class="req">REQ-27</span> Restrict transitions to administrator<br><span class="req">REQ-28</span> Reject undefined states</td><td><b>M3 — Complaint Management</b></td><td>M1 (role guard), M2 (student details in listings), M5 (constants)</td></tr>
+    <tr><td>§4.5 Search &amp; Filter</td><td><span class="req">REQ-29</span> Search by ID, name, room<br><span class="req">REQ-30</span> Filter by category<br><span class="req">REQ-31</span> Filter by status<br><span class="req">REQ-32</span> Combine criteria</td><td><b>M3 — Complaint Management</b></td><td>M2 (joined student name/room), M1 (role guard)</td></tr>
+    <tr><td>§4.6 Dashboard &amp; Analytics</td><td><span class="req">REQ-33</span> Student statistics<br><span class="req">REQ-34</span> Total students and complaints<br><span class="req">REQ-35</span> Counts per status<br><span class="req">REQ-36</span> Category distribution chart<br><span class="req">REQ-37</span> Recent complaints list</td><td><b>M4 — Dashboard &amp; Analytics</b></td><td>M3 (complaint aggregates), M2 (student count), M1 (role guard)</td></tr>
+    <tr><td>§4.7 Profile &amp; Student Account Management</td><td><span class="req">REQ-38</span> View/update own profile<br><span class="req">REQ-39</span> Validate profile changes<br><span class="req">REQ-40</span> Administrator views student list<br><span class="req">REQ-41</span> Administrator manages accounts</td><td><b>M2 — User Management</b></td><td>M1 (authenticated identity, role guard), M5 (validation)</td></tr>
+  </table>
+  <p class="note"><b>Coverage check:</b> requirements <span class="req">REQ-1</span> through <span class="req">REQ-41</span> are each assigned to exactly one owning module, with supporting modules listed where collaboration is required. No requirement is unassigned, and no module exists without at least one requirement to justify it.</p>
+
+  <h3 id="s4-3">4.3 Module Decomposition</h3>
+  <p>Figure 4.1 decomposes the system into its modules and shows the internal four-layer structure repeated within each feature module, together with the shared infrastructure they all depend on.</p>
+  <figure>
+    <svg viewBox="0 0 880 640" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <defs>
+        <marker id="m-ar" markerWidth="8" markerHeight="8" refX="6.8" refY="2.8" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L6.8,2.8 L0,5.6 Z" fill="#666"/>
+        </marker>
+      </defs>
+
+      <rect x="14" y="14" width="852" height="612" rx="8" fill="#fdfdfe" stroke="#1f4e79" stroke-width="1.8"/>
+      <text x="30" y="36" font-size="12" font-weight="700" fill="#1f4e79">Hostel Buddy — Module Decomposition</text>
+
+      <!-- API entry -->
+      <rect x="30" y="48" width="820" height="30" rx="5" fill="#eef4fb" stroke="#2e75b6"/>
+      <text x="440" y="68" text-anchor="middle" font-size="10" font-weight="600" fill="#1f4e79">REST API Surface  ·  /api/auth  ·  /api/users  ·  /api/complaints  ·  /api/dashboard</text>
+
+      <!-- M1 -->
+      <rect x="30" y="92" width="200" height="176" rx="7" fill="#ffffff" stroke="#5a8f4e" stroke-width="1.6"/>
+      <rect x="30" y="92" width="200" height="26" rx="7" fill="#ecf6ec" stroke="#5a8f4e"/>
+      <text x="130" y="110" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2f6b2f">M1 · Authentication</text>
+      <g font-size="8.6">
+        <rect x="42" y="126" width="176" height="24" rx="4" fill="#eaf1fb" stroke="#9dbfe0"/><text x="130" y="142" text-anchor="middle">auth.routes</text>
+        <rect x="42" y="154" width="176" height="24" rx="4" fill="#eaf1fb" stroke="#9dbfe0"/><text x="130" y="170" text-anchor="middle">auth.controller</text>
+        <rect x="42" y="182" width="176" height="30" rx="4" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.3"/><text x="130" y="194" text-anchor="middle" font-weight="700">auth.service</text><text x="130" y="205" text-anchor="middle" font-size="7.6" fill="#444">hash · verify · issue token</text>
+        <rect x="42" y="216" width="176" height="24" rx="4" fill="#f4f4f4" stroke="#aaa"/><text x="130" y="232" text-anchor="middle" font-size="8" fill="#555">(uses M2 repository)</text>
+      </g>
+      <text x="130" y="256" text-anchor="middle" font-size="7.8" fill="#666">REQ-1…REQ-8</text>
+
+      <!-- M2 -->
+      <rect x="242" y="92" width="200" height="176" rx="7" fill="#ffffff" stroke="#5a8f4e" stroke-width="1.6"/>
+      <rect x="242" y="92" width="200" height="26" rx="7" fill="#ecf6ec" stroke="#5a8f4e"/>
+      <text x="342" y="110" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2f6b2f">M2 · User Management</text>
+      <g font-size="8.6">
+        <rect x="254" y="126" width="176" height="24" rx="4" fill="#eaf1fb" stroke="#9dbfe0"/><text x="342" y="142" text-anchor="middle">users.routes</text>
+        <rect x="254" y="154" width="176" height="24" rx="4" fill="#eaf1fb" stroke="#9dbfe0"/><text x="342" y="170" text-anchor="middle">users.controller</text>
+        <rect x="254" y="182" width="176" height="24" rx="4" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.3"/><text x="342" y="198" text-anchor="middle" font-weight="700">users.service</text>
+        <rect x="254" y="210" width="176" height="30" rx="4" fill="#eaf1fb" stroke="#9dbfe0"/><text x="342" y="222" text-anchor="middle">users.repo</text><text x="342" y="233" text-anchor="middle" font-size="7.6" fill="#444">owns table: users</text>
+      </g>
+      <text x="342" y="256" text-anchor="middle" font-size="7.8" fill="#666">REQ-38…REQ-41</text>
+
+      <!-- M3 -->
+      <rect x="454" y="92" width="200" height="176" rx="7" fill="#ffffff" stroke="#5a8f4e" stroke-width="1.6"/>
+      <rect x="454" y="92" width="200" height="26" rx="7" fill="#ecf6ec" stroke="#5a8f4e"/>
+      <text x="554" y="110" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2f6b2f">M3 · Complaint Mgmt</text>
+      <g font-size="8.6">
+        <rect x="466" y="126" width="176" height="24" rx="4" fill="#eaf1fb" stroke="#9dbfe0"/><text x="554" y="142" text-anchor="middle">complaints.routes</text>
+        <rect x="466" y="154" width="176" height="24" rx="4" fill="#eaf1fb" stroke="#9dbfe0"/><text x="554" y="170" text-anchor="middle">complaints.controller</text>
+        <rect x="466" y="182" width="176" height="30" rx="4" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.3"/><text x="554" y="194" text-anchor="middle" font-weight="700">complaints.service</text><text x="554" y="205" text-anchor="middle" font-size="7.6" fill="#444">ownership · Pending guard</text>
+        <rect x="466" y="216" width="176" height="24" rx="4" fill="#eaf1fb" stroke="#9dbfe0"/><text x="554" y="232" text-anchor="middle">complaints.repo <tspan font-size="7.4" fill="#444">(complaints)</tspan></text>
+      </g>
+      <text x="554" y="256" text-anchor="middle" font-size="7.8" fill="#666">REQ-9…REQ-32</text>
+
+      <!-- M4 -->
+      <rect x="666" y="92" width="184" height="176" rx="7" fill="#ffffff" stroke="#5a8f4e" stroke-width="1.6"/>
+      <rect x="666" y="92" width="184" height="26" rx="7" fill="#ecf6ec" stroke="#5a8f4e"/>
+      <text x="758" y="110" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2f6b2f">M4 · Dashboard</text>
+      <g font-size="8.6">
+        <rect x="678" y="126" width="160" height="24" rx="4" fill="#eaf1fb" stroke="#9dbfe0"/><text x="758" y="142" text-anchor="middle">dashboard.routes</text>
+        <rect x="678" y="154" width="160" height="24" rx="4" fill="#eaf1fb" stroke="#9dbfe0"/><text x="758" y="170" text-anchor="middle">dashboard.controller</text>
+        <rect x="678" y="182" width="160" height="30" rx="4" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.3"/><text x="758" y="194" text-anchor="middle" font-weight="700">dashboard.service</text><text x="758" y="205" text-anchor="middle" font-size="7.6" fill="#444">read-model only</text>
+        <rect x="678" y="216" width="160" height="24" rx="4" fill="#f4f4f4" stroke="#aaa"/><text x="758" y="232" text-anchor="middle" font-size="8" fill="#555">no repository of its own</text>
+      </g>
+      <text x="758" y="256" text-anchor="middle" font-size="7.8" fill="#666">REQ-33…REQ-37</text>
+
+      <!-- dependency arrows to infra -->
+      <g stroke="#666" stroke-width="1.2" marker-end="url(#m-ar)" stroke-dasharray="4,3">
+        <line x1="130" y1="268" x2="130" y2="300"/>
+        <line x1="342" y1="268" x2="342" y2="300"/>
+        <line x1="554" y1="268" x2="554" y2="300"/>
+        <line x1="758" y1="268" x2="758" y2="300"/>
+      </g>
+
+      <!-- M5 infrastructure -->
+      <rect x="30" y="304" width="820" height="150" rx="7" fill="#fdf6ee" stroke="#c0733f" stroke-width="1.6"/>
+      <text x="440" y="324" text-anchor="middle" font-size="10.5" font-weight="700" fill="#8a4b1e">M5 · Infrastructure &amp; Cross-Cutting Layer</text>
+      <g font-size="8.4">
+        <rect x="44" y="334" width="126" height="40" rx="4" fill="#fff" stroke="#d8a882"/><text x="107" y="350" text-anchor="middle" font-weight="600">auth middleware</text><text x="107" y="363" text-anchor="middle" font-size="7.6" fill="#555">requireAuth · requireRole</text>
+        <rect x="180" y="334" width="126" height="40" rx="4" fill="#fff" stroke="#d8a882"/><text x="243" y="350" text-anchor="middle" font-weight="600">security</text><text x="243" y="363" text-anchor="middle" font-size="7.6" fill="#555">helmet · CSP · rate limit</text>
+        <rect x="316" y="334" width="126" height="40" rx="4" fill="#fff" stroke="#d8a882"/><text x="379" y="350" text-anchor="middle" font-weight="600">upload</text><text x="379" y="363" text-anchor="middle" font-size="7.6" fill="#555">multer · type/size filter</text>
+        <rect x="452" y="334" width="126" height="40" rx="4" fill="#fff" stroke="#d8a882"/><text x="515" y="350" text-anchor="middle" font-weight="600">errorHandler</text><text x="515" y="363" text-anchor="middle" font-size="7.6" fill="#555">AppError · uniform JSON</text>
+        <rect x="588" y="334" width="122" height="40" rx="4" fill="#fff" stroke="#d8a882"/><text x="649" y="350" text-anchor="middle" font-weight="600">requestLogger</text><text x="649" y="363" text-anchor="middle" font-size="7.6" fill="#555">method · status · ms</text>
+        <rect x="720" y="334" width="116" height="40" rx="4" fill="#fff" stroke="#d8a882"/><text x="778" y="350" text-anchor="middle" font-weight="600">utils</text><text x="778" y="363" text-anchor="middle" font-size="7.6" fill="#555">jwt · validators</text>
+
+        <rect x="44" y="382" width="180" height="40" rx="4" fill="#fff" stroke="#d8a882"/><text x="134" y="398" text-anchor="middle" font-weight="600">config</text><text x="134" y="411" text-anchor="middle" font-size="7.6" fill="#555">env · constants (categories, statuses, roles)</text>
+        <rect x="234" y="382" width="180" height="40" rx="4" fill="#fff" stroke="#d8a882"/><text x="324" y="398" text-anchor="middle" font-weight="600">db</text><text x="324" y="411" text-anchor="middle" font-size="7.6" fill="#555">connection · schema · migrations</text>
+        <rect x="424" y="382" width="180" height="40" rx="4" fill="#fff" stroke="#d8a882"/><text x="514" y="398" text-anchor="middle" font-weight="600">seed</text><text x="514" y="411" text-anchor="middle" font-size="7.6" fill="#555">seedAdmin · demo data</text>
+        <rect x="614" y="382" width="222" height="40" rx="4" fill="#fff" stroke="#d8a882"/><text x="725" y="398" text-anchor="middle" font-weight="600">app / server bootstrap</text><text x="725" y="411" text-anchor="middle" font-size="7.6" fill="#555">wires middleware + mounts module routes</text>
+      </g>
+      <text x="440" y="442" text-anchor="middle" font-size="8" fill="#8a4b1e" font-style="italic">Depended upon by all feature modules; depends on none of them (dependencies point downward only).</text>
+
+      <!-- data tier -->
+      <line x1="440" y1="454" x2="440" y2="486" stroke="#666" stroke-width="1.2" marker-end="url(#m-ar)" stroke-dasharray="4,3"/>
+      <rect x="30" y="490" width="820" height="66" rx="7" fill="#f7f7f7" stroke="#666" stroke-width="1.5"/>
+      <text x="440" y="510" text-anchor="middle" font-size="10.5" font-weight="700" fill="#333">Data Tier</text>
+      <g font-size="8.6">
+        <rect x="150" y="518" width="250" height="28" rx="4" fill="#fff" stroke="#999"/><text x="275" y="536" text-anchor="middle">Relational database — users · complaints</text>
+        <rect x="470" y="518" width="250" height="28" rx="4" fill="#fff" stroke="#999"/><text x="595" y="536" text-anchor="middle">Filesystem — /uploads (complaint images)</text>
+      </g>
+
+      <!-- legend -->
+      <g font-size="8">
+        <rect x="30" y="570" width="820" height="44" rx="5" fill="#fbfbfb" stroke="#ddd"/>
+        <text x="42" y="586" font-weight="700" fill="#333">Legend:</text>
+        <rect x="96" y="578" width="16" height="10" fill="#eaf1fb" stroke="#9dbfe0"/><text x="118" y="587">transport layer (routes / controllers / repositories)</text>
+        <rect x="330" y="578" width="16" height="10" fill="#dfeaf7" stroke="#1f4e79"/><text x="352" y="587">service layer — business rules</text>
+        <rect x="546" y="578" width="16" height="10" fill="#fff" stroke="#d8a882"/><text x="568" y="587">shared infrastructure component</text>
+        <line x1="96" y1="602" x2="128" y2="602" stroke="#666" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#m-ar)"/><text x="136" y="605">depends on</text>
+        <text x="330" y="605" fill="#555">Each feature module owns its data; only M2 and M3 contain repositories.</text>
+      </g>
+    </svg>
+    <figcaption>Figure 4.1 — Module Decomposition Diagram.</figcaption>
+  </figure>
+  <div class="rationale">
+    <b>Design Rationale.</b> Three decisions in this decomposition deserve justification. <b>(1) Authentication (M1) is separate from User Management (M2)</b> even though both concern users, because they change for different reasons — token lifetime and hashing policy belong to security, while profile fields belong to the domain. M1 deliberately has no repository of its own and reuses M2's, avoiding two components writing the same table. <b>(2) Dashboard (M4) has no repository at all</b>: it is a read-model that composes counts published by M2 and M3. Had it queried their tables directly it would have coupled itself to their schemas, so any complaint-table change would silently break reporting. <b>(3) Search, filtering and the lifecycle live inside M3 rather than in separate modules</b>, because they operate on the same entity under the same authorisation rules; splitting them would have produced anaemic modules with high mutual coupling — the classic mistake of creating one module per screen. The single constraint enforced throughout is that <b>dependencies point downward only</b>: feature modules depend on infrastructure, never the reverse, and no cycles exist.
+  </div>
+
+  <h3 id="s4-4">4.4 Module Description</h3>
+  <p>Each module is specified below using the standard descriptor.</p>
+
+  <h4>4.4.1 M1 — Authentication Module</h4>
+  <table>
+    <tr><th style="width:22%">Field</th><th>Description</th></tr>
+    <tr><td>Module Name</td><td>Authentication Module (M1)</td></tr>
+    <tr><td>Purpose</td><td>To establish user identity at registration and login, and to protect every other endpoint by verifying that identity and role on each request.</td></tr>
+    <tr><td>Responsibilities</td><td>Validate registration input; enforce email uniqueness; hash passwords with bcrypt; verify credentials without revealing which field was wrong; issue signed JWTs carrying user id and role; verify tokens and attach the caller's identity to the request; enforce role membership; seed the single administrator account at start-up.</td></tr>
+    <tr><td>Functional Requirements Covered</td><td><span class="req">REQ-1</span>, <span class="req">REQ-2</span>, <span class="req">REQ-3</span>, <span class="req">REQ-4</span>, <span class="req">REQ-5</span>, <span class="req">REQ-6</span>, <span class="req">REQ-7</span>, <span class="req">REQ-8</span>; enables <span class="req">REQ-20</span>, <span class="req">REQ-27</span></td></tr>
+    <tr><td>Inputs</td><td>Registration data (name, email, password, room number); login credentials; <code>Authorization: Bearer &lt;token&gt;</code> header on protected requests.</td></tr>
+    <tr><td>Outputs</td><td><code>{ token, user }</code> on success; authenticated request context <code>{ userId, role }</code>; <code>401</code>/<code>403</code>/<code>409</code> errors.</td></tr>
+    <tr><td>Interfaces Provided</td><td><code>POST /api/auth/register</code>, <code>POST /api/auth/login</code>; middleware <code>requireAuth()</code>, <code>requireRole(role)</code> consumed by all other modules.</td></tr>
+    <tr><td>Interfaces Required</td><td>User repository (M2) for lookup and creation; JWT and validation utilities, configuration and error types (M5).</td></tr>
+    <tr><td>Dependencies</td><td>M2, M5. No feature module depends on M1's internals — only on its middleware.</td></tr>
+    <tr><td>Internal Classes / Units</td><td><code>AuthService</code> (register, login), <code>AuthController</code>, <code>AuthRoutes</code>, <code>AuthMiddleware</code> (requireAuth, requireRole), <code>JwtUtil</code>, <code>AdminSeeder</code>.</td></tr>
+  </table>
+
+  <h4>4.4.2 M2 — User Management Module</h4>
+  <table>
+    <tr><th style="width:22%">Field</th><th>Description</th></tr>
+    <tr><td>Module Name</td><td>User Management Module (M2)</td></tr>
+    <tr><td>Purpose</td><td>To own the persistent user record and expose safe operations for reading and modifying it.</td></tr>
+    <tr><td>Responsibilities</td><td>Persist and retrieve user rows; guarantee that password hashes never leave the module in a response; validate and apply profile changes; provide the administrator's list of registered students; expose the student count used by reporting.</td></tr>
+    <tr><td>Functional Requirements Covered</td><td><span class="req">REQ-38</span>, <span class="req">REQ-39</span>, <span class="req">REQ-40</span>, <span class="req">REQ-41</span>; supports <span class="req">REQ-1</span>–<span class="req">REQ-4</span>, <span class="req">REQ-34</span></td></tr>
+    <tr><td>Inputs</td><td>Authenticated user id; profile fields (name, room number); lookup keys (id, email).</td></tr>
+    <tr><td>Outputs</td><td>Public user objects (id, name, email, room number, role, created date) — never the password hash; student collections; counts.</td></tr>
+    <tr><td>Interfaces Provided</td><td><code>GET /api/users/me</code>, <code>PUT /api/users/me</code>, <code>GET /api/users</code> (administrator); repository operations <code>findByEmail</code>, <code>findById</code>, <code>createUser</code>, <code>countStudents</code> consumed by M1 and M4.</td></tr>
+    <tr><td>Interfaces Required</td><td>Authentication middleware (M1); database connection, validators, error types (M5).</td></tr>
+    <tr><td>Dependencies</td><td>M1 (guards), M5.</td></tr>
+    <tr><td>Internal Classes / Units</td><td><code>UserService</code>, <code>UserController</code>, <code>UserRoutes</code>, <code>UserRepository</code> (sole owner of the <code>users</code> table).</td></tr>
+  </table>
+
+  <h4>4.4.3 M3 — Complaint Management Module</h4>
+  <table>
+    <tr><th style="width:22%">Field</th><th>Description</th></tr>
+    <tr><td>Module Name</td><td>Complaint Management Module (M3)</td></tr>
+    <tr><td>Purpose</td><td>To own the complaint entity throughout its life: creation by a student, controlled modification, administrator review and lifecycle advancement.</td></tr>
+    <tr><td>Responsibilities</td><td>Validate category and description; force the initial state to Pending regardless of client input; associate a complaint with its author; store and replace the optional image; enforce that only the owner may modify and only while Pending; permit reads by the owner or the administrator; provide paginated search and filtering joined with student details; apply status transitions, record remarks, maintain the last-updated time and record the resolution time exactly once.</td></tr>
+    <tr><td>Functional Requirements Covered</td><td><span class="req">REQ-9</span>–<span class="req">REQ-32</span> (submission, tracking, administrator management, search and filter)</td></tr>
+    <tr><td>Inputs</td><td>Complaint data (category, description, optional image file); complaint identifier; search term, category/status filters, page and limit; status value and remarks.</td></tr>
+    <tr><td>Outputs</td><td>Complaint objects with status, timestamps, remarks and image reference; paginated result sets with student name and room; aggregate counts for the Dashboard module.</td></tr>
+    <tr><td>Interfaces Provided</td><td><code>POST /api/complaints</code>, <code>GET /api/complaints/mine</code>, <code>GET /api/complaints/:id</code>, <code>PUT /api/complaints/:id</code>, <code>DELETE /api/complaints/:id</code>, <code>GET /api/complaints</code> (administrator), <code>PATCH /api/complaints/:id/status</code> (administrator); repository aggregate operations consumed by M4.</td></tr>
+    <tr><td>Interfaces Required</td><td>Authentication and role middleware (M1); upload middleware, constants, database connection, error types (M5); user data for joined listings (M2's table via the repository join).</td></tr>
+    <tr><td>Dependencies</td><td>M1, M2, M5.</td></tr>
+    <tr><td>Internal Classes / Units</td><td><code>ComplaintService</code> (rules: <code>createComplaint</code>, <code>listMine</code>, <code>getOne</code>, <code>updateComplaint</code>, <code>deleteComplaint</code>, <code>listAll</code>, <code>updateStatus</code>), <code>ComplaintController</code>, <code>ComplaintRoutes</code>, <code>ComplaintRepository</code> (sole owner of the <code>complaints</code> table).</td></tr>
+  </table>
+
+  <h4>4.4.4 M4 — Dashboard &amp; Analytics Module</h4>
+  <table>
+    <tr><th style="width:22%">Field</th><th>Description</th></tr>
+    <tr><td>Module Name</td><td>Dashboard &amp; Analytics Module (M4)</td></tr>
+    <tr><td>Purpose</td><td>To provide role-appropriate summary statistics without duplicating the storage or rules owned by other modules.</td></tr>
+    <tr><td>Responsibilities</td><td>Compose a student's own complaint counts by state; compose system-wide totals, per-status counts, category distribution and a recent-complaints list; guarantee that every category and status key is present (zero-filled) so charts render completely.</td></tr>
+    <tr><td>Functional Requirements Covered</td><td><span class="req">REQ-33</span>, <span class="req">REQ-34</span>, <span class="req">REQ-35</span>, <span class="req">REQ-36</span>, <span class="req">REQ-37</span></td></tr>
+    <tr><td>Inputs</td><td>Authenticated identity and role (no user-supplied parameters).</td></tr>
+    <tr><td>Outputs</td><td>Student view: total, pending, in-progress, resolved, closed. Administrator view: total students, total complaints, counts by status, counts by category, five most recent complaints.</td></tr>
+    <tr><td>Interfaces Provided</td><td><code>GET /api/dashboard/student</code>, <code>GET /api/dashboard/admin</code>.</td></tr>
+    <tr><td>Interfaces Required</td><td>Aggregate operations of M3's repository; student count from M2; role middleware (M1); constants (M5).</td></tr>
+    <tr><td>Dependencies</td><td>M1, M2, M3, M5. Nothing depends on M4 — it is a leaf module, so it can be modified or removed without affecting the transactional core.</td></tr>
+    <tr><td>Internal Classes / Units</td><td><code>DashboardService</code>, <code>DashboardController</code>, <code>DashboardRoutes</code>. Deliberately no repository.</td></tr>
+  </table>
+
+  <h4>4.4.5 M5 — Infrastructure &amp; Cross-Cutting Layer</h4>
+  <table>
+    <tr><th style="width:22%">Field</th><th>Description</th></tr>
+    <tr><td>Module Name</td><td>Infrastructure &amp; Cross-Cutting Layer (M5)</td></tr>
+    <tr><td>Purpose</td><td>To provide the shared technical services every feature module needs, so that cross-cutting behaviour is defined once and applied uniformly.</td></tr>
+    <tr><td>Responsibilities</td><td>Load and validate configuration and refuse to start with insecure production settings; open the database connection and apply the schema; apply security headers and rate limiting; accept and filter uploaded images; translate any thrown error into a uniform JSON response with the correct status; log requests; provide token and validation helpers; hold the single definition of categories, statuses and roles.</td></tr>
+    <tr><td>Functional Requirements Covered</td><td>None directly; realises <span class="req">NFR-5</span>, <span class="req">NFR-8</span>–<span class="req">NFR-13</span> and supports <span class="req">REQ-10</span>, <span class="req">REQ-12</span>, <span class="req">REQ-28</span></td></tr>
+    <tr><td>Inputs</td><td>Environment variables; raw HTTP requests; uploaded files; thrown errors.</td></tr>
+    <tr><td>Outputs</td><td>Typed configuration object; database handle; stored image files; uniform error responses; log lines.</td></tr>
+    <tr><td>Interfaces Provided</td><td><code>config</code>, <code>constants</code>, <code>db</code>, <code>securityHeaders</code>, <code>authLimiter</code>, <code>uploadImage</code>, <code>errorHandler</code>, <code>AppError</code>, <code>requestLogger</code>, <code>signToken</code>/<code>verifyToken</code>, validators.</td></tr>
+    <tr><td>Interfaces Required</td><td>Node.js runtime, filesystem, database engine.</td></tr>
+    <tr><td>Dependencies</td><td>None within the application (lowest layer).</td></tr>
+    <tr><td>Internal Classes / Units</td><td><code>Config</code>, <code>Constants</code>, <code>Database</code>, <code>SecurityMiddleware</code>, <code>UploadMiddleware</code>, <code>ErrorHandler</code>, <code>AppError</code>, <code>RequestLogger</code>, <code>JwtUtil</code>, <code>Validators</code>, <code>Seeder</code>.</td></tr>
+  </table>
+
+  <h3 id="s4-5">4.5 Module Interaction</h3>
+  <p>Figure 4.5 shows the runtime collaboration between modules for the system's principal operations. Arrows are labelled with the interaction that occurs; the numbering follows the order in which a typical complaint progresses through the system.</p>
+  <figure>
+    <svg viewBox="0 0 860 520" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <defs>
+        <marker id="i-ar" markerWidth="8.5" markerHeight="8.5" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#444"/>
+        </marker>
+        <marker id="i-ar-g" markerWidth="8.5" markerHeight="8.5" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#5a8f4e"/>
+        </marker>
+      </defs>
+
+      <!-- clients -->
+      <rect x="30" y="30" width="150" height="46" rx="6" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.5"/>
+      <text x="105" y="49" text-anchor="middle" font-size="10" font-weight="700" fill="#1f4e79">Student Client</text>
+      <text x="105" y="64" text-anchor="middle" font-size="8" fill="#555">browser pages</text>
+
+      <rect x="680" y="30" width="150" height="46" rx="6" fill="#fdeeea" stroke="#c0733f" stroke-width="1.5"/>
+      <text x="755" y="49" text-anchor="middle" font-size="10" font-weight="700" fill="#8a4b1e">Admin Client</text>
+      <text x="755" y="64" text-anchor="middle" font-size="8" fill="#555">browser pages</text>
+
+      <!-- M1 auth -->
+      <rect x="330" y="104" width="200" height="52" rx="6" fill="#ecf6ec" stroke="#5a8f4e" stroke-width="1.6"/>
+      <text x="430" y="124" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2f6b2f">M1 · Authentication</text>
+      <text x="430" y="140" text-anchor="middle" font-size="8" fill="#444">verifies token, attaches { userId, role }</text>
+
+      <!-- arrows clients -> M1 -->
+      <line x1="140" y1="76" x2="330" y2="118" stroke="#444" stroke-width="1.3" marker-end="url(#i-ar)"/>
+      <text x="150" y="100" font-size="8.4" fill="#333">1 · login / authenticated request</text>
+      <line x1="720" y1="76" x2="530" y2="118" stroke="#444" stroke-width="1.3" marker-end="url(#i-ar)"/>
+      <text x="560" y="100" font-size="8.4" fill="#333">1′ · admin login / request</text>
+
+      <!-- M3 complaints -->
+      <rect x="300" y="216" width="260" height="72" rx="6" fill="#ecf6ec" stroke="#5a8f4e" stroke-width="1.8"/>
+      <text x="430" y="236" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2f6b2f">M3 · Complaint Management</text>
+      <text x="430" y="252" text-anchor="middle" font-size="8" fill="#444">create · read · edit/delete (Pending only)</text>
+      <text x="430" y="265" text-anchor="middle" font-size="8" fill="#444">search / filter · status transition + remarks</text>
+      <text x="430" y="279" text-anchor="middle" font-size="8" fill="#666" font-style="italic">owns table: complaints</text>
+
+      <line x1="430" y1="156" x2="430" y2="212" stroke="#444" stroke-width="1.3" marker-end="url(#i-ar)"/>
+      <text x="438" y="180" font-size="8.4" fill="#333">2 · authorised call with caller identity</text>
+
+      <!-- M2 users -->
+      <rect x="30" y="216" width="200" height="72" rx="6" fill="#ecf6ec" stroke="#5a8f4e" stroke-width="1.6"/>
+      <text x="130" y="236" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2f6b2f">M2 · User Management</text>
+      <text x="130" y="252" text-anchor="middle" font-size="8" fill="#444">profile · student list · counts</text>
+      <text x="130" y="266" text-anchor="middle" font-size="8" fill="#666" font-style="italic">owns table: users</text>
+
+      <line x1="330" y1="140" x2="180" y2="212" stroke="#5a8f4e" stroke-width="1.3" marker-end="url(#i-ar-g)" stroke-dasharray="5,3"/>
+      <text x="150" y="176" font-size="8.4" fill="#2f6b2f">3 · lookup / create user</text>
+
+      <line x1="300" y1="248" x2="234" y2="248" stroke="#5a8f4e" stroke-width="1.3" marker-end="url(#i-ar-g)" stroke-dasharray="5,3"/>
+      <text x="196" y="240" font-size="8.4" fill="#2f6b2f" text-anchor="middle">4</text>
+      <text x="246" y="308" font-size="8.2" fill="#2f6b2f">4 · join student name / room into admin listings</text>
+
+      <!-- M4 dashboard -->
+      <rect x="630" y="216" width="200" height="72" rx="6" fill="#ecf6ec" stroke="#5a8f4e" stroke-width="1.6"/>
+      <text x="730" y="236" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2f6b2f">M4 · Dashboard</text>
+      <text x="730" y="252" text-anchor="middle" font-size="8" fill="#444">composes read-model</text>
+      <text x="730" y="266" text-anchor="middle" font-size="8" fill="#666" font-style="italic">no table of its own</text>
+
+      <line x1="560" y1="248" x2="626" y2="248" stroke="#5a8f4e" stroke-width="1.3" marker-end="url(#i-ar-g)" stroke-dasharray="5,3"/>
+      <text x="596" y="240" font-size="8.4" fill="#2f6b2f" text-anchor="middle">5</text>
+      <text x="500" y="308" font-size="8.2" fill="#2f6b2f">5 · aggregate counts (GROUP BY)</text>
+      <path d="M660,216 Q560,150 530,132" fill="none" stroke="#5a8f4e" stroke-width="1.3" marker-end="url(#i-ar-g)" stroke-dasharray="5,3"/>
+      <text x="576" y="200" font-size="8.2" fill="#2f6b2f">6 · student count via M2</text>
+
+      <!-- M5 infra -->
+      <rect x="30" y="344" width="800" height="60" rx="6" fill="#fdf6ee" stroke="#c0733f" stroke-width="1.6"/>
+      <text x="430" y="364" text-anchor="middle" font-size="10.5" font-weight="700" fill="#8a4b1e">M5 · Infrastructure — config · constants · db · security · upload · errorHandler · logger · utils</text>
+      <text x="430" y="382" text-anchor="middle" font-size="8.2" fill="#7a4a20">Consumed by every module above. Errors thrown anywhere are translated here into one uniform JSON response.</text>
+      <text x="430" y="396" text-anchor="middle" font-size="8" fill="#8a4b1e" font-style="italic">7 · cross-cutting services</text>
+      <g stroke="#c0733f" stroke-width="1.1" stroke-dasharray="3,3" marker-end="url(#i-ar)">
+        <line x1="130" y1="292" x2="130" y2="340"/>
+        <line x1="430" y1="292" x2="430" y2="340"/>
+        <line x1="730" y1="292" x2="730" y2="340"/>
+      </g>
+
+      <!-- data tier -->
+      <rect x="230" y="430" width="400" height="46" rx="6" fill="#f7f7f7" stroke="#666" stroke-width="1.5"/>
+      <text x="430" y="450" text-anchor="middle" font-size="10" font-weight="700" fill="#333">Data Tier — database + /uploads</text>
+      <text x="430" y="466" text-anchor="middle" font-size="8" fill="#555">reached only through repositories</text>
+      <line x1="430" y1="404" x2="430" y2="426" stroke="#666" stroke-width="1.3" marker-end="url(#i-ar)"/>
+
+      <!-- notes -->
+      <text x="30" y="500" font-size="8.2" fill="#555">Solid arrows = request/response across a tier boundary.  Dashed green = intra-application module call.  Dashed orange = use of a shared service.</text>
+      <text x="30" y="512" font-size="8.2" fill="#555">No cycles exist: M4 → M3 → M2 → M5 is strictly acyclic, so modules can be tested and replaced in dependency order.</text>
+    </svg>
+    <figcaption>Figure 4.5 — Module Interaction Diagram.</figcaption>
+  </figure>
+  <div class="rationale">
+    <b>Design Rationale.</b> Interactions were kept <b>acyclic and one-directional</b> (M4 → M3 → M2 → M5) so that each module can be understood, tested and replaced without reasoning about feedback loops. The most important decision visible here is that <b>M4 calls M3 and M2 rather than the database</b>: reporting is a consumer of the domain, not a peer of it, so if the complaint schema changes only M3's repository must adapt. The second is that <b>M1 sits in front of every other module</b> as middleware rather than being called by them — authentication is therefore impossible to forget when adding a new endpoint, because a route without a guard simply has no access to a caller identity. A trade-off accepted here is that M3's administrator listing performs a SQL join onto the <code>users</code> table owned by M2. A stricter design would have M3 request user details through M2's service, but that would replace one indexed join with N follow-up calls; the join was chosen for performance, and the coupling is confined to a single query in one repository.
+  </div>
+
+  <h3 id="s4-6">4.6 Package Diagram</h3>
+  <p>The physical source organisation mirrors the logical decomposition, so a developer can move from a module in Figure 4.1 to the directory that implements it without translation.</p>
+  <figure>
+    <svg viewBox="0 0 800 470" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <defs>
+        <marker id="p-ar" markerWidth="8" markerHeight="8" refX="6.8" refY="2.8" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L6.8,2.8 L0,5.6 Z" fill="#666"/>
+        </marker>
+      </defs>
+      <!-- package helper: folder tab shape -->
+      <!-- root -->
+      <rect x="20" y="18" width="90" height="16" fill="#e3ecf7" stroke="#2e75b6"/>
+      <rect x="20" y="34" width="760" height="420" fill="#fbfcfe" stroke="#2e75b6" stroke-width="1.6"/>
+      <text x="30" y="31" font-size="9.5" font-weight="700" fill="#1f4e79">hostel-buddy</text>
+
+      <!-- src -->
+      <rect x="40" y="52" width="60" height="15" fill="#e8f0e8" stroke="#5a8f4e"/>
+      <rect x="40" y="67" width="420" height="290" fill="#fdfefd" stroke="#5a8f4e" stroke-width="1.4"/>
+      <text x="48" y="64" font-size="9" font-weight="700" fill="#2f6b2f">src</text>
+
+      <!-- modules pkg -->
+      <rect x="56" y="84" width="76" height="14" fill="#ecf6ec" stroke="#5a8f4e"/>
+      <rect x="56" y="98" width="240" height="150" fill="#fff" stroke="#5a8f4e" stroke-width="1.2"/>
+      <text x="62" y="95" font-size="8.6" font-weight="700" fill="#2f6b2f">modules</text>
+      <g font-size="8.4">
+        <rect x="68" y="108" width="216" height="30" rx="3" fill="#f4faf4" stroke="#8fc08f"/>
+        <text x="76" y="120" font-weight="600">auth/</text><text x="130" y="120" fill="#555">routes · controller · service</text>
+        <text x="76" y="132" fill="#777" font-size="7.8">M1 — identity &amp; guards</text>
+        <rect x="68" y="142" width="216" height="30" rx="3" fill="#f4faf4" stroke="#8fc08f"/>
+        <text x="76" y="154" font-weight="600">users/</text><text x="130" y="154" fill="#555">… · service · repo</text>
+        <text x="76" y="166" fill="#777" font-size="7.8">M2 — owns users table</text>
+        <rect x="68" y="176" width="216" height="30" rx="3" fill="#f4faf4" stroke="#8fc08f"/>
+        <text x="76" y="188" font-weight="600">complaints/</text><text x="146" y="188" fill="#555">… · service · repo</text>
+        <text x="76" y="200" fill="#777" font-size="7.8">M3 — owns complaints table</text>
+        <rect x="68" y="210" width="216" height="30" rx="3" fill="#f4faf4" stroke="#8fc08f"/>
+        <text x="76" y="222" font-weight="600">dashboard/</text><text x="146" y="222" fill="#555">… · service</text>
+        <text x="76" y="234" fill="#777" font-size="7.8">M4 — read-model, no repo</text>
+      </g>
+
+      <!-- middleware pkg -->
+      <rect x="306" y="84" width="80" height="14" fill="#fdf1e6" stroke="#c0733f"/>
+      <rect x="306" y="98" width="140" height="88" fill="#fff" stroke="#c0733f" stroke-width="1.2"/>
+      <text x="312" y="95" font-size="8.6" font-weight="700" fill="#8a4b1e">middleware</text>
+      <g font-size="8" fill="#444">
+        <text x="314" y="112">auth.js</text><text x="314" y="126">security.js</text>
+        <text x="314" y="140">upload.js</text><text x="314" y="154">errorHandler.js</text>
+        <text x="314" y="168">requestLogger.js</text>
+      </g>
+
+      <!-- config pkg -->
+      <rect x="306" y="196" width="60" height="14" fill="#fdf1e6" stroke="#c0733f"/>
+      <rect x="306" y="210" width="140" height="46" fill="#fff" stroke="#c0733f" stroke-width="1.2"/>
+      <text x="312" y="207" font-size="8.6" font-weight="700" fill="#8a4b1e">config</text>
+      <g font-size="8" fill="#444"><text x="314" y="226">env.js</text><text x="314" y="240">constants.js</text></g>
+
+      <!-- db pkg -->
+      <rect x="56" y="258" width="46" height="14" fill="#fdf1e6" stroke="#c0733f"/>
+      <rect x="56" y="272" width="180" height="60" fill="#fff" stroke="#c0733f" stroke-width="1.2"/>
+      <text x="62" y="269" font-size="8.6" font-weight="700" fill="#8a4b1e">db</text>
+      <g font-size="8" fill="#444">
+        <text x="64" y="288">connection.js · index.js</text>
+        <text x="64" y="302">schema.sql</text>
+        <text x="64" y="316">seed.js · seedAdmin.js</text>
+      </g>
+
+      <!-- utils pkg -->
+      <rect x="246" y="258" width="52" height="14" fill="#fdf1e6" stroke="#c0733f"/>
+      <rect x="246" y="272" width="90" height="46" fill="#fff" stroke="#c0733f" stroke-width="1.2"/>
+      <text x="252" y="269" font-size="8.6" font-weight="700" fill="#8a4b1e">utils</text>
+      <g font-size="8" fill="#444"><text x="254" y="288">jwt.js</text><text x="254" y="302">validators.js</text></g>
+
+      <!-- app/server -->
+      <rect x="346" y="272" width="100" height="46" rx="3" fill="#eef4fb" stroke="#2e75b6"/>
+      <text x="396" y="290" text-anchor="middle" font-size="8.4" font-weight="600">app.js</text>
+      <text x="396" y="304" text-anchor="middle" font-size="8.4" font-weight="600">server.js</text>
+
+      <text x="60" y="348" font-size="8" fill="#666" font-style="italic">Dependencies point downward: modules → middleware/config/db/utils. Never the reverse.</text>
+
+      <!-- public pkg -->
+      <rect x="480" y="52" width="66" height="15" fill="#e3ecf7" stroke="#2e75b6"/>
+      <rect x="480" y="67" width="286" height="152" fill="#fdfdff" stroke="#2e75b6" stroke-width="1.4"/>
+      <text x="488" y="64" font-size="9" font-weight="700" fill="#1f4e79">public</text>
+      <g font-size="8.2">
+        <rect x="492" y="80" width="262" height="40" rx="3" fill="#f5f9fd" stroke="#9dbfe0"/>
+        <text x="500" y="94" font-weight="600">pages</text>
+        <text x="500" y="106" fill="#555" font-size="7.8">index · login · register · dashboard · raise</text>
+        <text x="500" y="116" fill="#555" font-size="7.8">my-complaints · profile · admin · admin-complaints</text>
+        <rect x="492" y="126" width="126" height="40" rx="3" fill="#f5f9fd" stroke="#9dbfe0"/>
+        <text x="500" y="140" font-weight="600">js</text>
+        <text x="500" y="152" fill="#555" font-size="7.8">api · auth · ui</text>
+        <text x="500" y="162" fill="#555" font-size="7.8">+ one per page</text>
+        <rect x="628" y="126" width="126" height="40" rx="3" fill="#f5f9fd" stroke="#9dbfe0"/>
+        <text x="636" y="140" font-weight="600">css / vendor</text>
+        <text x="636" y="152" fill="#555" font-size="7.8">styles.css</text>
+        <text x="636" y="162" fill="#555" font-size="7.8">chart.js (local)</text>
+        <rect x="492" y="174" width="262" height="30" rx="3" fill="#eef7ee" stroke="#8fc08f"/>
+        <text x="500" y="186" font-weight="600">Client boundary</text>
+        <text x="500" y="197" fill="#555" font-size="7.8">every page reaches the server only through js/api.js</text>
+      </g>
+
+      <!-- tests + docs -->
+      <rect x="480" y="234" width="56" height="15" fill="#e3ecf7" stroke="#2e75b6"/>
+      <rect x="480" y="249" width="140" height="70" fill="#fdfdff" stroke="#2e75b6" stroke-width="1.4"/>
+      <text x="488" y="246" font-size="9" font-weight="700" fill="#1f4e79">tests</text>
+      <g font-size="8" fill="#444">
+        <text x="490" y="266">auth.test.js</text><text x="490" y="280">complaints.test.js</text>
+        <text x="490" y="294">admin.test.js</text><text x="490" y="308">dashboard.test.js</text>
+      </g>
+
+      <rect x="632" y="234" width="52" height="15" fill="#e3ecf7" stroke="#2e75b6"/>
+      <rect x="632" y="249" width="134" height="70" fill="#fdfdff" stroke="#2e75b6" stroke-width="1.4"/>
+      <text x="640" y="246" font-size="9" font-weight="700" fill="#1f4e79">docs</text>
+      <g font-size="8" fill="#444">
+        <text x="642" y="266">SRS · SADD</text><text x="642" y="280">architecture</text>
+        <text x="642" y="294">design · reviews</text><text x="642" y="308">screenshots</text>
+      </g>
+
+      <!-- runtime dirs -->
+      <rect x="480" y="334" width="286" height="46" rx="4" fill="#f7f7f7" stroke="#888" stroke-dasharray="4,3"/>
+      <text x="623" y="352" text-anchor="middle" font-size="8.6" font-weight="600" fill="#444">Runtime data (not in version control)</text>
+      <text x="623" y="368" text-anchor="middle" font-size="8" fill="#666">data/ — database file    ·    uploads/ — complaint images</text>
+
+      <!-- dependency arrow public -> src -->
+      <line x1="478" y1="140" x2="450" y2="140" stroke="#666" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#p-ar)"/>
+      <text x="352" y="136" font-size="7.8" fill="#555">HTTP only</text>
+
+      <text x="30" y="440" font-size="8.2" fill="#555">The package structure is intentionally isomorphic to the module decomposition: one directory per module, one file per layer within it,</text>
+      <text x="30" y="450" font-size="8.2" fill="#555">so any requirement can be traced from Figure 4.1 to a specific file without additional documentation.</text>
+    </svg>
+    <figcaption>Figure 4.6 — UML Package Diagram (source organisation).</figcaption>
+  </figure>
+  <div class="rationale">
+    <b>Design Rationale.</b> The package layout is organised <b>by feature first and by layer second</b> (<code>modules/complaints/…service</code>) rather than the reverse (<code>services/complaintService</code>). Layer-first packaging scatters a single change across four distant directories; feature-first keeps everything a developer must edit for one requirement in one folder, which measurably reduces navigation cost and merge conflicts on a four-person team. Shared infrastructure sits outside <code>modules/</code> precisely because it belongs to no feature, and the downward-only dependency rule is visible structurally: nothing inside <code>middleware/</code>, <code>config/</code>, <code>db/</code> or <code>utils/</code> imports from <code>modules/</code>. Keeping <code>public/</code> a sibling of <code>src/</code>, connected only by HTTP, makes the client's replaceability explicit — it shares no code with the server and therefore cannot accidentally depend on server internals. Finally, runtime directories are excluded from version control so that a clone contains only source, and the database is rebuilt deterministically by the schema and seed scripts.
+  </div>
+</section>
+
+<!-- ============================ 5. INTERFACE DESIGN ============================ -->
+<section class="break">
+  <h2 id="s5">5. Interface Design</h2>
+
+  <h3 id="s5-1">5.1 User Interface Overview</h3>
+  <p>The interface comprises nine pages, partitioned by role. All pages share one stylesheet, one navigation component and one network wrapper, so behaviour is consistent and cross-cutting concerns (token handling, session expiry, error display) are implemented once.</p>
+  <table>
+    <tr><th style="width:8%">#</th><th style="width:20%">Screen</th><th style="width:12%">Access</th><th>Purpose and principal controls</th></tr>
+    <tr><td>1</td><td>Home / Landing</td><td>Public</td><td>Introduces the system; routes to Login or Register. Redirects automatically to the correct dashboard if a session already exists.</td></tr>
+    <tr><td>2</td><td>Login</td><td>Public</td><td>Email and password; single form serving <b>both roles</b> — the server determines the role from the credentials and the client routes accordingly.</td></tr>
+    <tr><td>3</td><td>Register</td><td>Public</td><td>Name, email, room number, password; creates a student account only.</td></tr>
+    <tr><td>4</td><td>Student Dashboard</td><td>Student</td><td>Five summary cards (Total, Pending, In Progress, Resolved, Closed) and shortcuts to raise or review complaints.</td></tr>
+    <tr><td>5</td><td>Raise Complaint</td><td>Student</td><td>Category selector, description with live character counter, optional image picker, submit.</td></tr>
+    <tr><td>6</td><td>My Complaints</td><td>Student</td><td>Table of the student's complaints with status badges and dates; View for any complaint; <b>Edit and Delete rendered only for Pending rows</b>; detail and edit presented in a modal.</td></tr>
+    <tr><td>7</td><td>Profile</td><td>Student</td><td>View and update name and room number; email shown read-only.</td></tr>
+    <tr><td>8</td><td>Admin Dashboard</td><td>Administrator</td><td>Six statistic cards, a category distribution doughnut chart, a status bar chart and the five most recent complaints.</td></tr>
+    <tr><td>9</td><td>All Complaints</td><td>Administrator</td><td>Search box, category and status filters, paginated table, and a Manage modal for changing status and recording remarks.</td></tr>
+  </table>
+  <p>Two conventions carry meaning across the interface: a <b>status badge</b> uses one fixed colour per lifecycle state (amber Pending, blue In Progress, green Resolved, grey Closed) on every screen; and <b>destructive or role-specific controls are not rendered at all</b> when unavailable, rather than being shown disabled, which prevents users from attempting actions the server will reject.</p>
+
+  <h3 id="s5-2">5.2 Module Interfaces</h3>
+  <p>The table specifies the programmatic interface each module publishes. These are the only supported entry points; nothing outside a module may reach past them.</p>
+  <table>
+    <tr><th style="width:26%">Interface</th><th style="width:24%">Input</th><th style="width:24%">Output</th><th>Description</th></tr>
+    <tr><td colspan="4" style="background:#eef4fb;font-weight:600">M1 — Authentication</td></tr>
+    <tr><td><code>POST /api/auth/register</code></td><td>name, email, password, room_number</td><td><code>201</code> { token, user }</td><td>Creates a student account; rejects duplicates with <code>409</code> and invalid input with <code>400</code>.</td></tr>
+    <tr><td><code>POST /api/auth/login</code></td><td>email, password</td><td><code>200</code> { token, user }</td><td>Verifies credentials for either role; returns a single generic <code>401</code> on any failure.</td></tr>
+    <tr><td><code>requireAuth()</code></td><td>Authorization header</td><td>request context { userId, role }</td><td>Middleware; rejects missing/invalid/expired tokens with <code>401</code>.</td></tr>
+    <tr><td><code>requireRole(role)</code></td><td>request context</td><td>pass or <code>403</code></td><td>Middleware; restricts an endpoint to one role.</td></tr>
+    <tr><td colspan="4" style="background:#eef4fb;font-weight:600">M2 — User Management</td></tr>
+    <tr><td><code>GET /api/users/me</code></td><td>authenticated identity</td><td><code>200</code> user object</td><td>Returns the caller's own profile without the password hash.</td></tr>
+    <tr><td><code>PUT /api/users/me</code></td><td>name, room_number</td><td><code>200</code> updated user</td><td>Validates and applies profile changes; email and role are immutable.</td></tr>
+    <tr><td><code>GET /api/users</code></td><td>administrator identity</td><td><code>200</code> user array</td><td>Lists registered students (administrator excluded).</td></tr>
+    <tr><td><code>UserRepository.findByEmail / findById / createUser / countStudents</code></td><td>email · id · user data · —</td><td>user row · user · created user · integer</td><td>Internal repository operations consumed by M1 and M4.</td></tr>
+    <tr><td colspan="4" style="background:#eef4fb;font-weight:600">M3 — Complaint Management</td></tr>
+    <tr><td><code>POST /api/complaints</code></td><td>category, description, image (multipart)</td><td><code>201</code> complaint</td><td>Creates a complaint forced to <b>Pending</b> and owned by the caller.</td></tr>
+    <tr><td><code>GET /api/complaints/mine</code></td><td>student identity</td><td><code>200</code> complaint array</td><td>Returns the caller's complaints, newest first.</td></tr>
+    <tr><td><code>GET /api/complaints/:id</code></td><td>complaint id</td><td><code>200</code> complaint</td><td>Readable by the owner or the administrator; otherwise <code>403</code>.</td></tr>
+    <tr><td><code>PUT /api/complaints/:id</code></td><td>category, description, image</td><td><code>200</code> complaint</td><td>Owner-only and Pending-only; otherwise <code>403</code>/<code>409</code>.</td></tr>
+    <tr><td><code>DELETE /api/complaints/:id</code></td><td>complaint id</td><td><code>200</code> { deleted, id }</td><td>Owner-only and Pending-only; removes the stored image as well.</td></tr>
+    <tr><td><code>GET /api/complaints</code></td><td>q, category, status, page, limit</td><td><code>200</code> { data[], pagination }</td><td>Administrator search and filter, joined with student name and room.</td></tr>
+    <tr><td><code>PATCH /api/complaints/:id/status</code></td><td>status, admin_remarks</td><td><code>200</code> complaint</td><td>Administrator lifecycle transition; sets the resolution time on first Resolved only.</td></tr>
+    <tr><td colspan="4" style="background:#eef4fb;font-weight:600">M4 — Dashboard &amp; Analytics</td></tr>
+    <tr><td><code>GET /api/dashboard/student</code></td><td>student identity</td><td><code>200</code> counts by state</td><td>Personal totals for the five summary cards.</td></tr>
+    <tr><td><code>GET /api/dashboard/admin</code></td><td>administrator identity</td><td><code>200</code> statistics object</td><td>Totals, per-status and per-category counts (zero-filled), and recent complaints.</td></tr>
+    <tr><td colspan="4" style="background:#eef4fb;font-weight:600">M5 — Infrastructure</td></tr>
+    <tr><td><code>uploadImage</code></td><td>multipart request</td><td>stored file reference</td><td>Accepts PNG/JPEG/WEBP within the size limit; rejects others with <code>400</code>.</td></tr>
+    <tr><td><code>errorHandler</code> / <code>AppError</code></td><td>thrown error</td><td>uniform JSON error</td><td>Maps any failure to <code>{ error: { message, code } }</code> with the correct status.</td></tr>
+    <tr><td><code>config</code> / <code>constants</code></td><td>environment</td><td>typed settings, enums</td><td>Single source of truth for configuration and controlled vocabularies.</td></tr>
+  </table>
+
+  <h3 id="s5-3">5.3 External Interfaces</h3>
+  <p>Version 1.0 consumes <b>no external service APIs</b>. The externally visible interface is the system's own REST API, described above and specified fully in Appendix B. Its characteristics:</p>
+  <table>
+    <tr><th style="width:24%">Aspect</th><th>Specification</th></tr>
+    <tr><td>Style</td><td>Resource-oriented REST over HTTP; nouns as paths, verbs as methods (<code>GET</code>, <code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>).</td></tr>
+    <tr><td>Base path</td><td><code>/api</code>; resources <code>/auth</code>, <code>/users</code>, <code>/complaints</code>, <code>/dashboard</code>.</td></tr>
+    <tr><td>Request format</td><td><code>application/json</code>, except complaint create/update which use <code>multipart/form-data</code> to carry the image.</td></tr>
+    <tr><td>Response format</td><td><code>application/json</code>; a uniform error envelope <code>{ error: { message, code } }</code> for every failure.</td></tr>
+    <tr><td>Authentication</td><td><code>Authorization: Bearer &lt;JWT&gt;</code> on all protected endpoints.</td></tr>
+    <tr><td>Status codes</td><td><code>200</code>/<code>201</code> success; <code>400</code> validation; <code>401</code> unauthenticated; <code>403</code> forbidden; <code>404</code> not found; <code>409</code> conflict (duplicate email, non-Pending modification); <code>429</code> rate limited; <code>500</code> internal.</td></tr>
+    <tr><td>Static resources</td><td>Frontend assets served from the application root; uploaded images served read-only from <code>/uploads</code>.</td></tr>
+    <tr><td>Future integrations</td><td>An SMTP gateway and a push-notification provider attach at a defined hook in the complaint service after a successful status transition (§13.3), requiring no change to the API contract.</td></tr>
+  </table>
+
+  <h3 id="s5-4">5.4 Communication Interfaces</h3>
+  <table>
+    <tr><th style="width:24%">Concern</th><th>Design</th></tr>
+    <tr><td>Transport protocol</td><td>HTTP/1.1. In deployment, <b>HTTPS is mandatory</b> (<span class="req">NFR-12</span>), terminated by a reverse proxy in front of the application; HSTS is emitted so browsers refuse subsequent plaintext connections.</td></tr>
+    <tr><td>Network stack</td><td>TCP/IP; the application listens on a configurable port (default 4000).</td></tr>
+    <tr><td>Data encoding</td><td>UTF-8 JSON for structured data; <code>multipart/form-data</code> for image upload; binary image bytes on retrieval.</td></tr>
+    <tr><td>Session propagation</td><td>Stateless — the signed JWT travels in the <code>Authorization</code> header on each request. No server-side session and no session cookie, so no CSRF token exchange is required.</td></tr>
+    <tr><td>Origin policy</td><td>Client and API are served from a single origin, so no cross-origin configuration is needed. A future separately-hosted client would require an explicit CORS allow-list rather than a wildcard.</td></tr>
+    <tr><td>Security headers</td><td>Content Security Policy restricting scripts to the application's own origin, plus <code>X-Content-Type-Options</code>, <code>X-Frame-Options</code>, <code>Referrer-Policy</code> and HSTS.</td></tr>
+    <tr><td>Rate limiting</td><td>Authentication endpoints are limited per client address in production to mitigate brute-force attempts; exceeding the limit returns <code>429</code>.</td></tr>
+    <tr><td>Payload limits</td><td>Image uploads capped at 5&nbsp;MB and restricted by MIME type; administrator listings are paginated with a bounded maximum page size to keep responses small.</td></tr>
+    <tr><td>Failure semantics</td><td>All operations are idempotent except complaint creation. A client receiving <code>401</code> clears its stored token and returns the user to login.</td></tr>
+  </table>
+</section>

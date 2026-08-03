@@ -87,6 +87,15 @@ This project is documented the way real engineering work is — decisions before
 | [performance_review.md](docs/performance_review.md) | Optimization & trade-off analysis |
 | [problems_faced_and_bugs_encountered.md](docs/problems_faced_and_bugs_encountered.md) | Debugging, decisions, and lessons learned |
 
+### Formal submissions
+
+| Document | Description |
+|----------|-------------|
+| [Group19_HostelBuddy_SRS.pdf](Group19_HostelBuddy_SRS.pdf) | **Software Requirements Specification** (IEEE 830) — *what* the system must do: 41 functional requirements, use cases, wireframes |
+| [Group_19_Hostel_Buddy_SADD.pdf](Group_19_Hostel_Buddy_SADD.pdf) | **Software Architecture and Design Document** — *how* it is built: architecture, module decomposition, ER/class/sequence/activity/state/deployment diagrams, and full requirement traceability |
+
+Editable sources for both are in [docs/srs-source/](docs/srs-source/) and [docs/sadd-source/](docs/sadd-source/).
+
 ---
 
 ## 🚀 Getting Started
