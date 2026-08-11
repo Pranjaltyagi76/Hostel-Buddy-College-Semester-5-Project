@@ -93,6 +93,7 @@ This project is documented the way real engineering work is — decisions before
 |----------|-------------|
 | [Group19_HostelBuddy_SRS.pdf](Group19_HostelBuddy_SRS.pdf) | **Software Requirements Specification** (IEEE 830) — *what* the system must do: 41 functional requirements, use cases, wireframes |
 | [Group_19_Hostel_Buddy_SADD.pdf](Group_19_Hostel_Buddy_SADD.pdf) | **Software Architecture and Design Document** — *how* it is built: architecture, module decomposition, ER/class/sequence/activity/state/deployment diagrams, and full requirement traceability |
+| [Group_19_Hostel_Buddy_Architecture_Review.pdf](Group_19_Hostel_Buddy_Architecture_Review.pdf) | **Architecture Review Presentation** — 16 slides (16:9) covering requirements, architecture, modules, data flow, lifecycle, database, security and OOAD diagrams |
 
 Editable sources for both are in [docs/srs-source/](docs/srs-source/) and [docs/sadd-source/](docs/sadd-source/).
 
