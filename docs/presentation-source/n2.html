@@ -228,10 +228,10 @@
 
 <!-- ===================== 8. SEQUENCE DIAGRAM — Saurabh ===================== -->
 <section class="slide">
-  <div class="head"><div class="num">8</div><h1>Sequence Diagram — Raise Complaint</h1><div class="who"><span class="spk">Saurabh</span><span class="time">1.5 min</span></div></div>
+  <div class="head"><div class="num">8</div><h1>Sequence Diagram — Raise Complaint, with Failure Paths</h1><div class="who"><span class="spk">Saurabh</span><span class="time">1.5 min</span></div></div>
   <div class="body">
     <div class="fig">
-      <svg viewBox="0 0 1200 470" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="12.5">
+      <svg viewBox="0 0 1200 594" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="11.5">
         <defs>
           <marker id="q-ar" markerWidth="10" markerHeight="10" refX="8.6" refY="3.2" orient="auto" markerUnits="strokeWidth">
             <path d="M0,0 L8.6,3.2 L0,6.4 Z" fill="#333"/>
@@ -239,66 +239,120 @@
           <marker id="q-ret" markerWidth="11" markerHeight="11" refX="9.6" refY="3.4" orient="auto" markerUnits="strokeWidth">
             <path d="M0,0 L9.6,3.4 L0,6.8" fill="none" stroke="#2f6b2f" stroke-width="1.3"/>
           </marker>
+          <marker id="q-red" markerWidth="11" markerHeight="11" refX="9.6" refY="3.4" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L9.6,3.4 L0,6.8" fill="none" stroke="#a12626" stroke-width="1.3"/>
+          </marker>
+          <marker id="q-redf" markerWidth="10" markerHeight="10" refX="8.6" refY="3.2" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8.6,3.2 L0,6.4 Z" fill="#a12626"/>
+          </marker>
         </defs>
 
-        <g>
-          <rect x="14" y="14" width="126" height="36" rx="5" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.8"/><text x="77" y="37" text-anchor="middle" font-weight="700">Student</text>
-          <rect x="178" y="14" width="126" height="36" rx="5" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.8"/><text x="241" y="37" text-anchor="middle" font-weight="700">Frontend</text>
-          <rect x="342" y="14" width="146" height="36" rx="5" fill="#f4f8fc" stroke="#9dbfe0" stroke-width="1.8"/><text x="415" y="37" text-anchor="middle" font-weight="700">Complaint Route</text>
-          <rect x="526" y="14" width="136" height="36" rx="5" fill="#f4f8fc" stroke="#9dbfe0" stroke-width="1.8"/><text x="594" y="37" text-anchor="middle" font-weight="700">Controller</text>
-          <rect x="700" y="14" width="136" height="36" rx="5" fill="#dfeaf7" stroke="#1f4e79" stroke-width="2.4"/><text x="768" y="37" text-anchor="middle" font-weight="700">Service</text>
-          <rect x="874" y="14" width="136" height="36" rx="5" fill="#f4f8fc" stroke="#9dbfe0" stroke-width="1.8"/><text x="942" y="37" text-anchor="middle" font-weight="700">Repository</text>
-          <rect x="1048" y="14" width="138" height="36" rx="5" fill="#f2f2f4" stroke="#6b7280" stroke-width="1.8"/><text x="1117" y="37" text-anchor="middle" font-weight="700">Database</text>
+        <!-- participants -->
+        <g font-size="11.5">
+          <rect x="8" y="10" width="118" height="34" rx="5" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.8"/><text x="67" y="32" text-anchor="middle" font-weight="700">Student</text>
+          <rect x="159" y="10" width="118" height="34" rx="5" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.8"/><text x="218" y="32" text-anchor="middle" font-weight="700">Frontend</text>
+          <rect x="315" y="10" width="130" height="34" rx="5" fill="#f4f8fc" stroke="#9dbfe0" stroke-width="1.8"/><text x="380" y="32" text-anchor="middle" font-weight="700">Complaint Route</text>
+          <rect x="483" y="10" width="118" height="34" rx="5" fill="#f4f8fc" stroke="#9dbfe0" stroke-width="1.8"/><text x="542" y="32" text-anchor="middle" font-weight="700">Controller</text>
+          <rect x="645" y="10" width="118" height="34" rx="5" fill="#dfeaf7" stroke="#1f4e79" stroke-width="2.4"/><text x="704" y="32" text-anchor="middle" font-weight="700">Service</text>
+          <rect x="817" y="10" width="118" height="34" rx="5" fill="#f4f8fc" stroke="#9dbfe0" stroke-width="1.8"/><text x="876" y="32" text-anchor="middle" font-weight="700">Repository</text>
+          <rect x="989" y="10" width="118" height="34" rx="5" fill="#f2f2f4" stroke="#6b7280" stroke-width="1.8"/><text x="1048" y="32" text-anchor="middle" font-weight="700">Database</text>
         </g>
-        <g stroke="#b8c2cc" stroke-dasharray="6,5" stroke-width="1.4">
-          <line x1="77" y1="50" x2="77" y2="450"/>
-          <line x1="241" y1="50" x2="241" y2="450"/>
-          <line x1="415" y1="50" x2="415" y2="450"/>
-          <line x1="594" y1="50" x2="594" y2="450"/>
-          <line x1="768" y1="50" x2="768" y2="450"/>
-          <line x1="942" y1="50" x2="942" y2="450"/>
-          <line x1="1117" y1="50" x2="1117" y2="450"/>
+        <g stroke="#b8c2cc" stroke-dasharray="6,5" stroke-width="1.3">
+          <line x1="67" y1="44" x2="67" y2="578"/>
+          <line x1="218" y1="44" x2="218" y2="578"/>
+          <line x1="380" y1="44" x2="380" y2="578"/>
+          <line x1="542" y1="44" x2="542" y2="578"/>
+          <line x1="704" y1="44" x2="704" y2="578"/>
+          <line x1="876" y1="44" x2="876" y2="578"/>
+          <line x1="1048" y1="44" x2="1048" y2="578"/>
         </g>
 
-        <g stroke="#333" stroke-width="1.7" marker-end="url(#q-ar)">
-          <line x1="77" y1="84" x2="237" y2="84"/>
-          <line x1="241" y1="114" x2="411" y2="114"/>
-          <line x1="415" y1="190" x2="590" y2="190"/>
-          <line x1="594" y1="220" x2="764" y2="220"/>
-          <line x1="768" y1="298" x2="938" y2="298"/>
-          <line x1="942" y1="326" x2="1113" y2="326"/>
+        <!-- pre-fragment messages -->
+        <g stroke="#333" stroke-width="1.6" marker-end="url(#q-ar)">
+          <line x1="67" y1="68" x2="214" y2="68"/>
+          <line x1="218" y1="98" x2="376" y2="98"/>
         </g>
-        <text x="84" y="78">fill form: category, description, image</text>
-        <text x="248" y="108">POST /api/complaints  (multipart + JWT)</text>
+        <text x="74" y="62">fill form: category, description, image</text>
+        <text x="225" y="92">POST /api/complaints  (multipart + JWT)</text>
 
-        <rect x="326" y="126" width="188" height="42" rx="5" fill="#fdf1e6" stroke="#c0733f" stroke-width="1.6"/>
-        <text x="420" y="143" text-anchor="middle" font-size="11.5" fill="#8a4b1e">requireAuth → req.user</text>
-        <text x="420" y="159" text-anchor="middle" font-size="11.5" fill="#8a4b1e">requireRole('student') · upload</text>
+        <!-- middleware chain on route lifeline -->
+        <rect x="304" y="108" width="176" height="40" rx="5" fill="#fdf1e6" stroke="#c0733f" stroke-width="1.6"/>
+        <text x="392" y="124" text-anchor="middle" font-size="10.5" fill="#8a4b1e">requireAuth · requireRole('student')</text>
+        <text x="392" y="139" text-anchor="middle" font-size="10.5" fill="#8a4b1e">uploadImage — file stored on disk</text>
 
-        <text x="422" y="184">forward request</text>
-        <text x="600" y="214">createComplaint(userId, dto, imageUrl)</text>
+        <!-- ============ alt combined fragment ============ -->
+        <rect x="30" y="160" width="1140" height="404" fill="none" stroke="#7a2e8a" stroke-width="2.2"/>
+        <path d="M30,160 L96,160 L96,176 L82,190 L30,190 Z" fill="#f6eefa" stroke="#7a2e8a" stroke-width="1.8"/>
+        <text x="46" y="181" font-size="13" font-weight="700" fill="#7a2e8a">alt</text>
 
-        <rect x="672" y="232" width="238" height="52" rx="5" fill="#e8f0fa" stroke="#1f4e79" stroke-width="1.6"/>
-        <text x="684" y="249" font-size="11.5" fill="#1f4e79" font-weight="700">Business rules</text>
-        <text x="684" y="264" font-size="11" fill="#333">validate category &amp; description</text>
-        <text x="684" y="278" font-size="11" fill="#a12626">force status = 'Pending'</text>
-
-        <text x="776" y="292">create(complaint)</text>
-        <text x="950" y="320">INSERT INTO complaints</text>
-
-        <g stroke="#2f6b2f" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#q-ret)">
-          <line x1="1113" y1="354" x2="946" y2="354"/>
-          <line x1="938" y1="380" x2="772" y2="380"/>
-          <line x1="764" y1="404" x2="598" y2="404"/>
-          <line x1="590" y1="426" x2="245" y2="426"/>
-          <line x1="237" y1="448" x2="81" y2="448"/>
+        <!-- ---- operand 1 : happy path ---- -->
+        <text x="106" y="181" font-size="11.5" font-weight="700" fill="#7a2e8a">[ token valid  ·  role = student  ·  input valid ]</text>
+        <g stroke="#333" stroke-width="1.6" marker-end="url(#q-ar)">
+          <line x1="380" y1="208" x2="538" y2="208"/>
+          <line x1="542" y1="236" x2="700" y2="236"/>
+          <line x1="704" y1="306" x2="872" y2="306"/>
+          <line x1="876" y1="332" x2="1044" y2="332"/>
         </g>
-        <text x="952" y="348" fill="#2f6b2f">new row id</text>
-        <text x="778" y="374" fill="#2f6b2f">complaint record</text>
-        <text x="604" y="398" fill="#2f6b2f">complaint</text>
-        <text x="300" y="420" fill="#2f6b2f">201 Created  { complaint }</text>
-        <text x="90" y="442" fill="#2f6b2f">confirmation → redirected to "My Complaints"</text>
+        <text x="387" y="202">forward request</text>
+        <text x="549" y="230">createComplaint(userId, dto, imageUrl)</text>
+
+        <rect x="600" y="246" width="252" height="42" rx="5" fill="#e8f0fa" stroke="#1f4e79" stroke-width="1.6"/>
+        <text x="610" y="260" font-size="10.5" font-weight="700" fill="#1f4e79">Business rules</text>
+        <text x="610" y="273" font-size="10" fill="#333">validate category &amp; description</text>
+        <text x="610" y="284" font-size="10" fill="#a12626">force status = 'Pending' — client value ignored</text>
+
+        <text x="711" y="300">create(complaint)</text>
+        <text x="883" y="326">INSERT INTO complaints</text>
+
+        <g stroke="#2f6b2f" stroke-width="1.4" stroke-dasharray="6,4" marker-end="url(#q-ret)">
+          <line x1="1044" y1="354" x2="880" y2="354"/>
+          <line x1="872" y1="372" x2="708" y2="372"/>
+          <line x1="700" y1="390" x2="546" y2="390"/>
+          <line x1="538" y1="408" x2="222" y2="408"/>
+        </g>
+        <text x="886" y="348" font-size="10.5" fill="#2f6b2f">new row id</text>
+        <text x="714" y="366" font-size="10.5" fill="#2f6b2f">complaint record</text>
+        <text x="552" y="384" font-size="10.5" fill="#2f6b2f">complaint</text>
+        <text x="240" y="402" font-size="10.5" fill="#2f6b2f">201 Created  { complaint, status: 'Pending' }</text>
+
+        <!-- ---- separator 1 ---- -->
+        <line x1="30" y1="418" x2="1170" y2="418" stroke="#7a2e8a" stroke-width="1.5" stroke-dasharray="8,5"/>
+
+        <!-- ---- operand 2 : 401 ---- -->
+        <text x="42" y="435" font-size="11.5" font-weight="700" fill="#a12626">[ token missing or expired ]</text>
+        <g stroke="#a12626" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#q-red)">
+          <line x1="376" y1="454" x2="222" y2="454"/>
+        </g>
+        <text x="240" y="448" font-size="10.5" fill="#a12626">401 UNAUTHENTICATED</text>
+        <g stroke="#a12626" stroke-width="1.5" marker-end="url(#q-redf)">
+          <line x1="218" y1="472" x2="71" y2="472"/>
+        </g>
+        <text x="80" y="466" font-size="10.5" fill="#a12626">clear stored token → redirect to login</text>
+        <text x="470" y="460" font-size="10" fill="#7a2e8a" font-style="italic">rejected by middleware — no controller or service code runs</text>
+
+        <!-- ---- separator 2 ---- -->
+        <line x1="30" y1="482" x2="1170" y2="482" stroke="#7a2e8a" stroke-width="1.5" stroke-dasharray="8,5"/>
+
+        <!-- ---- operand 3 : 400 + compensating cleanup ---- -->
+        <text x="42" y="499" font-size="11.5" font-weight="700" fill="#a12626">[ input invalid — but the image file is already stored ]</text>
+        <g stroke="#a12626" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#q-red)">
+          <line x1="700" y1="518" x2="546" y2="518"/>
+        </g>
+        <text x="556" y="512" font-size="10.5" fill="#a12626">throw AppError(400, VALIDATION_ERROR)</text>
+        <path d="M542,528 L578,528 L578,540 L546,540" fill="none" stroke="#a12626" stroke-width="1.5" marker-end="url(#q-redf)"/>
+        <text x="586" y="537" font-size="10.5" font-weight="700" fill="#a12626">removeUploadedFile() — compensating cleanup</text>
+        <g stroke="#a12626" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#q-red)">
+          <line x1="538" y1="556" x2="222" y2="556"/>
+        </g>
+        <text x="240" y="550" font-size="10.5" fill="#a12626">400 — no orphaned file left behind</text>
+
+        <!-- ---- separator 3 ---- -->
+        <line x1="30" y1="564" x2="1170" y2="564" stroke="#7a2e8a" stroke-width="1.5" stroke-dasharray="8,5"/>
       </svg>
+    </div>
+    <div class="note" style="margin-top:2px">
+      <b style="color:#a12626">Fourth branch — <code>PUT /complaints/:id</code> where status ≠ Pending:</b>
+      the <b>Service</b> (not the Route) throws <code>409 NOT_PENDING</code> — a route-level check would protect only that one route, a service invariant holds for <b>every</b> caller.
     </div>
   </div>
   <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">10</span></div>
@@ -308,45 +362,60 @@
 <section class="slide">
   <div class="head"><div class="num">9</div><h1>Security &amp; Key Design Decisions</h1><div class="who"><span class="spk">Saurabh</span><span class="time">1.5 min</span></div></div>
   <div class="body">
-    <div class="cols">
-      <div class="col" style="flex:0 0 4.15in">
+    <div class="cols" style="flex:0 0 auto;gap:14px">
+      <div class="col" style="flex:0 0 4.3in">
         <div class="card" style="height:100%;background:#fdecec;border-color:#f0c8c8">
-          <h3 style="color:#a12626">Security</h3>
-          <ul class="sm" style="padding-left:19px">
+          <h3 style="color:#a12626">Security controls</h3>
+          <ul class="sm" style="padding-left:19px;margin:0">
             <li><b>JWT authentication</b> — stateless signed tokens</li>
             <li><b>bcrypt password hashing</b> — salted, never reversible</li>
             <li><b>Role-based access control</b> — student vs administrator</li>
-            <li><b>Helmet / CSP</b> — security headers, scripts restricted to our origin</li>
+            <li><b>Helmet / CSP</b> — headers; scripts restricted to our origin</li>
             <li><b>Rate limiting</b> on authentication endpoints</li>
           </ul>
         </div>
       </div>
-      <div class="col" style="display:flex;flex-direction:column;gap:11px">
-        <div class="card">
-          <h3>Why SQLite?</h3>
-          <ul class="sm" style="padding-left:19px;margin:0">
-            <li>Built into Node.js</li>
-            <li>No compiler / native build requirement</li>
-            <li>Simple setup for the model version</li>
-          </ul>
+      <div class="col" style="display:flex;flex-direction:column;gap:8px">
+        <div class="card" style="padding:9px 13px">
+          <h3 style="margin-bottom:4px;font-size:15.5px">Why SQLite?</h3>
+          <div style="font-size:13.5px;color:#333;line-height:1.4">Built into Node.js · no compiler or native build requirement · simple setup for the model version</div>
         </div>
-        <div class="card">
-          <h3>Why layered architecture?</h3>
-          <ul class="sm" style="padding-left:19px;margin:0">
-            <li>Separation of concerns</li>
-            <li>Easier maintenance</li>
-            <li>Easier testing</li>
-            <li>Business logic independent from database access</li>
-          </ul>
+        <div class="card" style="padding:9px 13px">
+          <h3 style="margin-bottom:4px;font-size:15.5px">Why layered architecture?</h3>
+          <div style="font-size:13.5px;color:#333;line-height:1.4">Separation of concerns · easier maintenance · easier testing · business logic independent from database access</div>
         </div>
-        <div class="card" style="background:var(--lgreen);border-color:#c2ddc2">
-          <h3 style="color:#2f6b2f">Why a Repository layer?</h3>
-          <ul class="sm" style="padding-left:19px;margin:0">
-            <li>Keeps SQL / database operations isolated</li>
-            <li>Makes future database replacement easier</li>
-          </ul>
+        <div class="card" style="padding:9px 13px;background:var(--lgreen);border-color:#c2ddc2">
+          <h3 style="margin-bottom:4px;font-size:15.5px;color:#2f6b2f">Why a Repository layer?</h3>
+          <div style="font-size:13.5px;color:#333;line-height:1.4">Keeps SQL / database operations isolated · makes future database replacement easier</div>
         </div>
       </div>
+    </div>
+
+    <div style="flex:1 1 auto;margin-top:13px;border:2px solid #c98a17;border-radius:9px;background:#fffdf7;padding:11px 15px;display:flex;flex-direction:column;min-height:0">
+      <div style="font-size:17px;font-weight:700;color:#8a6111;margin-bottom:3px">Accepted Trade-offs — limitations we chose knowingly</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:7px">Every one of these is a deliberate decision with a bounded risk and a documented upgrade path.</div>
+      <table style="font-size:13.5px">
+        <tr>
+          <th style="width:27%">Weakness we accepted</th>
+          <th style="width:31%">Why we accepted it</th>
+          <th>What bounds the risk</th>
+        </tr>
+        <tr>
+          <td><b>JWT cannot be revoked before it expires</b></td>
+          <td>Statelessness is what lets us replicate instances horizontally — a session store would reintroduce shared state</td>
+          <td>24-hour token lifetime caps the exposure window; a server-side deny-list or refresh-token scheme attaches at the existing verification middleware</td>
+        </tr>
+        <tr>
+          <td><b>Complaint images are served unauthenticated</b></td>
+          <td>Gating every image means streaming each one through an authorised route — real complexity for little gain at this scale</td>
+          <td>Filenames are timestamp + random hex, so they are impractical to guess, and URLs appear only inside access-controlled views</td>
+        </tr>
+        <tr>
+          <td><b>SQLite allows only a single writer</b></td>
+          <td>Complaint reads vastly outnumber writes; a separate database server adds a network hop and another failure mode</td>
+          <td>WAL mode preserves read concurrency; the PostgreSQL migration touches only the repository layer, never business logic</td>
+        </tr>
+      </table>
     </div>
   </div>
   <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">11</span></div>
