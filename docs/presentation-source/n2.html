@@ -358,67 +358,89 @@
   <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">10</span></div>
 </section>
 
-<!-- ===================== 9. SECURITY & DECISIONS — Saurabh ===================== -->
+<!-- ===================== 9a. SECURITY CONTROLS & DECISIONS — Saurabh ===================== -->
 <section class="slide">
-  <div class="head"><div class="num">9</div><h1>Security &amp; Key Design Decisions</h1><div class="who"><span class="spk">Saurabh</span><span class="time">1.5 min</span></div></div>
+  <div class="head"><div class="num">9</div><h1>Security Controls &amp; Key Design Decisions</h1><div class="who"><span class="spk">Saurabh</span><span class="time">2 min (9)</span></div></div>
   <div class="body">
-    <div class="cols" style="flex:0 0 auto;gap:14px">
-      <div class="col" style="flex:0 0 4.3in">
-        <div class="card" style="height:100%;background:#fdecec;border-color:#f0c8c8">
-          <h3 style="color:#a12626">Security controls</h3>
-          <ul class="sm" style="padding-left:19px;margin:0">
-            <li><b>JWT authentication</b> — stateless signed tokens</li>
-            <li><b>bcrypt password hashing</b> — salted, never reversible</li>
-            <li><b>Role-based access control</b> — student vs administrator</li>
-            <li><b>Helmet / CSP</b> — headers; scripts restricted to our origin</li>
-            <li><b>Rate limiting</b> on authentication endpoints</li>
+    <div class="cols" style="gap:20px">
+      <div class="col" style="flex:0 0 5.25in">
+        <div class="card" style="height:100%;background:#fdecec;border-color:#f0c8c8;padding:18px 22px">
+          <h3 style="color:#a12626;font-size:21px;margin-bottom:14px">Security Controls</h3>
+          <ul style="padding-left:23px;margin:0">
+            <li style="font-size:18px;margin:11px 0;line-height:1.35"><b style="color:#a12626">JWT authentication</b><br><span style="font-size:15px;color:#555">stateless signed tokens · 24-hour expiry</span></li>
+            <li style="font-size:18px;margin:11px 0;line-height:1.35"><b style="color:#a12626">bcrypt password hashing</b><br><span style="font-size:15px;color:#555">salted, cost factor 10 · never reversible</span></li>
+            <li style="font-size:18px;margin:11px 0;line-height:1.35"><b style="color:#a12626">Role-based access control</b><br><span style="font-size:15px;color:#555">route guard + service ownership check</span></li>
+            <li style="font-size:18px;margin:11px 0;line-height:1.35"><b style="color:#a12626">Helmet / CSP</b><br><span style="font-size:15px;color:#555">security headers · scripts restricted to our origin</span></li>
+            <li style="font-size:18px;margin:11px 0;line-height:1.35"><b style="color:#a12626">Rate limiting</b><br><span style="font-size:15px;color:#555">on authentication endpoints, in production</span></li>
           </ul>
         </div>
       </div>
-      <div class="col" style="display:flex;flex-direction:column;gap:8px">
-        <div class="card" style="padding:9px 13px">
-          <h3 style="margin-bottom:4px;font-size:15.5px">Why SQLite?</h3>
-          <div style="font-size:13.5px;color:#333;line-height:1.4">Built into Node.js · no compiler or native build requirement · simple setup for the model version</div>
+      <div class="col" style="display:flex;flex-direction:column;gap:14px">
+        <div class="card" style="flex:1;padding:16px 20px;display:flex;flex-direction:column;justify-content:center">
+          <h3 style="font-size:20px;margin-bottom:9px">Why SQLite?</h3>
+          <ul style="padding-left:23px;margin:0">
+            <li style="font-size:17px;margin:5px 0">Built into Node.js</li>
+            <li style="font-size:17px;margin:5px 0">No compiler / native build requirement</li>
+            <li style="font-size:17px;margin:5px 0">Simple setup for the model version</li>
+          </ul>
         </div>
-        <div class="card" style="padding:9px 13px">
-          <h3 style="margin-bottom:4px;font-size:15.5px">Why layered architecture?</h3>
-          <div style="font-size:13.5px;color:#333;line-height:1.4">Separation of concerns · easier maintenance · easier testing · business logic independent from database access</div>
+        <div class="card" style="flex:1;padding:16px 20px;display:flex;flex-direction:column;justify-content:center">
+          <h3 style="font-size:20px;margin-bottom:9px">Why layered architecture?</h3>
+          <ul style="padding-left:23px;margin:0">
+            <li style="font-size:17px;margin:5px 0">Separation of concerns</li>
+            <li style="font-size:17px;margin:5px 0">Easier maintenance and testing</li>
+            <li style="font-size:17px;margin:5px 0">Business logic independent from database access</li>
+          </ul>
         </div>
-        <div class="card" style="padding:9px 13px;background:var(--lgreen);border-color:#c2ddc2">
-          <h3 style="margin-bottom:4px;font-size:15.5px;color:#2f6b2f">Why a Repository layer?</h3>
-          <div style="font-size:13.5px;color:#333;line-height:1.4">Keeps SQL / database operations isolated · makes future database replacement easier</div>
+        <div class="card" style="flex:1;padding:16px 20px;background:var(--lgreen);border-color:#c2ddc2;display:flex;flex-direction:column;justify-content:center">
+          <h3 style="font-size:20px;margin-bottom:9px;color:#2f6b2f">Why a Repository layer?</h3>
+          <ul style="padding-left:23px;margin:0">
+            <li style="font-size:17px;margin:5px 0">Keeps SQL / database operations isolated</li>
+            <li style="font-size:17px;margin:5px 0">Makes future database replacement easier</li>
+          </ul>
         </div>
       </div>
     </div>
+  </div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">11</span></div>
+</section>
 
-    <div style="flex:1 1 auto;margin-top:13px;border:2px solid #c98a17;border-radius:9px;background:#fffdf7;padding:11px 15px;display:flex;flex-direction:column;min-height:0">
-      <div style="font-size:17px;font-weight:700;color:#8a6111;margin-bottom:3px">Accepted Trade-offs — limitations we chose knowingly</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:7px">Every one of these is a deliberate decision with a bounded risk and a documented upgrade path.</div>
-      <table style="font-size:13.5px">
+<!-- ===================== 9b. ACCEPTED TRADE-OFFS — Saurabh ===================== -->
+<section class="slide">
+  <div class="head"><div class="num">9</div><h1>Accepted Trade-offs</h1><div class="who"><span class="spk">Saurabh</span><span class="time">2 min (9)</span></div></div>
+  <div class="body">
+    <div style="font-size:18px;color:#333;margin-bottom:14px">
+      Three limitations we chose <b style="color:#8a6111">knowingly</b> — each with a bounded risk and a documented upgrade path.
+    </div>
+    <div style="flex:1 1 auto;border:2.5px solid #c98a17;border-radius:11px;background:#fffdf7;padding:16px 18px;display:flex;flex-direction:column;min-height:0">
+      <table style="font-size:16.5px;height:100%">
         <tr>
-          <th style="width:27%">Weakness we accepted</th>
-          <th style="width:31%">Why we accepted it</th>
-          <th>What bounds the risk</th>
+          <th style="width:24%;font-size:16px;padding:10px 14px">Weakness we accepted</th>
+          <th style="width:33%;font-size:16px;padding:10px 14px">Why we accepted it</th>
+          <th style="font-size:16px;padding:10px 14px">What bounds the risk</th>
         </tr>
         <tr>
-          <td><b>JWT cannot be revoked before it expires</b></td>
-          <td>Statelessness is what lets us replicate instances horizontally — a session store would reintroduce shared state</td>
-          <td>24-hour token lifetime caps the exposure window; a server-side deny-list or refresh-token scheme attaches at the existing verification middleware</td>
+          <td style="padding:14px;line-height:1.35"><b style="color:#a12626;font-size:17px">JWT cannot be revoked before it expires</b></td>
+          <td style="padding:14px;line-height:1.4">Statelessness is what lets us replicate instances horizontally — a session store would reintroduce shared state</td>
+          <td style="padding:14px;line-height:1.4">24-hour token lifetime caps the exposure window; a server-side deny-list or refresh-token scheme attaches at the <b>existing verification middleware</b></td>
         </tr>
         <tr>
-          <td><b>Complaint images are served unauthenticated</b></td>
-          <td>Gating every image means streaming each one through an authorised route — real complexity for little gain at this scale</td>
-          <td>Filenames are timestamp + random hex, so they are impractical to guess, and URLs appear only inside access-controlled views</td>
+          <td style="padding:14px;line-height:1.35"><b style="color:#a12626;font-size:17px">Complaint images are served unauthenticated</b></td>
+          <td style="padding:14px;line-height:1.4">Gating every image means streaming each one through an authorised route — real complexity for little gain at this scale</td>
+          <td style="padding:14px;line-height:1.4">Filenames are <b>timestamp + random hex</b>, so they are impractical to guess, and URLs appear only inside access-controlled views</td>
         </tr>
         <tr>
-          <td><b>SQLite allows only a single writer</b></td>
-          <td>Complaint reads vastly outnumber writes; a separate database server adds a network hop and another failure mode</td>
-          <td>WAL mode preserves read concurrency; the PostgreSQL migration touches only the repository layer, never business logic</td>
+          <td style="padding:14px;line-height:1.35"><b style="color:#a12626;font-size:17px">SQLite allows only a single writer</b></td>
+          <td style="padding:14px;line-height:1.4">Complaint reads vastly outnumber writes; a separate database server adds a network hop and another failure mode</td>
+          <td style="padding:14px;line-height:1.4">WAL mode preserves read concurrency; the PostgreSQL migration touches <b>only the repository layer</b>, never business logic</td>
         </tr>
       </table>
     </div>
+    <div style="font-size:16px;color:var(--muted);margin-top:12px;text-align:center">
+      Every trade-off is isolated behind a single layer — which is what makes each one reversible.
+    </div>
   </div>
-  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">11</span></div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">12</span></div>
 </section>
 
 <!-- ===================== 10. STATE DIAGRAM — Vijay ===================== -->
@@ -501,7 +523,7 @@
       </svg>
     </div>
   </div>
-  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">12</span></div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">13</span></div>
 </section>
 
 <!-- ===================== 11a. SYSTEM REQUIREMENTS — Vijay ===================== -->
@@ -551,7 +573,7 @@
       </div>
     </div>
   </div>
-  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">13</span></div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">14</span></div>
 </section>
 
 <!-- ===================== 11b. USE CASE DIAGRAM — Vijay ===================== -->
@@ -632,7 +654,7 @@
     </div>
     <div class="note">Two actors only. Administrator drives every status transition; the student is read-only on status.</div>
   </div>
-  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">14</span></div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">15</span></div>
 </section>
 
 <!-- ===================== CONCLUSION ===================== -->
@@ -661,5 +683,5 @@
       <div style="text-align:center;margin-top:40px;font-size:20px;color:var(--muted)">Thank you — questions?</div>
     </div>
   </div>
-  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">15</span></div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">16</span></div>
 </section>
