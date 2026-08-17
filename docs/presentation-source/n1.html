@@ -1,0 +1,478 @@
+<meta charset="utf-8">
+<title>Hostel Buddy — Architecture Review</title>
+<style>
+  :root{
+    --navy:#1f4e79; --blue:#2e75b6; --lblue:#eaf1fb; --xlblue:#f4f8fc;
+    --green:#5a8f4e; --lgreen:#ecf6ec; --amber:#c98a17; --lamber:#fdf3e6;
+    --grey:#6b7280; --lgrey:#eef1f5; --maroon:#7a2e2e; --lmaroon:#fdeeea;
+    --ink:#1a1a1a; --muted:#5b6b7a; --line:#cbd5e1;
+  }
+  @page{ size: 13.333in 7.5in; margin:0; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:"Segoe UI", Arial, Helvetica, sans-serif; color:var(--ink); }
+
+  .slide{
+    width:13.333in; height:7.5in; page-break-after:always; break-after:page;
+    position:relative; padding:0.42in 0.55in 0.5in; overflow:hidden; background:#fff;
+    display:flex; flex-direction:column;
+  }
+  .slide:last-child{ page-break-after:auto; }
+
+  .head{ display:flex; align-items:center; gap:14px; border-bottom:3px solid var(--navy); padding-bottom:9px; flex:0 0 auto; }
+  .num{
+    background:var(--navy); color:#fff; width:40px; height:40px; border-radius:7px;
+    display:flex; align-items:center; justify-content:center; font-size:21px; font-weight:700; flex:0 0 auto;
+  }
+  .head h1{ margin:0; font-size:29px; color:var(--navy); font-weight:700; letter-spacing:-.2px; }
+  .who{ margin-left:auto; display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .spk{ font-size:13.5px; font-weight:600; color:#fff; background:var(--blue); padding:5px 13px; border-radius:13px; white-space:nowrap; }
+  .time{ font-size:13.5px; color:var(--muted); background:var(--lblue); padding:5px 12px; border-radius:13px; white-space:nowrap; }
+  .body{ flex:1 1 auto; padding-top:13px; display:flex; flex-direction:column; min-height:0; }
+  .foot{
+    position:absolute; left:0.55in; right:0.55in; bottom:0.2in;
+    display:flex; font-size:11.5px; color:#9aa7b4; border-top:1px solid #e6ebf0; padding-top:5px;
+  }
+  .foot .pg{ margin-left:auto; }
+
+  h2{ font-size:19px; color:var(--navy); margin:0 0 7px; }
+  ul{ margin:0; padding-left:21px; }
+  li{ font-size:16.5px; margin:5px 0; line-height:1.34; }
+  li b{ color:var(--navy); }
+  .sm li{ font-size:15px; margin:3.5px 0; }
+  code{ font-family:Consolas,monospace; font-size:.92em; background:#f1f5f9; padding:1px 5px; border-radius:3px; }
+
+  .cols{ display:flex; gap:18px; flex:1 1 auto; min-height:0; }
+  .col{ flex:1; min-width:0; }
+  .card{ background:var(--xlblue); border:1px solid #d6e4f2; border-radius:9px; padding:13px 15px; }
+  .card.stu{ background:var(--lblue); border-color:#b9d3ee; }
+  .card.adm{ background:var(--lmaroon); border-color:#eec9c0; }
+  .card h3{ margin:0 0 8px; font-size:17px; color:var(--navy); display:flex; align-items:center; gap:7px; }
+  .card.adm h3{ color:var(--maroon); }
+  .tag{ font-size:11px; font-weight:600; padding:2px 9px; border-radius:10px; background:var(--navy); color:#fff; }
+  .card.adm .tag{ background:var(--maroon); }
+
+  .fig{ flex:1 1 auto; display:flex; align-items:center; justify-content:center; min-height:0; }
+  .fig svg{ max-width:100%; max-height:100%; }
+  .note{ font-size:13px; color:var(--muted); text-align:center; margin-top:5px; }
+
+  .title-slide{ align-items:center; justify-content:center; text-align:center; padding-top:1in; }
+  .title-slide .kick{ letter-spacing:4px; text-transform:uppercase; color:var(--muted); font-size:16px; }
+  .title-slide .big{ font-size:74px; font-weight:700; color:var(--navy); margin:8px 0 4px; letter-spacing:-1px; }
+  .title-slide .sub{ font-size:24px; color:var(--muted); }
+  .rule{ width:150px; height:5px; background:var(--blue); border-radius:3px; margin:22px auto; }
+  .members{ font-size:18px; color:var(--ink); line-height:2; margin-top:6px; }
+  .members b{ color:var(--navy); }
+  .inst{ font-size:16px; color:var(--muted); margin-top:16px; }
+
+  table{ border-collapse:collapse; width:100%; font-size:15px; }
+  th,td{ border:1px solid var(--line); padding:6px 10px; text-align:left; }
+  th{ background:var(--navy); color:#fff; font-weight:600; font-size:14px; }
+  tr:nth-child(even) td{ background:#f7fafd; }
+  .agenda td{ font-size:15.5px; padding:5.5px 10px; }
+  .agenda .t{ color:var(--muted); white-space:nowrap; }
+  .agenda .sp{ font-weight:700; color:var(--navy); white-space:nowrap; background:#eaf1fb; }
+</style>
+
+<!-- ===================== TITLE ===================== -->
+<section class="slide title-slide">
+  <div class="kick">Architecture Review Presentation</div>
+  <div class="big">Hostel&nbsp;Buddy</div>
+  <div class="sub">Smart Hostel Complaint Management System</div>
+  <div class="rule"></div>
+  <div class="members">
+    <div><b>Group 19</b></div>
+    <div>Pranjal Tyagi &middot; Ajinkya &middot; Dinesh Saini &middot; Saurabh &middot; Vijay</div>
+  </div>
+  <div class="inst">Department of Computer Science and Engineering &middot; <b>IIIT Kottayam</b></div>
+</section>
+
+<!-- ===================== AGENDA ===================== -->
+<section class="slide">
+  <div class="head"><div class="num">◆</div><h1>Agenda &amp; Speaker Allocation</h1><div class="who"><span class="time">20 minutes</span></div></div>
+  <div class="body">
+    <table class="agenda">
+      <tr><th style="width:44px">#</th><th>Topic</th><th style="width:78px">Time</th><th style="width:160px">Presenter</th></tr>
+      <tr><td>1</td><td>Project Overview</td><td class="t">1 min</td><td class="sp" rowspan="3">Pranjal Tyagi</td></tr>
+      <tr><td>2</td><td>Module Decomposition</td><td class="t">2 min</td></tr>
+      <tr><td>3</td><td>Activity Diagram</td><td class="t">1.5 min</td></tr>
+      <tr><td>4</td><td>System Architecture</td><td class="t">2.5 min</td><td class="sp" rowspan="2">Ajinkya</td></tr>
+      <tr><td>5</td><td>Database Design — ER Diagram</td><td class="t">1.5 min</td></tr>
+      <tr><td>6</td><td>Class Diagram</td><td class="t">1.5 min</td><td class="sp" rowspan="2">Dinesh Saini</td></tr>
+      <tr><td>7</td><td>Layered Architecture &amp; Data Flow</td><td class="t">2.5 min</td></tr>
+      <tr><td>8</td><td>Sequence Diagram</td><td class="t">1.5 min</td><td class="sp" rowspan="2">Saurabh</td></tr>
+      <tr><td>9</td><td>Security &amp; Key Design Decisions</td><td class="t">1.5 min</td></tr>
+      <tr><td>10</td><td>State Diagram</td><td class="t">1.5 min</td><td class="sp" rowspan="2">Vijay</td></tr>
+      <tr><td>11</td><td>System Requirements &amp; Use Case Diagram</td><td class="t">2 min</td></tr>
+      <tr><td>—</td><td>Conclusion</td><td class="t">0.5 min</td><td class="sp">All</td></tr>
+    </table>
+  </div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">2</span></div>
+</section>
+
+<!-- ===================== 1. PROJECT OVERVIEW — Pranjal ===================== -->
+<section class="slide">
+  <div class="head"><div class="num">1</div><h1>Project Overview</h1><div class="who"><span class="spk">Pranjal Tyagi</span><span class="time">1 min</span></div></div>
+  <div class="body">
+    <div class="cols" style="gap:20px">
+      <div class="col" style="display:flex;flex-direction:column;gap:13px">
+        <div class="card" style="background:#fdf1e6;border-color:#efd2b8">
+          <h3 style="color:#8a4b1e">Problem</h3>
+          <ul class="sm" style="padding-left:19px">
+            <li>Hostel complaints are recorded in a <b>paper register</b></li>
+            <li>No way to search, track or report on them</li>
+            <li>Students get <b>no visibility</b> after reporting an issue</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Objective</h3>
+          <ul class="sm" style="padding-left:19px">
+            <li>Digitise complaint reporting and resolution</li>
+            <li>Give students <b>real-time status tracking</b></li>
+            <li>Give the administrator a <b>single dashboard</b> with analytics</li>
+            <li>Store every complaint <b>permanently and searchably</b></li>
+          </ul>
+        </div>
+      </div>
+      <div class="col" style="display:flex;flex-direction:column;gap:13px">
+        <div class="card stu">
+          <h3>Who uses the system</h3>
+          <ul class="sm" style="padding-left:19px">
+            <li><b>Student</b> — raises and tracks their own complaints</li>
+            <li><b>Administrator</b> — reviews all complaints, updates status, views analytics</li>
+          </ul>
+          <div style="font-size:13px;color:var(--muted);margin-top:6px">Two roles only — no separate maintenance-staff role in v1.0</div>
+        </div>
+        <div class="card" style="background:var(--lgreen);border-color:#c2ddc2;flex:1;display:flex;flex-direction:column;justify-content:center">
+          <h3 style="color:#2f6b2f">How it works — in one line</h3>
+          <div style="font-size:19px;line-height:1.5;color:#1a1a1a">
+            A student submits a complaint through a web interface; it is stored as
+            <b>Pending</b>, and the administrator advances it through
+            <b>In&nbsp;Progress → Resolved → Closed</b> while the student watches the status change live.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">3</span></div>
+</section>
+
+<!-- ===================== 2. MODULE DECOMPOSITION — Pranjal ===================== -->
+<section class="slide">
+  <div class="head"><div class="num">2</div><h1>Module Decomposition</h1><div class="who"><span class="spk">Pranjal Tyagi</span><span class="time">2 min</span></div></div>
+  <div class="body">
+    <div class="fig">
+      <svg viewBox="0 0 1200 470" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+        <rect x="480" y="10" width="240" height="52" rx="9" fill="#1f4e79"/>
+        <text x="600" y="43" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">Hostel Buddy</text>
+
+        <line x1="600" y1="62" x2="600" y2="82" stroke="#1f4e79" stroke-width="2.4"/>
+        <line x1="122" y1="82" x2="1078" y2="82" stroke="#1f4e79" stroke-width="2.4"/>
+        <g stroke="#1f4e79" stroke-width="2.4">
+          <line x1="122" y1="82" x2="122" y2="104"/>
+          <line x1="361" y1="82" x2="361" y2="104"/>
+          <line x1="600" y1="82" x2="600" y2="104"/>
+          <line x1="839" y1="82" x2="839" y2="104"/>
+          <line x1="1078" y1="82" x2="1078" y2="104"/>
+        </g>
+
+        <rect x="20" y="104" width="204" height="44" rx="7" fill="#ecf6ec" stroke="#5a8f4e" stroke-width="2"/>
+        <text x="122" y="132" text-anchor="middle" font-size="16.5" font-weight="700" fill="#2f6b2f">Authentication</text>
+        <g font-size="13.5" fill="#333">
+          <rect x="36" y="160" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="122" y="180" text-anchor="middle">Register / Login</text>
+          <rect x="36" y="196" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="122" y="216" text-anchor="middle">Password Hashing</text>
+          <rect x="36" y="232" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="122" y="252" text-anchor="middle">Token Issue / Verify</text>
+          <rect x="36" y="268" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="122" y="288" text-anchor="middle">Role Guards</text>
+        </g>
+
+        <rect x="259" y="104" width="204" height="44" rx="7" fill="#ecf6ec" stroke="#5a8f4e" stroke-width="2"/>
+        <text x="361" y="132" text-anchor="middle" font-size="16.5" font-weight="700" fill="#2f6b2f">User Management</text>
+        <g font-size="13.5" fill="#333">
+          <rect x="275" y="160" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="361" y="180" text-anchor="middle">View Profile</text>
+          <rect x="275" y="196" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="361" y="216" text-anchor="middle">Update Profile</text>
+          <rect x="275" y="232" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="361" y="252" text-anchor="middle">Student List</text>
+        </g>
+
+        <rect x="498" y="104" width="204" height="44" rx="7" fill="#dfeaf7" stroke="#1f4e79" stroke-width="2.8"/>
+        <text x="600" y="132" text-anchor="middle" font-size="16.5" font-weight="700" fill="#1f4e79">Complaint Management</text>
+        <g font-size="13.5" fill="#333">
+          <rect x="514" y="160" width="172" height="30" rx="5" fill="#fff" stroke="#9dbfe0"/><text x="600" y="180" text-anchor="middle">Create Complaint</text>
+          <rect x="514" y="196" width="172" height="30" rx="5" fill="#fff" stroke="#9dbfe0"/><text x="600" y="216" text-anchor="middle">View Complaint</text>
+          <rect x="514" y="232" width="172" height="30" rx="5" fill="#fff" stroke="#9dbfe0"/><text x="600" y="252" text-anchor="middle">Edit / Delete (Pending)</text>
+          <rect x="514" y="268" width="172" height="30" rx="5" fill="#fff" stroke="#9dbfe0"/><text x="600" y="288" text-anchor="middle">Status Management</text>
+          <rect x="514" y="304" width="172" height="30" rx="5" fill="#fff" stroke="#9dbfe0"/><text x="600" y="324" text-anchor="middle">Remarks</text>
+          <rect x="514" y="340" width="172" height="30" rx="5" fill="#fff" stroke="#9dbfe0"/><text x="600" y="360" text-anchor="middle">Search / Filter</text>
+        </g>
+
+        <rect x="737" y="104" width="204" height="44" rx="7" fill="#ecf6ec" stroke="#5a8f4e" stroke-width="2"/>
+        <text x="839" y="132" text-anchor="middle" font-size="16.5" font-weight="700" fill="#2f6b2f">Dashboard</text>
+        <g font-size="13.5" fill="#333">
+          <rect x="753" y="160" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="839" y="180" text-anchor="middle">Student Statistics</text>
+          <rect x="753" y="196" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="839" y="216" text-anchor="middle">Admin Statistics</text>
+          <rect x="753" y="232" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="839" y="252" text-anchor="middle">Category Distribution</text>
+          <rect x="753" y="268" width="172" height="30" rx="5" fill="#fff" stroke="#a9cfa9"/><text x="839" y="288" text-anchor="middle">Recent Complaints</text>
+        </g>
+
+        <rect x="976" y="104" width="204" height="44" rx="7" fill="#f2f2f4" stroke="#6b7280" stroke-width="2"/>
+        <text x="1078" y="132" text-anchor="middle" font-size="16.5" font-weight="700" fill="#374151">Database</text>
+        <g font-size="13.5" fill="#333">
+          <rect x="992" y="160" width="172" height="30" rx="5" fill="#fff" stroke="#b6bcc4"/><text x="1078" y="180" text-anchor="middle">Schema &amp; Constraints</text>
+          <rect x="992" y="196" width="172" height="30" rx="5" fill="#fff" stroke="#b6bcc4"/><text x="1078" y="216" text-anchor="middle">Repositories</text>
+          <rect x="992" y="232" width="172" height="30" rx="5" fill="#fff" stroke="#b6bcc4"/><text x="1078" y="252" text-anchor="middle">Connection</text>
+        </g>
+
+        <rect x="20" y="396" width="1160" height="60" rx="8" fill="#f4f8fc" stroke="#c6d9ec" stroke-width="1.6"/>
+        <text x="40" y="420" font-size="15.5" font-weight="700" fill="#1f4e79">Purpose of decomposition</text>
+        <text x="40" y="443" font-size="15" fill="#333">Each module has one specific responsibility — this makes the system easier to <tspan font-weight="700">maintain</tspan>, <tspan font-weight="700">test</tspan> and <tspan font-weight="700">extend</tspan>.</text>
+      </svg>
+    </div>
+  </div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">4</span></div>
+</section>
+
+<!-- ===================== 3. ACTIVITY DIAGRAM — Pranjal ===================== -->
+<section class="slide">
+  <div class="head"><div class="num">3</div><h1>Activity Diagram — Complaint Process</h1><div class="who"><span class="spk">Pranjal Tyagi</span><span class="time">1.5 min</span></div></div>
+  <div class="body">
+    <div class="fig">
+      <svg viewBox="0 0 1200 450" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="13.5">
+        <defs>
+          <marker id="ac2" markerWidth="10" markerHeight="10" refX="8.5" refY="3.4" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8.5,3.4 L0,6.8 Z" fill="#333"/>
+          </marker>
+          <marker id="ac2r" markerWidth="10" markerHeight="10" refX="8.5" refY="3.4" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8.5,3.4 L0,6.8 Z" fill="#a12626"/>
+          </marker>
+        </defs>
+
+        <rect x="20" y="14" width="560" height="418" fill="#f9fbfd" stroke="#2e75b6" stroke-width="1.6"/>
+        <rect x="600" y="14" width="580" height="418" fill="#fdfaf8" stroke="#c0733f" stroke-width="1.6"/>
+        <rect x="20" y="14" width="560" height="30" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.6"/>
+        <rect x="600" y="14" width="580" height="30" fill="#fdeeea" stroke="#c0733f" stroke-width="1.6"/>
+        <text x="300" y="35" text-anchor="middle" font-size="15.5" font-weight="700" fill="#1f4e79">STUDENT</text>
+        <text x="890" y="35" text-anchor="middle" font-size="15.5" font-weight="700" fill="#8a4b1e">ADMINISTRATOR</text>
+
+        <circle cx="90" cy="76" r="12" fill="#1a1a1a"/>
+        <line x1="90" y1="88" x2="90" y2="106" stroke="#333" stroke-width="2" marker-end="url(#ac2)"/>
+        <text x="106" y="80" font-size="12.5" fill="#5b6b7a">Start</text>
+
+        <rect x="40" y="108" width="230" height="40" rx="20" fill="#fff" stroke="#2e75b6" stroke-width="2"/>
+        <text x="155" y="133" text-anchor="middle">Student raises complaint</text>
+        <line x1="155" y1="148" x2="155" y2="166" stroke="#333" stroke-width="2" marker-end="url(#ac2)"/>
+
+        <polygon points="155,168 245,204 155,240 65,204" fill="#fff8e8" stroke="#c98a17" stroke-width="2"/>
+        <text x="155" y="200" text-anchor="middle" font-size="13">Validate</text>
+        <text x="155" y="216" text-anchor="middle" font-size="13">complaint</text>
+        <text x="252" y="196" font-size="12" fill="#2f6b2f" font-weight="600">valid</text>
+        <text x="34" y="196" font-size="12" fill="#a12626" font-weight="600">invalid</text>
+        <path d="M65,204 L34,204 L34,128 L38,128" fill="none" stroke="#a12626" stroke-width="1.8" marker-end="url(#ac2r)"/>
+        <text x="42" y="252" font-size="11.5" fill="#a12626">show error, re-enter</text>
+
+        <line x1="155" y1="240" x2="155" y2="262" stroke="#333" stroke-width="2" marker-end="url(#ac2)"/>
+
+        <rect x="40" y="264" width="230" height="46" rx="20" fill="#fdf3e6" stroke="#c98a17" stroke-width="2.4"/>
+        <text x="155" y="284" text-anchor="middle" font-weight="600">Save complaint</text>
+        <text x="155" y="301" text-anchor="middle" font-size="11.5" fill="#8a6111">status = Pending</text>
+
+        <line x1="270" y1="287" x2="656" y2="287" stroke="#333" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#ac2)"/>
+        <text x="380" y="279" font-size="12" fill="#5b6b7a">appears in admin queue</text>
+
+        <rect x="660" y="264" width="230" height="46" rx="20" fill="#fff" stroke="#c0733f" stroke-width="2"/>
+        <text x="775" y="284" text-anchor="middle">Admin reviews complaint</text>
+        <text x="775" y="301" text-anchor="middle" font-size="11.5" fill="#5b6b7a">search / filter to locate</text>
+
+        <line x1="890" y1="287" x2="926" y2="287" stroke="#333" stroke-width="2" marker-end="url(#ac2)"/>
+
+        <rect x="930" y="264" width="220" height="46" rx="20" fill="#eaf3fb" stroke="#2e75b6" stroke-width="2.4"/>
+        <text x="1040" y="284" text-anchor="middle" font-weight="600">Update status</text>
+        <text x="1040" y="301" text-anchor="middle" font-size="11.5" fill="#1f4e79">In Progress + remarks</text>
+
+        <path d="M1040,264 L1040,220 L1040,214" fill="none" stroke="#333" stroke-width="2" marker-end="url(#ac2)"/>
+
+        <rect x="930" y="166" width="220" height="46" rx="20" fill="#ecf6ec" stroke="#5a8f4e" stroke-width="2.4"/>
+        <text x="1040" y="186" text-anchor="middle" font-weight="600">Resolve complaint</text>
+        <text x="1040" y="203" text-anchor="middle" font-size="11.5" fill="#2f6b2f">resolved_at recorded</text>
+
+        <line x1="930" y1="189" x2="896" y2="189" stroke="#333" stroke-width="2" marker-end="url(#ac2)"/>
+
+        <rect x="660" y="166" width="230" height="46" rx="20" fill="#eef1f5" stroke="#6b7280" stroke-width="2.4"/>
+        <text x="775" y="186" text-anchor="middle" font-weight="600">Close complaint</text>
+        <text x="775" y="203" text-anchor="middle" font-size="11.5" fill="#5b6b7a">resolved_at preserved</text>
+
+        <line x1="775" y1="166" x2="775" y2="132" stroke="#333" stroke-width="2" marker-end="url(#ac2)"/>
+
+        <circle cx="775" cy="108" r="15" fill="none" stroke="#333" stroke-width="2.4"/>
+        <circle cx="775" cy="108" r="9" fill="#1a1a1a"/>
+        <text x="800" y="112" font-size="12.5" fill="#5b6b7a">End</text>
+
+        <rect x="300" y="352" width="250" height="42" rx="20" fill="#fff" stroke="#2e75b6" stroke-width="1.6" stroke-dasharray="5,3"/>
+        <text x="425" y="371" text-anchor="middle" font-size="12.5">Student tracks status</text>
+        <text x="425" y="387" text-anchor="middle" font-size="11.5" fill="#5b6b7a">sees remarks &amp; resolution date</text>
+        <path d="M660,300 L600,300 L600,373 L556,373" fill="none" stroke="#2e75b6" stroke-width="1.6" stroke-dasharray="5,3" marker-end="url(#ac2)"/>
+
+        <text x="40" y="420" font-size="11.5" fill="#5b6b7a">Only real decision point: input validation. Status transitions are administrator actions, not branches.</text>
+      </svg>
+    </div>
+  </div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">5</span></div>
+</section>
+
+<!-- ===================== 4. SYSTEM ARCHITECTURE — Ajinkya ===================== -->
+<section class="slide">
+  <div class="head"><div class="num">4</div><h1>System Architecture — Three-Tier</h1><div class="who"><span class="spk">Ajinkya</span><span class="time">2.5 min</span></div></div>
+  <div class="body">
+    <div class="fig">
+      <svg viewBox="0 0 1180 500" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+        <defs>
+          <marker id="ar3" markerWidth="10" markerHeight="10" refX="8.5" refY="3.4" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8.5,3.4 L0,6.8 Z" fill="#333"/>
+          </marker>
+        </defs>
+
+        <text x="255" y="28" text-anchor="middle" font-size="17" font-weight="700" fill="#1f4e79">Three-Tier View</text>
+
+        <rect x="90" y="46" width="330" height="82" rx="9" fill="#eaf1fb" stroke="#2e75b6" stroke-width="2.2"/>
+        <text x="255" y="76" text-anchor="middle" font-size="19" font-weight="700" fill="#1f4e79">Presentation Tier</text>
+        <text x="255" y="99" text-anchor="middle" font-size="14.5" fill="#333">Student / Admin  →  Frontend</text>
+        <text x="255" y="117" text-anchor="middle" font-size="13" fill="#5b6b7a">HTML · CSS · JavaScript · Chart.js</text>
+
+        <line x1="255" y1="128" x2="255" y2="166" stroke="#333" stroke-width="2.2" marker-end="url(#ar3)"/>
+        <text x="268" y="152" font-size="13" fill="#444">JSON over HTTPS + JWT</text>
+
+        <rect x="90" y="168" width="330" height="82" rx="9" fill="#dfeaf7" stroke="#1f4e79" stroke-width="2.6"/>
+        <text x="255" y="198" text-anchor="middle" font-size="19" font-weight="700" fill="#1f4e79">Application Tier</text>
+        <text x="255" y="221" text-anchor="middle" font-size="14.5" fill="#333">Express API</text>
+        <text x="255" y="239" text-anchor="middle" font-size="13" fill="#5b6b7a">requests · business logic · authorisation</text>
+
+        <line x1="255" y1="250" x2="255" y2="288" stroke="#333" stroke-width="2.2" marker-end="url(#ar3)"/>
+        <text x="268" y="274" font-size="13" fill="#444">SQL (prepared statements)</text>
+
+        <rect x="90" y="290" width="330" height="82" rx="9" fill="#f2f2f4" stroke="#6b7280" stroke-width="2.2"/>
+        <text x="255" y="320" text-anchor="middle" font-size="19" font-weight="700" fill="#374151">Data Tier</text>
+        <text x="255" y="343" text-anchor="middle" font-size="14.5" fill="#333">SQLite</text>
+        <text x="255" y="361" text-anchor="middle" font-size="13" fill="#5b6b7a">users · complaints  +  /uploads</text>
+
+        <rect x="90" y="392" width="330" height="90" rx="8" fill="#fbfcfe" stroke="#cbd5e1"/>
+        <text x="104" y="413" font-size="14" font-weight="700" fill="#1f4e79">Responsibilities</text>
+        <text x="104" y="434" font-size="13.5" fill="#333">• Presentation — handles the UI</text>
+        <text x="104" y="453" font-size="13.5" fill="#333">• Application — handles requests &amp; business logic</text>
+        <text x="104" y="472" font-size="13.5" fill="#333">• Data — stores persistent data</text>
+
+        <line x1="510" y1="40" x2="510" y2="482" stroke="#dde4ec" stroke-width="2"/>
+
+        <text x="845" y="28" text-anchor="middle" font-size="17" font-weight="700" fill="#1f4e79">Inside the Application Tier</text>
+
+        <g font-size="16">
+          <rect x="700" y="46" width="290" height="50" rx="7" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.8"/>
+          <text x="845" y="70" text-anchor="middle" font-weight="700" fill="#1f4e79">Routes</text>
+          <text x="845" y="87" text-anchor="middle" font-size="12.5" fill="#5b6b7a">map URL + verb to a handler</text>
+
+          <rect x="700" y="110" width="290" height="50" rx="7" fill="#fdf1e6" stroke="#c0733f" stroke-width="1.8"/>
+          <text x="845" y="134" text-anchor="middle" font-weight="700" fill="#8a4b1e">Middleware</text>
+          <text x="845" y="151" text-anchor="middle" font-size="12.5" fill="#5b6b7a">authentication · role check · upload</text>
+
+          <rect x="700" y="174" width="290" height="50" rx="7" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.8"/>
+          <text x="845" y="198" text-anchor="middle" font-weight="700" fill="#1f4e79">Controllers</text>
+          <text x="845" y="215" text-anchor="middle" font-size="12.5" fill="#5b6b7a">parse request · shape response</text>
+
+          <rect x="700" y="238" width="290" height="54" rx="7" fill="#dfeaf7" stroke="#1f4e79" stroke-width="2.6"/>
+          <text x="845" y="262" text-anchor="middle" font-weight="700" fill="#1f4e79">Services</text>
+          <text x="845" y="280" text-anchor="middle" font-size="12.5" fill="#333">ALL business rules live here</text>
+
+          <rect x="700" y="306" width="290" height="50" rx="7" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.8"/>
+          <text x="845" y="330" text-anchor="middle" font-weight="700" fill="#1f4e79">Repositories</text>
+          <text x="845" y="347" text-anchor="middle" font-size="12.5" fill="#5b6b7a">the only layer that runs SQL</text>
+
+          <rect x="700" y="370" width="290" height="50" rx="7" fill="#f2f2f4" stroke="#6b7280" stroke-width="1.8"/>
+          <text x="845" y="394" text-anchor="middle" font-weight="700" fill="#374151">SQLite</text>
+          <text x="845" y="411" text-anchor="middle" font-size="12.5" fill="#5b6b7a">persistent storage</text>
+        </g>
+        <g stroke="#333" stroke-width="2" marker-end="url(#ar3)">
+          <line x1="845" y1="96" x2="845" y2="106"/>
+          <line x1="845" y1="160" x2="845" y2="170"/>
+          <line x1="845" y1="224" x2="845" y2="234"/>
+          <line x1="845" y1="292" x2="845" y2="302"/>
+          <line x1="845" y1="356" x2="845" y2="366"/>
+        </g>
+        <text x="845" y="444" text-anchor="middle" font-size="13" fill="#5b6b7a">Each layer talks only to the layer directly below it.</text>
+        <text x="845" y="466" text-anchor="middle" font-size="13" fill="#a12626">Business rules never appear in the frontend or in SQL.</text>
+      </svg>
+    </div>
+  </div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">6</span></div>
+</section>
+
+<!-- ===================== 5. DATABASE DESIGN — Ajinkya ===================== -->
+<section class="slide">
+  <div class="head"><div class="num">5</div><h1>Database Design — ER Diagram</h1><div class="who"><span class="spk">Ajinkya</span><span class="time">1.5 min</span></div></div>
+  <div class="body">
+    <div class="fig">
+      <svg viewBox="0 0 1200 460" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+        <rect x="90" y="24" width="360" height="286" rx="9" fill="#fff" stroke="#1f4e79" stroke-width="2.6"/>
+        <rect x="90" y="24" width="360" height="42" rx="9" fill="#1f4e79"/>
+        <text x="270" y="53" text-anchor="middle" font-size="21" font-weight="700" fill="#fff">USERS</text>
+        <g font-size="15">
+          <rect x="90" y="66" width="360" height="32" fill="#eaf1fb"/>
+          <text x="108" y="88" font-weight="700" fill="#1f4e79">PK  id</text>
+          <line x1="108" y1="91" x2="152" y2="91" stroke="#1f4e79" stroke-width="1.2"/>
+          <text x="330" y="88" font-size="12.5" fill="#5b6b7a">INTEGER</text>
+
+          <text x="108" y="120">name</text><text x="330" y="120" font-size="12.5" fill="#5b6b7a">TEXT</text>
+          <rect x="90" y="128" width="360" height="30" fill="#f7fafd"/>
+          <text x="108" y="149" font-weight="600">UK  email</text><text x="330" y="149" font-size="12.5" fill="#5b6b7a">TEXT UNIQUE</text>
+          <text x="108" y="179">password_hash</text><text x="330" y="179" font-size="12.5" fill="#5b6b7a">TEXT</text>
+          <rect x="90" y="188" width="360" height="30" fill="#f7fafd"/>
+          <text x="108" y="209">room_number</text><text x="330" y="209" font-size="12.5" fill="#5b6b7a">TEXT</text>
+          <text x="108" y="239">role</text><text x="300" y="239" font-size="12.5" fill="#5b6b7a">'student' | 'admin'</text>
+          <rect x="90" y="248" width="360" height="30" fill="#f7fafd"/>
+          <text x="108" y="269">created_at</text><text x="330" y="269" font-size="12.5" fill="#5b6b7a">DATETIME</text>
+        </g>
+        <text x="108" y="298" font-size="12.5" fill="#8a4b1e">CHECK (role IN 'student','admin')</text>
+
+        <rect x="750" y="24" width="360" height="346" rx="9" fill="#fff" stroke="#1f4e79" stroke-width="2.6"/>
+        <rect x="750" y="24" width="360" height="42" rx="9" fill="#1f4e79"/>
+        <text x="930" y="53" text-anchor="middle" font-size="21" font-weight="700" fill="#fff">COMPLAINTS</text>
+        <g font-size="15">
+          <rect x="750" y="66" width="360" height="32" fill="#eaf1fb"/>
+          <text x="768" y="88" font-weight="700" fill="#1f4e79">PK  id</text>
+          <line x1="768" y1="91" x2="812" y2="91" stroke="#1f4e79" stroke-width="1.2"/>
+          <text x="990" y="88" font-size="12.5" fill="#5b6b7a">INTEGER</text>
+
+          <rect x="750" y="98" width="360" height="32" fill="#fdf1e6"/>
+          <text x="768" y="120" font-weight="700" fill="#8a4b1e">FK  user_id</text><text x="960" y="120" font-size="12.5" fill="#5b6b7a">→ users(id)</text>
+
+          <text x="768" y="152">category</text><text x="980" y="152" font-size="12.5" fill="#5b6b7a">8 fixed values</text>
+          <rect x="750" y="160" width="360" height="30" fill="#f7fafd"/>
+          <text x="768" y="181">description</text><text x="990" y="181" font-size="12.5" fill="#5b6b7a">TEXT</text>
+          <text x="768" y="211">image_url</text><text x="990" y="211" font-size="12.5" fill="#5b6b7a">TEXT NULL</text>
+          <rect x="750" y="220" width="360" height="30" fill="#f7fafd"/>
+          <text x="768" y="241">status</text><text x="950" y="241" font-size="12.5" fill="#5b6b7a">4 lifecycle states</text>
+          <text x="768" y="271">admin_remarks</text><text x="990" y="271" font-size="12.5" fill="#5b6b7a">TEXT NULL</text>
+          <rect x="750" y="280" width="360" height="30" fill="#f7fafd"/>
+          <text x="768" y="301">created_at · updated_at</text><text x="990" y="301" font-size="12.5" fill="#5b6b7a">DATETIME</text>
+          <text x="768" y="331">resolved_at</text><text x="960" y="331" font-size="12.5" fill="#5b6b7a">DATETIME NULL</text>
+        </g>
+        <text x="768" y="360" font-size="12.5" fill="#8a4b1e">CHECK on category and status</text>
+
+        <line x1="450" y1="167" x2="750" y2="167" stroke="#1f4e79" stroke-width="2.6"/>
+        <line x1="492" y1="152" x2="492" y2="182" stroke="#1f4e79" stroke-width="2.6"/>
+        <line x1="506" y1="152" x2="506" y2="182" stroke="#1f4e79" stroke-width="2.6"/>
+        <line x1="712" y1="167" x2="680" y2="150" stroke="#1f4e79" stroke-width="2.6"/>
+        <line x1="712" y1="167" x2="680" y2="184" stroke="#1f4e79" stroke-width="2.6"/>
+        <circle cx="668" cy="167" r="8" fill="#fff" stroke="#1f4e79" stroke-width="2.4"/>
+
+        <rect x="524" y="106" width="128" height="52" rx="8" fill="#eaf1fb" stroke="#2e75b6" stroke-width="2"/>
+        <text x="588" y="130" text-anchor="middle" font-size="17" font-weight="700" fill="#1f4e79">raises</text>
+        <text x="588" y="148" text-anchor="middle" font-size="14" fill="#444">1 : 0..N</text>
+
+        <text x="588" y="204" text-anchor="middle" font-size="13.5" fill="#5b6b7a">One student raises many complaints;</text>
+        <text x="588" y="223" text-anchor="middle" font-size="13.5" fill="#5b6b7a">each complaint belongs to exactly one student.</text>
+
+        <rect x="90" y="392" width="1020" height="56" rx="8" fill="#f4f8fc" stroke="#c6d9ec" stroke-width="1.6"/>
+        <text x="112" y="414" font-size="14.5" fill="#333"><tspan font-weight="700" fill="#1f4e79">Two entities only.</tspan>  Admin is a <tspan font-weight="700">role</tspan> on USERS, not a separate table — authentication stays uniform.</text>
+        <text x="112" y="436" font-size="14.5" fill="#333">Categories and statuses are enforced by <tspan font-weight="700">CHECK constraints</tspan> rather than lookup tables — fixed sets, one fewer join.</text>
+      </svg>
+    </div>
+  </div>
+  <div class="foot"><span>Hostel Buddy — Architecture Review · Group 19</span><span class="pg">7</span></div>
+</section>
