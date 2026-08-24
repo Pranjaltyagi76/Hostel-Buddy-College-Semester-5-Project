@@ -109,18 +109,120 @@
   </table>
   <p>A <code>.gitignore</code> and <code>.gitattributes</code> were added so that dependencies, secrets and runtime data are never committed, and line endings stay consistent across the team's machines.</p>
 
-  <h2 id="skeleton">4. Project Skeleton</h2>
-  <p>The project follows a <b>layered architecture</b>: each request passes through routes → middleware → controllers → services → repositories → database. The skeleton created at this milestone establishes that structure and a working server.</p>
-  <table>
-    <tr><th style="width:32%">Component</th><th>Purpose</th></tr>
-    <tr><td><code>src/server.js</code></td><td>Application entry point — prepares the database, then starts the server</td></tr>
-    <tr><td><code>src/app.js</code></td><td>Wires middleware and mounts module routes</td></tr>
-    <tr><td><code>src/config/</code></td><td>Environment configuration (<code>env.js</code>) and fixed constants — categories, statuses, roles (<code>constants.js</code>)</td></tr>
-    <tr><td><code>src/middleware/</code></td><td>Central error handler and request logger (auth guard added with the login module)</td></tr>
-    <tr><td><code>src/db/</code></td><td>Database connection, schema and bootstrap</td></tr>
-    <tr><td><code>package.json</code></td><td>Node project definition, dependencies and run scripts (<code>npm start</code>)</td></tr>
-  </table>
-  <p><b>Technology base:</b> Node.js with the Express web framework. A health-check endpoint (<code>GET /api/health</code>) confirms the server boots correctly. The application was verified to start and respond successfully.</p>
+  <h2 id="skeleton" style="break-before:page">4. Project Skeleton</h2>
+  <p>The project is organised as a <b>layered architecture</b>. Every folder maps to one clear job, and a request always travels the same path down the layers. The tree below shows the actual folders and files created at this milestone; the arrows on the right explain what each one is for.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 600" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .tr{ font-family:Consolas,"Courier New",monospace; font-size:13.5px; }
+        .pre{ fill:#9aa7b4; } .fold{ fill:#1f4e79; font-weight:700; } .file{ fill:#334155; }
+        .ann{ fill:#6b7280; } .a-db{ fill:#475569; font-weight:700; } .a-login{ fill:#2f6b2f; font-weight:700; }
+        .a-sql{ fill:#2e75b6; font-weight:700; } .a-svc{ fill:#1f4e79; } .a-test{ fill:#2f6b2f; }
+      </style>
+      <rect x="6" y="10" width="748" height="582" rx="8" fill="#fbfcfe" stroke="#d6e0ea" stroke-width="1.3"/>
+      <!-- login module highlight -->
+      <rect x="150" y="279" width="600" height="70" rx="5" fill="#eef7ef" stroke="#c2ddc2" stroke-width="1"/>
+      <!-- repo highlight -->
+      <rect x="150" y="417" width="600" height="18" rx="4" fill="#eaf1fb"/>
+
+      <text class="tr" x="22" y="44"><tspan class="fold" font-size="14.5">hostel-buddy/</tspan><tspan class="ann">   the project (Git repository)</tspan></text>
+      <text class="tr" x="22" y="62"><tspan class="pre">├─ </tspan><tspan class="fold">src/</tspan><tspan class="ann">   all application source code</tspan></text>
+      <text class="tr" x="22" y="79"><tspan class="pre">│  ├─ </tspan><tspan class="fold">config/</tspan><tspan class="ann">   ← app settings &amp; fixed values</tspan></text>
+      <text class="tr" x="22" y="96"><tspan class="pre">│  │  ├─ </tspan><tspan class="file">env.js</tspan></text>
+      <text class="tr" x="22" y="113"><tspan class="pre">│  │  └─ </tspan><tspan class="file">constants.js</tspan><tspan class="ann">   categories · statuses · roles</tspan></text>
+      <text class="tr" x="22" y="130"><tspan class="pre">│  ├─ </tspan><tspan class="fold">db/</tspan><tspan class="a-db">   ← DATABASE SETUP</tspan></text>
+      <text class="tr" x="22" y="147"><tspan class="pre">│  │  ├─ </tspan><tspan class="file">schema.sql</tspan><tspan class="ann">   the tables: users, complaints</tspan></text>
+      <text class="tr" x="22" y="164"><tspan class="pre">│  │  ├─ </tspan><tspan class="file">connection.js</tspan></text>
+      <text class="tr" x="22" y="181"><tspan class="pre">│  │  └─ </tspan><tspan class="file">seedAdmin.js</tspan><tspan class="ann">   creates the admin account</tspan></text>
+      <text class="tr" x="22" y="198"><tspan class="pre">│  ├─ </tspan><tspan class="fold">middleware/</tspan><tspan class="ann">   ← runs on every request</tspan></text>
+      <text class="tr" x="22" y="215"><tspan class="pre">│  │  ├─ </tspan><tspan class="file">auth.js</tspan><tspan class="ann">   checks token &amp; role</tspan></text>
+      <text class="tr" x="22" y="232"><tspan class="pre">│  │  ├─ </tspan><tspan class="file">errorHandler.js</tspan></text>
+      <text class="tr" x="22" y="249"><tspan class="pre">│  │  └─ </tspan><tspan class="file">requestLogger.js</tspan></text>
+      <text class="tr" x="22" y="266"><tspan class="pre">│  ├─ </tspan><tspan class="fold">modules/</tspan><tspan class="ann">   ← the feature modules</tspan></text>
+      <text class="tr" x="22" y="294"><tspan class="pre">│  │  ├─ </tspan><tspan class="fold" fill="#2f6b2f">auth/</tspan><tspan class="a-login">   ← LOGIN MODULE</tspan></text>
+      <text class="tr" x="22" y="311"><tspan class="pre">│  │  │  ├─ </tspan><tspan class="file">auth.routes.js</tspan><tspan class="ann">   URL → handler</tspan></text>
+      <text class="tr" x="22" y="328"><tspan class="pre">│  │  │  ├─ </tspan><tspan class="file">auth.controller.js</tspan><tspan class="ann">   handles the request</tspan></text>
+      <text class="tr" x="22" y="345"><tspan class="pre">│  │  │  └─ </tspan><tspan class="file">auth.service.js</tspan><tspan class="a-svc">   login logic: hash · verify · token</tspan></text>
+      <text class="tr" x="22" y="366"><tspan class="pre">│  │  └─ </tspan><tspan class="fold">users/</tspan><tspan class="ann">   account &amp; profile</tspan></text>
+      <text class="tr" x="22" y="383"><tspan class="pre">│  │     ├─ </tspan><tspan class="file">users.routes.js</tspan></text>
+      <text class="tr" x="22" y="400"><tspan class="pre">│  │     ├─ </tspan><tspan class="file">users.controller.js</tspan></text>
+      <text class="tr" x="22" y="417"><tspan class="pre">│  │     ├─ </tspan><tspan class="file">users.service.js</tspan></text>
+      <text class="tr" x="22" y="431"><tspan class="pre">│  │     └─ </tspan><tspan class="file">users.repo.js</tspan><tspan class="a-sql">   ← the ONLY file that runs SQL</tspan></text>
+      <text class="tr" x="22" y="452"><tspan class="pre">│  ├─ </tspan><tspan class="fold">utils/</tspan><tspan class="ann">   small helpers</tspan></text>
+      <text class="tr" x="22" y="469"><tspan class="pre">│  │  ├─ </tspan><tspan class="file">jwt.js</tspan><tspan class="ann">   create / verify login tokens</tspan></text>
+      <text class="tr" x="22" y="486"><tspan class="pre">│  │  └─ </tspan><tspan class="file">validators.js</tspan></text>
+      <text class="tr" x="22" y="503"><tspan class="pre">│  ├─ </tspan><tspan class="file" fill="#1f4e79" font-weight="700">app.js</tspan><tspan class="ann">   wires middleware + routes together</tspan></text>
+      <text class="tr" x="22" y="520"><tspan class="pre">│  └─ </tspan><tspan class="file" fill="#1f4e79" font-weight="700">server.js</tspan><tspan class="ann">   starts the server</tspan></text>
+      <text class="tr" x="22" y="540"><tspan class="pre">├─ </tspan><tspan class="fold">tests/</tspan></text>
+      <text class="tr" x="22" y="557"><tspan class="pre">│  └─ </tspan><tspan class="file">auth.test.js</tspan><tspan class="a-test">   automated login tests (passing)</tspan></text>
+      <text class="tr" x="22" y="577"><tspan class="pre">└─ </tspan><tspan class="file">package.json</tspan><tspan class="ann">   · .gitignore · .env.example</tspan></text>
+    </svg>
+    <figcaption>Figure 4.1 — Project skeleton (actual folder structure at the 30% milestone). Green = the login module; blue highlight = the single data-access file.</figcaption>
+  </figure>
+
+  <p><b>Why it is organised this way.</b> Each layer has one job, so a request is easy to follow and each file has only one reason to change. A login request travels straight down the layers and the answer comes back up:</p>
+
+  <figure>
+    <svg viewBox="0 0 1040 250" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <defs>
+        <marker id="rf" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7.5,3 L0,6 Z" fill="#333"/></marker>
+        <marker id="rfg" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7.5,3 L0,6 Z" fill="#2f6b2f"/></marker>
+      </defs>
+
+      <!-- boxes -->
+      <g font-size="12.5">
+        <rect x="14" y="70" width="150" height="58" rx="7" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.6"/>
+        <text x="89" y="94" text-anchor="middle" font-weight="700">Student</text>
+        <text x="89" y="112" text-anchor="middle" font-size="11" fill="#555">login form</text>
+
+        <rect x="186" y="70" width="150" height="58" rx="7" fill="#f4f8fc" stroke="#9dbfe0" stroke-width="1.6"/>
+        <text x="261" y="90" text-anchor="middle" font-weight="700">auth.routes</text>
+        <text x="261" y="107" text-anchor="middle" font-size="10.5" fill="#555">picks the handler</text>
+        <text x="261" y="150" text-anchor="middle" font-size="11" fill="#2e75b6" font-weight="700">Route</text>
+
+        <rect x="358" y="70" width="150" height="58" rx="7" fill="#f4f8fc" stroke="#9dbfe0" stroke-width="1.6"/>
+        <text x="433" y="90" text-anchor="middle" font-weight="700">auth.controller</text>
+        <text x="433" y="107" text-anchor="middle" font-size="10.5" fill="#555">reads the request</text>
+        <text x="433" y="150" text-anchor="middle" font-size="11" fill="#2e75b6" font-weight="700">Controller</text>
+
+        <rect x="530" y="66" width="150" height="66" rx="7" fill="#dfeaf7" stroke="#1f4e79" stroke-width="2.4"/>
+        <text x="605" y="86" text-anchor="middle" font-weight="700">auth.service</text>
+        <text x="605" y="102" text-anchor="middle" font-size="10" fill="#333">verify password</text>
+        <text x="605" y="115" text-anchor="middle" font-size="10" fill="#333">issue JWT token</text>
+        <text x="605" y="150" text-anchor="middle" font-size="11" fill="#1f4e79" font-weight="700">Service (rules)</text>
+
+        <rect x="702" y="70" width="150" height="58" rx="7" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.6"/>
+        <text x="777" y="90" text-anchor="middle" font-weight="700">users.repo</text>
+        <text x="777" y="107" text-anchor="middle" font-size="10.5" fill="#555">findByEmail (SQL)</text>
+        <text x="777" y="150" text-anchor="middle" font-size="11" fill="#2e75b6" font-weight="700">Repository</text>
+
+        <rect x="874" y="70" width="152" height="58" rx="7" fill="#f2f2f4" stroke="#6b7280" stroke-width="1.6"/>
+        <text x="950" y="90" text-anchor="middle" font-weight="700">SQLite</text>
+        <text x="950" y="107" text-anchor="middle" font-size="10.5" fill="#555">users table</text>
+        <text x="950" y="150" text-anchor="middle" font-size="11" fill="#374151" font-weight="700">Database</text>
+      </g>
+
+      <!-- down arrows -->
+      <g stroke="#333" stroke-width="1.7" marker-end="url(#rf)">
+        <line x1="164" y1="99" x2="184" y2="99"/>
+        <line x1="336" y1="99" x2="356" y2="99"/>
+        <line x1="508" y1="99" x2="528" y2="99"/>
+        <line x1="680" y1="99" x2="700" y2="99"/>
+        <line x1="852" y1="99" x2="872" y2="99"/>
+      </g>
+      <text x="89" y="60" text-anchor="middle" font-size="10.5" fill="#333">POST /api/auth/login</text>
+
+      <!-- return arrow -->
+      <path d="M950,66 L950,34 L89,34 L89,66" fill="none" stroke="#2f6b2f" stroke-width="1.8" stroke-dasharray="6,4" marker-end="url(#rfg)"/>
+      <text x="520" y="26" text-anchor="middle" font-size="11" fill="#2f6b2f" font-weight="700">answer travels back up — the student receives a session token and is logged in</text>
+
+      <text x="520" y="185" text-anchor="middle" font-size="11.5" fill="#a12626">A request can never skip a layer, so the login rules always run — no matter who calls.</text>
+    </svg>
+    <figcaption>Figure 4.2 — How one login request flows through the layers.</figcaption>
+  </figure>
+
+  <p><b>Technology base:</b> Node.js with the Express web framework. A health-check endpoint (<code>GET /api/health</code>) confirms the server boots correctly, and the application was verified to start and respond successfully.</p>
 
   <h2 id="db">5. Database Setup</h2>
   <p>The database was set up using <b>SQLite</b> through Node.js's built-in <code>node:sqlite</code> module, which requires no separate database server and no native compilation — so every team member can run the project without extra installation. The schema is applied automatically on startup.</p>
