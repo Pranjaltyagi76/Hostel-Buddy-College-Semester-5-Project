@@ -1,0 +1,173 @@
+<meta charset="utf-8">
+<title>Hostel Buddy — 30% Progress Report</title>
+<script>
+  window.PagedConfig = { auto: true, after: () => { window.__PAGED_DONE = true; } };
+</script>
+<style>
+  :root{
+    --ink:#1a1a1a; --muted:#555; --line:#bcbcbc; --soft:#e7e7e7;
+    --accent:#1f4e79; --accent2:#2e75b6; --green:#2f6b2f; --amber:#8a6111;
+  }
+  @page{
+    size:A4; margin:20mm 18mm 18mm 18mm;
+    @top-right{ content:string(doctitle); font-family:Georgia,serif; font-size:8.5pt; color:#888; }
+    @bottom-center{ content:"Page " counter(page); font-family:Georgia,serif; font-size:9pt; color:#666; }
+  }
+  @page :first{ @top-right{content:none;} @bottom-center{content:none;} }
+  html{ font-family:Georgia,"Times New Roman",serif; color:var(--ink); font-size:10.7pt; line-height:1.5; }
+  body{ margin:0; }
+  h1,h2,h3{ font-family:"Segoe UI",Arial,sans-serif; color:var(--accent); line-height:1.25; }
+  h2{ font-size:15pt; margin-top:1.2em; border-bottom:2px solid var(--soft); padding-bottom:3px; break-after:avoid; }
+  h3{ font-size:12pt; margin-top:1em; break-after:avoid; }
+  p{ margin:.45em 0; text-align:justify; }
+  ul{ margin:.35em 0 .6em 0; padding-left:1.35em; }
+  li{ margin:.22em 0; }
+  code{ font-family:Consolas,monospace; font-size:9pt; background:#f2f2f2; padding:0 3px; border-radius:3px; }
+  table{ border-collapse:collapse; width:100%; margin:.6em 0; font-size:9.6pt; }
+  th,td{ border:1px solid var(--line); padding:5px 8px; text-align:left; vertical-align:top; }
+  th{ background:var(--accent); color:#fff; font-family:"Segoe UI",Arial,sans-serif; font-weight:600; }
+  tr:nth-child(even) td{ background:#f6f8fb; }
+  .break{ break-before:page; }
+  .center{ text-align:center; }
+  .pill{ display:inline-block; padding:2px 10px; border-radius:11px; font-size:8.6pt; font-weight:600; font-family:"Segoe UI",Arial,sans-serif; }
+  .done{ background:#e6f2e6; color:var(--green); border:1px solid #bcdcbc; }
+  .pend{ background:#f0f0f2; color:#666; border:1px solid #d5d5da; }
+  .box{ background:#f4f8fc; border-left:4px solid var(--accent2); padding:9px 13px; margin:.7em 0; font-size:10pt; break-inside:avoid; }
+  .box b{ color:var(--accent); }
+
+  /* progress bar */
+  .bar-wrap{ background:#eceff3; border-radius:8px; height:26px; overflow:hidden; border:1px solid #d5dbe2; margin:.4em 0; }
+  .bar{ background:linear-gradient(90deg,#2e75b6,#1f4e79); height:100%; width:30%; color:#fff; font-family:"Segoe UI",Arial,sans-serif;
+        font-size:11pt; font-weight:700; display:flex; align-items:center; justify-content:flex-end; padding-right:10px; }
+
+  /* cover */
+  .cover{ height:250mm; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .cover .kick{ font-family:"Segoe UI",Arial,sans-serif; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-size:11pt; }
+  .cover .title{ font-family:"Segoe UI",Arial,sans-serif; font-size:40pt; font-weight:700; color:var(--accent); margin:6px 0 2px; }
+  .cover .sub{ font-size:12.5pt; color:var(--muted); margin-bottom:8px; }
+  .cover .rule{ width:120px; height:4px; background:var(--accent2); margin:16px auto; border-radius:2px; }
+  .cover .badge{ font-family:"Segoe UI",Arial,sans-serif; font-size:20pt; font-weight:700; color:#fff; background:linear-gradient(90deg,#2e75b6,#1f4e79);
+                 padding:8px 26px; border-radius:26px; }
+  .cover .meta{ margin-top:26px; font-size:11.5pt; line-height:1.9; }
+  .cover .meta b{ color:var(--accent); }
+</style>
+
+<!-- ===================== COVER ===================== -->
+<section class="cover">
+  <div class="kick">Project Progress Report</div>
+  <div class="title">Hostel&nbsp;Buddy</div>
+  <div class="sub">Smart Hostel Complaint Management System</div>
+  <div class="rule"></div>
+  <div class="badge">30% Implementation Milestone</div>
+  <div class="meta">
+    <div><b>Group 19</b></div>
+    <div>Department of Computer Science and Engineering</div>
+    <div><b>IIIT Kottayam</b></div>
+    <div style="margin-top:12px"><b>Milestone completed:</b> 21 July 2026</div>
+  </div>
+</section>
+
+<!-- ===================== BODY ===================== -->
+<section class="break">
+  <h2 id="team" style="margin-top:0">1. Team Members</h2>
+  <table>
+    <tr><th style="width:56px">#</th><th>Member Name</th><th style="width:34%">Roll Number</th></tr>
+    <tr><td>1</td><td>Pranjal Tyagi</td><td>2024BCD0053</td></tr>
+    <tr><td>2</td><td>Dinesh Saini</td><td>2024BCD0033</td></tr>
+    <tr><td>3</td><td>Ajinkya</td><td>2024BCS0173</td></tr>
+    <tr><td>4</td><td>Saurabh</td><td>2024BCS0185</td></tr>
+    <tr><td>5</td><td>Vijay</td><td>2024BCS0249</td></tr>
+  </table>
+
+  <h2 id="summary">2. Milestone Summary</h2>
+  <p>This report documents the completion of the <b>30% implementation milestone</b> of the Hostel Buddy project. At this stage the project foundation is in place and the first functional module — user authentication (login) — is working end to end and verified by automated tests.</p>
+
+  <div class="bar-wrap"><div class="bar">30%</div></div>
+
+  <table>
+    <tr><th style="width:30%">Deliverable</th><th style="width:110px">Status</th><th>Completed on</th></tr>
+    <tr><td>Git repository</td><td><span class="pill done">Completed</span></td><td>21 July 2026</td></tr>
+    <tr><td>Project skeleton</td><td><span class="pill done">Completed</span></td><td>21 July 2026 (11:52)</td></tr>
+    <tr><td>Database setup</td><td><span class="pill done">Completed</span></td><td>21 July 2026 (11:52)</td></tr>
+    <tr><td>Login module</td><td><span class="pill done">Completed</span></td><td>21 July 2026 (12:00)</td></tr>
+  </table>
+
+  <div class="box">
+    <b>What "30%" means here.</b> The four deliverables above correspond to the first two increments of our phase-wise plan — <b>Phase 0 (Project Foundation)</b> and <b>Phase 1 (Authentication &amp; Accounts)</b>. Both are committed to the project's Git repository and the login flow is covered by a passing integration test suite. The remaining 70% (complaint management, admin management, dashboards, full frontend, hardening) is scheduled across Phases 2–6.
+  </div>
+
+  <h2 id="git">3. Git Repository</h2>
+  <p>A Git repository was initialised and connected to a remote on GitHub. All work is committed under the group's authorship, and the milestone corresponds to the first two phase commits.</p>
+  <table>
+    <tr><th style="width:32%">Item</th><th>Detail</th></tr>
+    <tr><td>Repository</td><td>github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project</td></tr>
+    <tr><td>Version control</td><td>Git, hosted on GitHub (public)</td></tr>
+    <tr><td>Branch</td><td><code>main</code></td></tr>
+    <tr><td>Foundation commit</td><td><code>8eef41d</code> — "Phase 0: project foundation" (21 Jul 2026, 11:52)</td></tr>
+    <tr><td>Login-module commit</td><td><code>e4b145e</code> — "Phase 1: authentication &amp; account management" (21 Jul 2026, 12:00)</td></tr>
+    <tr><td>Ignored from VCS</td><td><code>node_modules/</code>, <code>.env</code> (secrets), <code>data/</code> (database file), <code>uploads/</code></td></tr>
+  </table>
+  <p>A <code>.gitignore</code> and <code>.gitattributes</code> were added so that dependencies, secrets and runtime data are never committed, and line endings stay consistent across the team's machines.</p>
+
+  <h2 id="skeleton">4. Project Skeleton</h2>
+  <p>The project follows a <b>layered architecture</b>: each request passes through routes → middleware → controllers → services → repositories → database. The skeleton created at this milestone establishes that structure and a working server.</p>
+  <table>
+    <tr><th style="width:32%">Component</th><th>Purpose</th></tr>
+    <tr><td><code>src/server.js</code></td><td>Application entry point — prepares the database, then starts the server</td></tr>
+    <tr><td><code>src/app.js</code></td><td>Wires middleware and mounts module routes</td></tr>
+    <tr><td><code>src/config/</code></td><td>Environment configuration (<code>env.js</code>) and fixed constants — categories, statuses, roles (<code>constants.js</code>)</td></tr>
+    <tr><td><code>src/middleware/</code></td><td>Central error handler and request logger (auth guard added with the login module)</td></tr>
+    <tr><td><code>src/db/</code></td><td>Database connection, schema and bootstrap</td></tr>
+    <tr><td><code>package.json</code></td><td>Node project definition, dependencies and run scripts (<code>npm start</code>)</td></tr>
+  </table>
+  <p><b>Technology base:</b> Node.js with the Express web framework. A health-check endpoint (<code>GET /api/health</code>) confirms the server boots correctly. The application was verified to start and respond successfully.</p>
+
+  <h2 id="db">5. Database Setup</h2>
+  <p>The database was set up using <b>SQLite</b> through Node.js's built-in <code>node:sqlite</code> module, which requires no separate database server and no native compilation — so every team member can run the project without extra installation. The schema is applied automatically on startup.</p>
+  <p>Two tables were defined. At the 30% milestone the <b>users</b> table is fully in use by the login module; the <b>complaints</b> table is created and ready for Phase 2.</p>
+  <table>
+    <tr><th style="width:22%">Table</th><th style="width:26%">Key columns</th><th>Notes</th></tr>
+    <tr><td><b>users</b></td><td>id (PK), name, email (unique), password_hash, room_number, role, created_at</td><td>In active use — stores every account; <code>role</code> distinguishes student from admin; passwords stored only as bcrypt hashes</td></tr>
+    <tr><td><b>complaints</b></td><td>id (PK), user_id (FK→users), category, description, image_url, status, admin_remarks, created_at, updated_at, resolved_at</td><td>Created and ready; used from Phase 2 onward</td></tr>
+  </table>
+  <p>The schema enforces integrity at the database level: a <code>UNIQUE</code> constraint on email prevents duplicate accounts, a foreign key ties each complaint to its author, and <code>CHECK</code> constraints restrict role, category and status to their defined values. Indexes were added to support later search and reporting.</p>
+
+  <h2 id="login" class="break">6. Login Module (Authentication)</h2>
+  <p>The first functional module — <b>user authentication</b> — is complete and working end to end. It covers student registration, login for both students and the administrator, and the protection of secured endpoints.</p>
+  <table>
+    <tr><th style="width:34%">Capability</th><th>Description</th></tr>
+    <tr><td>Student registration</td><td>Creates an account with name, email, room number and password; rejects duplicate emails</td></tr>
+    <tr><td>Login (student &amp; admin)</td><td>Verifies credentials and issues a signed session token (JWT)</td></tr>
+    <tr><td>Password security</td><td>Passwords are hashed with bcrypt and never stored or returned in plain text</td></tr>
+    <tr><td>Access control</td><td>Middleware verifies the token and the user's role before allowing access to protected routes</td></tr>
+    <tr><td>Admin account</td><td>A single administrator account is seeded automatically on first startup</td></tr>
+    <tr><td>Profile endpoints</td><td>View and update own profile; admin can list registered students</td></tr>
+  </table>
+  <p><b>Implementation files:</b> <code>modules/auth</code> (routes, controller, service), <code>modules/users</code> (routes, controller, service, repository), <code>middleware/auth.js</code> (route guards), <code>utils/jwt.js</code> and <code>utils/validators.js</code>, and <code>db/seedAdmin.js</code>.</p>
+
+  <h3>Verification</h3>
+  <p>The login module is covered by an automated integration test suite (<code>tests/auth.test.js</code>) that exercises the full flow. All checks pass, including the security-sensitive cases:</p>
+  <ul>
+    <li>Registration succeeds and returns a session token; duplicate email is rejected</li>
+    <li>The password hash is never exposed in any response</li>
+    <li>A wrong password returns a generic error that does not reveal whether the email exists</li>
+    <li>Requests without a valid token are rejected; students cannot reach admin-only endpoints</li>
+  </ul>
+
+  <h2 id="remaining">7. Remaining Work (70%)</h2>
+  <p>The remaining implementation is planned across five further increments:</p>
+  <table>
+    <tr><th style="width:16%">Phase</th><th style="width:130px">Status</th><th>Scope</th></tr>
+    <tr><td>Phase 2</td><td><span class="pill pend">Planned</span></td><td>Complaint core — raise, view, edit/delete (Pending only), image upload</td></tr>
+    <tr><td>Phase 3</td><td><span class="pill pend">Planned</span></td><td>Admin complaint management — view all, search/filter, status workflow, remarks</td></tr>
+    <tr><td>Phase 4</td><td><span class="pill pend">Planned</span></td><td>Dashboards &amp; analytics — student and admin statistics, charts</td></tr>
+    <tr><td>Phase 5</td><td><span class="pill pend">Planned</span></td><td>Frontend user interface — all pages and screens</td></tr>
+    <tr><td>Phase 6</td><td><span class="pill pend">Planned</span></td><td>Hardening &amp; documentation — security, testing, final polish</td></tr>
+  </table>
+
+  <div class="box">
+    <b>Summary.</b> At the 30% milestone (21 July 2026) the Git repository, project skeleton, database and login module are complete, committed and tested. The foundation and authentication layer that every later feature depends on is in place, keeping the remaining phases low-risk.
+  </div>
+</section>
+
+<script src="paged.polyfill.js"></script>
