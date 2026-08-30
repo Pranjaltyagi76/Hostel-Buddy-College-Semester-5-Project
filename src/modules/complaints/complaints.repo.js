@@ -44,6 +44,15 @@ function remove(id) {
 
 // --- Admin: search / filter across all complaints ---
 
+// SQL's LIKE treats % and _ as wildcards, so a search for a literal "%" would
+// otherwise match every row. Escape those (and the escape character itself);
+// each LIKE below pairs with an explicit ESCAPE clause.
+const LIKE_ESCAPE = '\\';
+
+function escapeLike(term) {
+  return term.replace(/[\\%_]/g, (char) => LIKE_ESCAPE + char);
+}
+
 // Build the WHERE clause and its parameters from the admin's filters.
 // Every value is passed as a bound parameter (no string interpolation).
 function buildFilters({ q, category, status }) {
@@ -58,15 +67,17 @@ function buildFilters({ q, category, status }) {
     clauses.push('c.status = ?');
     params.push(status);
   }
-  if (q && String(q).trim()) {
-    const term = String(q).trim();
-    const like = `%${term}%`;
+  if (typeof q === 'string' && q.trim()) {
+    const term = q.trim();
+    const like = `%${escapeLike(term)}%`;
+    const nameLike = "u.name LIKE ? ESCAPE '\\'";
+    const roomLike = "u.room_number LIKE ? ESCAPE '\\'";
     if (/^\d+$/.test(term)) {
       // A number can match a complaint id as well as name/room text.
-      clauses.push('(u.name LIKE ? OR u.room_number LIKE ? OR c.id = ?)');
+      clauses.push(`(${nameLike} OR ${roomLike} OR c.id = ?)`);
       params.push(like, like, Number(term));
     } else {
-      clauses.push('(u.name LIKE ? OR u.room_number LIKE ?)');
+      clauses.push(`(${nameLike} OR ${roomLike})`);
       params.push(like, like);
     }
   }
@@ -77,6 +88,9 @@ function buildFilters({ q, category, status }) {
 
 // Returns a page of complaints (joined with student name/room) plus the total
 // count matching the same filters, for pagination.
+//
+// The requested page is clamped to the last page that actually exists, so the
+// caller can never be handed "page 99999 of 4".
 function search({ q, category, status, page = 1, limit = 20 }) {
   const { where, params } = buildFilters({ q, category, status });
 
@@ -84,7 +98,10 @@ function search({ q, category, status, page = 1, limit = 20 }) {
     .prepare(`SELECT COUNT(*) AS n FROM complaints c JOIN users u ON u.id = c.user_id ${where}`)
     .get(...params).n;
 
-  const offset = (page - 1) * limit;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const effectivePage = Math.min(Math.max(1, page), totalPages);
+  const offset = (effectivePage - 1) * limit;
+
   const rows = db
     .prepare(
       `SELECT c.id, c.user_id, u.name AS student_name, u.room_number, u.email AS student_email,
@@ -98,12 +115,12 @@ function search({ q, category, status, page = 1, limit = 20 }) {
     )
     .all(...params, limit, offset);
 
-  return { rows, total };
+  return { rows, total, page: effectivePage, totalPages };
 }
 
 // --- Admin: change status / remarks ---
 // setResolvedAt is decided by the service ("set once, the first time a
-// complaint becomes Resolved"); this layer just writes what it is told.
+// complaint reaches Resolved"); this layer just writes what it is told.
 function updateStatus(id, { status, adminRemarks = null, setResolvedAt = false }) {
   if (setResolvedAt) {
     db.prepare(

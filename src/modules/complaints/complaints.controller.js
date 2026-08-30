@@ -35,6 +35,8 @@ function getOne(req, res, next) {
   }
 }
 
+// The body may carry a `remove_image` flag alongside the editable fields; the
+// service decides what it means.
 function update(req, res, next) {
   try {
     const complaint = complaintsService.updateComplaint(
