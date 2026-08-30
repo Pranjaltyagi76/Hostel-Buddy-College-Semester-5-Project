@@ -1,8 +1,9 @@
 // Phase 3 integration test — admin complaint management.
 // Self-contained: creates its own student (with a unique name/room) and
 // complaint, so it runs correctly in any order against a running server.
-//   npm start   (another terminal)   then   npm run test:admin
-const BASE = 'http://localhost:4000/api';
+//   npm test   (starts its own server + database), or, against a server you
+//   started yourself, npm run test:admin
+const BASE = process.env.HB_TEST_BASE || 'http://localhost:4000/api';
 let pass = 0, fail = 0;
 
 async function call(method, path, { token, body } = {}) {

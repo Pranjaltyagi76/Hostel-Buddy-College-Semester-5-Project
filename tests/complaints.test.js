@@ -1,10 +1,9 @@
 // Phase 2 integration test — student complaint lifecycle.
-// Requires the server running first:  npm start   (in another terminal)
-// Then run:  npm run test:complaints
-const { DatabaseSync } = require('node:sqlite');
-const path = require('path');
-
-const BASE = 'http://localhost:4000/api';
+// Run the whole suite with:  npm test  (starts its own server + database)
+// Or on its own against a server you started yourself:  npm run test:complaints
+const BASE = process.env.HB_TEST_BASE || 'http://localhost:4000/api';
+// Same server, without the /api prefix — used to fetch an uploaded image.
+const ORIGIN = BASE.replace(/\/api$/, '');
 let pass = 0, fail = 0;
 
 // A 1x1 transparent PNG, used to test real multipart image upload.
@@ -64,7 +63,7 @@ async function registerStudent(tag) {
 
   console.log('\n3) Uploaded image is served');
   if (c2img) {
-    const res = await fetch('http://localhost:4000' + c2img);
+    const res = await fetch(ORIGIN + c2img);
     check('image GET 200', res.status === 200, `(got ${res.status})`);
   } else check('image GET 200', false, '(no image url)');
 
@@ -106,9 +105,11 @@ async function registerStudent(tag) {
   check('description updated', r.data?.description === 'Fan not working');
 
   console.log('\n11) Pending-guard: flip status to In Progress, then edit/delete blocked');
-  const db = new DatabaseSync(path.resolve(process.cwd(), 'data/hostel.db'));
-  db.prepare("UPDATE complaints SET status = 'In Progress' WHERE id = ?").run(c1);
-  db.close();
+  // Advance the complaint the way the application actually does it — through
+  // the admin endpoint. Writing to the database file directly would couple this
+  // integration test to one specific database path.
+  r = await call('PATCH', `/complaints/${c1}/status`, { token: adminToken, body: { status: 'In Progress' } });
+  check('admin advanced it to In Progress', r.status === 200, `(got ${r.status})`);
   r = await call('PUT', `/complaints/${c1}`, { token: tokenA, body: { description: 'too late' } });
   check('edit non-Pending -> 409', r.status === 409, `(got ${r.status})`);
   check('code NOT_PENDING', r.data?.error?.code === 'NOT_PENDING');

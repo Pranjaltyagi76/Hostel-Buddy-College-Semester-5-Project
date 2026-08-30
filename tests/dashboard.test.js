@@ -2,8 +2,9 @@
 // Self-contained: creates its own student and complaints, and asserts
 // invariants + deltas rather than absolute seed counts, so it can run in any
 // order against a running server.
-//   npm start   (another terminal)   then   npm run test:dashboard
-const BASE = 'http://localhost:4000/api';
+//   npm test   (starts its own server + database), or, against a server you
+//   started yourself, npm run test:dashboard
+const BASE = process.env.HB_TEST_BASE || 'http://localhost:4000/api';
 let pass = 0, fail = 0;
 
 async function call(method, path, { token, body } = {}) {

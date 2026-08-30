@@ -1,7 +1,7 @@
 // Phase 1 integration test — exercises auth + user endpoints end to end.
-// Requires the server to be running first:  npm start   (in another terminal)
-// Then run:  npm run test:auth
-const BASE = 'http://localhost:4000/api';
+// Run the whole suite with:  npm test  (starts its own server + database)
+// Or on its own against a server you started yourself:  npm run test:auth
+const BASE = process.env.HB_TEST_BASE || 'http://localhost:4000/api';
 let pass = 0, fail = 0;
 
 async function call(method, path, { token, body } = {}) {
