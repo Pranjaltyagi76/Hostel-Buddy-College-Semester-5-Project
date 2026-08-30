@@ -131,8 +131,21 @@ The admin account is seeded from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env` on f
 ### Testing
 
 ```bash
-npm start          # in one terminal
-npm test           # in another — 103 API integration checks (auth, complaints, admin, dashboard)
+npm test
+```
+
+One command: it starts the server on its own port against a throwaway database
+(`data/test.db`) and upload directory, runs all five suites, then shuts down and
+deletes both. Your development data is never touched.
+
+**145 API integration checks** across auth, complaints, admin, dashboard, and a
+regression suite that pins down every bug found in the code audit.
+
+To run a single suite against a server you started yourself:
+
+```bash
+npm start                # in one terminal
+npm run test:regression  # in another (or test:auth / test:complaints / test:admin / test:dashboard)
 ```
 
 ### Environment variables
@@ -159,6 +172,13 @@ Student submits          Admin works it                Done
 
 The student is read-only on status; the admin drives every transition.
 
+The lifecycle is enforced server-side: a complaint only ever moves **forward**.
+Re-sending the current status is allowed (so the admin can edit remarks without
+changing state), but anything that would move it backwards is rejected with
+`409 INVALID_TRANSITION`. The admin's status dropdown offers only the statuses
+the server will accept. This is what guarantees a complaint can never be marked
+Pending while still carrying a resolution date.
+
 ---
 
 ## 📁 Project Structure
@@ -176,7 +196,7 @@ Hostel Buddy/
 │   ├── app.js            # wires middleware + routes
 │   └── server.js         # entry point
 ├── public/               # frontend: pages + css/ + js/ + vendor/ (Chart.js)
-├── tests/                # API integration tests (auth, complaints, admin, dashboard)
+├── tests/                # API integration tests + run.js (self-contained runner)
 ├── data/                 # SQLite database (git-ignored)
 └── uploads/              # complaint images (git-ignored)
 ```
