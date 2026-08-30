@@ -19,9 +19,25 @@ const modalBody = document.getElementById('modalBody');
 CATEGORIES.forEach((c) => filterCategory.add(new Option(c, c)));
 STATUSES.forEach((s) => filterStatus.add(new Option(s, s)));
 
+// After a successful update the dialog lingers briefly to show the confirmation,
+// then closes on a timer. The id is kept so the timer can be cancelled — without
+// that, opening another complaint inside the delay would close the new dialog.
+let closeTimer = null;
+
+function cancelPendingClose() {
+  if (closeTimer !== null) {
+    clearTimeout(closeTimer);
+    closeTimer = null;
+  }
+}
+
 document.getElementById('modalClose').onclick = closeModal;
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-function closeModal() { modal.classList.remove('show'); modalBody.innerHTML = ''; }
+function closeModal() {
+  cancelPendingClose();
+  modal.classList.remove('show');
+  modalBody.innerHTML = '';
+}
 
 document.getElementById('searchBtn').onclick = applyFilters;
 document.getElementById('clearBtn').onclick = () => {
@@ -105,9 +121,18 @@ function detailRow(k, v) {
   return `<div class="detail-row"><span class="k">${k}</span><span>${v}</span></div>`;
 }
 
+// The server rejects a status that would move a complaint backwards, so only
+// offer the ones it will accept: the current status (to edit remarks alone)
+// and everything after it.
+function forwardStatuses(current) {
+  const from = STATUSES.indexOf(current);
+  return from === -1 ? STATUSES : STATUSES.slice(from);
+}
+
 function manage(id) {
   const c = cache[id];
   if (!c) return;
+  cancelPendingClose();
   modalTitle.textContent = `Complaint #${c.id}`;
   modal.classList.add('show');
 
@@ -125,8 +150,9 @@ function manage(id) {
     <form id="statusForm">
       <div class="form-group">
         <label for="mgStatus">Status</label>
-        <select id="mgStatus">${STATUSES.map((s) =>
+        <select id="mgStatus">${forwardStatuses(c.status).map((s) =>
           `<option value="${s}" ${s === c.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
+        <div class="hint">A complaint only moves forward: ${STATUSES.join(' → ')}.</div>
       </div>
       <div class="form-group">
         <label for="mgRemarks">Admin Remarks</label>
@@ -149,7 +175,7 @@ function manage(id) {
       cache[id] = { ...cache[id], ...updated };
       UI.showSuccess('mgSuccess', 'Complaint updated.');
       // Refresh the underlying list, keep the modal open briefly to show success.
-      setTimeout(() => { closeModal(); load(); }, 700);
+      closeTimer = setTimeout(() => { closeModal(); load(); }, 700);
     } catch (err) {
       UI.showError('mgError', err.message);
       btn.disabled = false; btn.textContent = 'Update Complaint';

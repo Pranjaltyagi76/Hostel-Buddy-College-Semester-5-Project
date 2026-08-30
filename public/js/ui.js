@@ -43,7 +43,11 @@ const UI = {
     const isAdmin = user.role === 'admin';
 
     const links = isAdmin
-      ? [['admin.html', 'Dashboard', 'dashboard'], ['admin-complaints.html', 'All Complaints', 'complaints']]
+      ? [
+          ['admin.html', 'Dashboard', 'dashboard'],
+          ['admin-complaints.html', 'All Complaints', 'complaints'],
+          ['admin-students.html', 'Students', 'students'],
+        ]
       : [
           ['dashboard.html', 'Dashboard', 'dashboard'],
           ['raise.html', 'Raise Complaint', 'raise'],

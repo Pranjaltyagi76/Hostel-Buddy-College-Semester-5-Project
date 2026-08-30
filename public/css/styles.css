@@ -124,6 +124,34 @@ th { background: #f8fafc; color: #475569; font-weight: 600; font-size: .82rem; t
 tbody tr:hover { background: #f9fbfd; }
 td.actions { white-space: nowrap; }
 
+/* Row actions are the last column, so on a narrow screen they would sit past
+   the right edge of the horizontal scroll and look like they don't exist.
+   Pin them to the right so they stay reachable while the rest of the row scrolls. */
+@media (max-width: 700px) {
+  th:last-child, td.actions {
+    position: sticky;
+    right: 0;
+    background: var(--card);
+    box-shadow: -6px 0 6px -4px rgba(16, 42, 74, 0.12);
+  }
+  th:last-child { background: #f8fafc; }
+  tbody tr:hover td.actions { background: #f9fbfd; }
+  td.actions .btn { margin-bottom: 2px; }
+}
+
+/* ===== Checkbox row (inline label beside a checkbox) ===== */
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: .9rem;
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 400;
+}
+.checkbox-row input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; }
+
 /* ===== Badges ===== */
 .badge { display: inline-block; padding: 3px 11px; border-radius: 20px; font-size: .78rem; font-weight: 600; white-space: nowrap; }
 .badge.st-pending { background: #fdf3e6; color: var(--st-pending); }

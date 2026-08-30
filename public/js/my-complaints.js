@@ -107,9 +107,14 @@ function editComplaint(id) {
         <textarea id="editDescription" maxlength="1000">${UI.esc(c.description)}</textarea>
       </div>
       <div class="form-group">
-        <label for="editImage">Replace image <span class="muted">(optional)</span></label>
+        <label for="editImage">${c.image_url ? 'Replace image' : 'Attach an image'} <span class="muted">(optional)</span></label>
         <input type="file" id="editImage" accept="image/png,image/jpeg,image/webp">
         <div class="hint">${c.image_url ? 'An image is already attached; choosing a new one replaces it.' : 'PNG, JPEG or WEBP, up to 5 MB.'}</div>
+        ${c.image_url ? `
+        <label class="checkbox-row" for="editRemoveImage">
+          <input type="checkbox" id="editRemoveImage">
+          <span>Remove the current image</span>
+        </label>` : ''}
       </div>
       <button type="submit" class="btn" id="editSubmit">Save Changes</button>
       <button type="button" class="btn btn-ghost" id="editCancel">Cancel</button>
@@ -126,10 +131,16 @@ function editComplaint(id) {
     const fd = new FormData();
     fd.append('category', category);
     fd.append('description', desc);
+
     const file = document.getElementById('editImage').files[0];
+    const removeBox = document.getElementById('editRemoveImage');
     if (file) {
       if (file.size > 5 * 1024 * 1024) return UI.showError('editError', 'Image is too large (max 5 MB).');
       fd.append('image', file);
+    } else if (removeBox && removeBox.checked) {
+      // Only meaningful when no replacement was chosen — a new file already
+      // supersedes the old one.
+      fd.append('remove_image', 'true');
     }
 
     const btn = document.getElementById('editSubmit');
