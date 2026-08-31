@@ -48,7 +48,7 @@ SELECT category, COUNT(*) AS n FROM complaints GROUP BY category;
 No session store lookup per request; the token is verified in-process. This removes a round-trip and makes horizontal scaling free (no shared session state).
 
 ### 3.5 Static frontend
-Pages are plain static files with a Chart.js CDN — no server-side rendering cost, cacheable by the browser, and the API only ever ships JSON.
+Pages are plain static files and Chart.js is vendored locally under `/vendor` — no server-side rendering cost, no third-party request on the critical path, cacheable by the browser, and the API only ever ships JSON.
 
 ---
 
