@@ -1,0 +1,453 @@
+<meta charset="utf-8">
+<title>Hostel Buddy — Implementation Milestone Report</title>
+<script>window.PagedConfig={auto:true,after:()=>{window.__PAGED_DONE=true;}};</script>
+<style>
+  :root{ --ink:#1a1a1a; --muted:#555; --line:#bcbcbc; --soft:#e7e7e7;
+         --accent:#1f4e79; --accent2:#2e75b6; --green:#2f6b2f; --amber:#8a6111; --red:#a12626; }
+  @page{ size:A4; margin:19mm 17mm 17mm 17mm;
+    @top-right{ content:string(doctitle); font-family:Georgia,serif; font-size:8.5pt; color:#888; }
+    @bottom-center{ content:"Page " counter(page); font-family:Georgia,serif; font-size:9pt; color:#666; } }
+  @page :first{ @top-right{content:none;} @bottom-center{content:none;} }
+  html{ font-family:Georgia,"Times New Roman",serif; color:var(--ink); font-size:10.4pt; line-height:1.48; }
+  body{ margin:0; }
+  h1,h2,h3,h4{ font-family:"Segoe UI",Arial,sans-serif; color:var(--accent); line-height:1.25; }
+  h1{ string-set:doctitle "Hostel Buddy — Milestone Report"; }
+  h2{ font-size:15pt; margin-top:1.1em; border-bottom:2px solid var(--soft); padding-bottom:3px; break-after:avoid; }
+  h3{ font-size:12pt; margin-top:.9em; break-after:avoid; }
+  h4{ font-size:10.6pt; margin-top:.7em; color:var(--accent2); break-after:avoid; }
+  p{ margin:.4em 0; text-align:justify; }
+  ul,ol{ margin:.3em 0 .55em 0; padding-left:1.3em; }
+  li{ margin:.2em 0; }
+  code{ font-family:Consolas,monospace; font-size:8.9pt; background:#f2f2f2; padding:0 3px; border-radius:3px; }
+  table{ border-collapse:collapse; width:100%; margin:.5em 0; font-size:9.3pt; }
+  th,td{ border:1px solid var(--line); padding:4.5px 7px; text-align:left; vertical-align:top; }
+  th{ background:var(--accent); color:#fff; font-family:"Segoe UI",Arial,sans-serif; font-weight:600; }
+  tr:nth-child(even) td{ background:#f6f8fb; }
+  .break{ break-before:page; }
+  .avoid{ break-inside:avoid; }
+  .pill{ display:inline-block; padding:1.5px 9px; border-radius:11px; font-size:8.3pt; font-weight:600; font-family:"Segoe UI",Arial,sans-serif; white-space:nowrap; }
+  .done{ background:#e6f2e6; color:var(--green); border:1px solid #bcdcbc; }
+  .box{ background:#f4f8fc; border-left:4px solid var(--accent2); padding:8px 12px; margin:.6em 0; font-size:9.8pt; break-inside:avoid; }
+  .box b{ color:var(--accent); }
+  .warn{ background:#fdf6ee; border-left-color:#c98a17; }
+  .warn b{ color:var(--amber); }
+  .bug{ background:#fdecec; border-left-color:var(--red); }
+  .bug b{ color:var(--red); }
+  .viva{ background:#eef7ef; border-left-color:var(--green); }
+  .viva b{ color:var(--green); }
+  figure{ margin:.7em 0; break-inside:avoid; text-align:center; }
+  figure svg{ max-width:100%; height:auto; }
+  figcaption{ font-size:8.6pt; color:var(--muted); margin-top:3px; font-style:italic; }
+  .ms-head{ background:linear-gradient(90deg,#1f4e79,#2e75b6); color:#fff; padding:9px 15px; border-radius:7px;
+            font-family:"Segoe UI",Arial,sans-serif; margin-top:1em; break-after:avoid; }
+  .ms-head .pc{ font-size:20pt; font-weight:700; }
+  .ms-head .ti{ font-size:12.5pt; font-weight:600; }
+  .ms-head .dt{ font-size:9pt; opacity:.9; }
+  .cover{ height:250mm; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .cover .kick{ font-family:"Segoe UI",Arial,sans-serif; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-size:10.5pt; }
+  .cover .title{ font-family:"Segoe UI",Arial,sans-serif; font-size:38pt; font-weight:700; color:var(--accent); margin:6px 0 2px; }
+  .cover .sub{ font-size:12pt; color:var(--muted); }
+  .cover .rule{ width:120px; height:4px; background:var(--accent2); margin:15px auto; border-radius:2px; }
+  .cover .badge{ font-family:"Segoe UI",Arial,sans-serif; font-size:15pt; font-weight:700; color:#fff;
+                 background:linear-gradient(90deg,#2e75b6,#1f4e79); padding:8px 24px; border-radius:24px; }
+  .cover .meta{ margin-top:24px; font-size:11pt; line-height:1.85; }
+  .cover .meta b{ color:var(--accent); }
+</style>
+
+<section class="cover">
+  <div class="kick">Implementation Milestone Report</div>
+  <div class="title">Hostel&nbsp;Buddy</div>
+  <div class="sub">Smart Hostel Complaint Management System</div>
+  <div class="rule"></div>
+  <div class="badge">30% · 60% · 80% · 100%</div>
+  <div class="meta">
+    <div><b>Group 19</b></div>
+    <div>Department of Computer Science and Engineering</div>
+    <div><b>IIIT Kottayam</b></div>
+    <div style="margin-top:10px"><b>Reporting period:</b> 21 July — 31 August 2026</div>
+  </div>
+</section>
+
+<!-- ============ TEAM + HOW TO READ ============ -->
+<section class="break">
+  <h2 style="margin-top:0">1. Team Members</h2>
+  <table>
+    <tr><th style="width:50px">#</th><th>Member Name</th><th style="width:32%">Roll Number</th></tr>
+    <tr><td>1</td><td>Pranjal Tyagi</td><td>2024BCD0053</td></tr>
+    <tr><td>2</td><td>Dinesh Saini</td><td>2024BCD0033</td></tr>
+    <tr><td>3</td><td>Ajinkya</td><td>2024BCS0173</td></tr>
+    <tr><td>4</td><td>Saurabh</td><td>2024BCS0185</td></tr>
+    <tr><td>5</td><td>Vijay</td><td>2024BCS0249</td></tr>
+  </table>
+
+  <h2>2. Purpose of This Report</h2>
+  <p>This report records how <b>Hostel Buddy</b> was built, milestone by milestone. For each of the four checkpoints — <b>30%, 60%, 80% and 100%</b> — it states which development phases were completed, how the architecture grew, which bugs were found and fixed, and how the work was verified. Every claim is traceable to a commit in the project's Git repository.</p>
+
+  <h3>Development model used</h3>
+  <p>The project followed the <b>Incremental Model</b>. Requirements were fixed first in an approved SRS, the architecture was designed before coding, and construction then proceeded in <b>seven increments (Phase 0 – Phase 6)</b>. Each increment produced <b>working, tested software</b> rather than a half-finished layer, so the system was demonstrable at every checkpoint.</p>
+  <div class="box">
+    <b>Why incremental and not Waterfall?</b> Because defects were caught <i>during</i> construction and fixed before the next phase began — not discovered at the end. The repository shows this directly: a dedicated <code>Review fixes</code> commit sits between Phase 2 and Phase 3.
+  </div>
+
+</section>
+
+<section class="break">
+  <h2 style="margin-top:0">3. Milestone Overview</h2>
+  <figure>
+    <svg viewBox="0 0 740 232" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+      <defs><marker id="tl" markerWidth="9" markerHeight="9" refX="7.5" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7.5,3 L0,6 Z" fill="#1f4e79"/></marker></defs>
+      <line x1="30" y1="52" x2="712" y2="52" stroke="#1f4e79" stroke-width="2.4" marker-end="url(#tl)"/>
+      <g font-size="10.5">
+        <!-- 30 -->
+        <circle cx="105" cy="52" r="13" fill="#1f4e79"/><text x="105" y="56" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">30</text>
+        <rect x="30" y="76" width="150" height="128" rx="6" fill="#eef4fb" stroke="#2e75b6" stroke-width="1.3"/>
+        <text x="105" y="94" text-anchor="middle" font-weight="700" fill="#1f4e79">Foundation</text>
+        <text x="105" y="109" text-anchor="middle" font-size="9" fill="#555">Phase 0 – 1</text>
+        <text x="40" y="128" font-size="8.6" fill="#333">• Git repository</text>
+        <text x="40" y="142" font-size="8.6" fill="#333">• Project skeleton</text>
+        <text x="40" y="156" font-size="8.6" fill="#333">• Database setup</text>
+        <text x="40" y="170" font-size="8.6" fill="#333">• Login module</text>
+        <text x="105" y="192" text-anchor="middle" font-size="8.4" fill="#2f6b2f" font-weight="700">24 test checks</text>
+        <!-- 60 -->
+        <circle cx="278" cy="52" r="13" fill="#1f4e79"/><text x="278" y="56" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">60</text>
+        <rect x="196" y="76" width="164" height="128" rx="6" fill="#eef4fb" stroke="#2e75b6" stroke-width="1.3"/>
+        <text x="278" y="94" text-anchor="middle" font-weight="700" fill="#1f4e79">Major Modules</text>
+        <text x="278" y="109" text-anchor="middle" font-size="9" fill="#555">Phase 2 – 4</text>
+        <text x="206" y="128" font-size="8.6" fill="#333">• Complaint core</text>
+        <text x="206" y="142" font-size="8.6" fill="#333">• Admin management</text>
+        <text x="206" y="156" font-size="8.6" fill="#333">• Search / filter</text>
+        <text x="206" y="170" font-size="8.6" fill="#333">• Dashboards</text>
+        <text x="278" y="192" text-anchor="middle" font-size="8.4" fill="#2f6b2f" font-weight="700">103 test checks</text>
+        <!-- 80 -->
+        <circle cx="452" cy="52" r="13" fill="#1f4e79"/><text x="452" y="56" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="700">80</text>
+        <rect x="376" y="76" width="160" height="128" rx="6" fill="#fdf6ee" stroke="#c98a17" stroke-width="1.3"/>
+        <text x="456" y="94" text-anchor="middle" font-weight="700" fill="#8a6111">Integration &amp; Test</text>
+        <text x="456" y="109" text-anchor="middle" font-size="9" fill="#555">Phase 5 – 6 + Audit</text>
+        <text x="386" y="128" font-size="8.6" fill="#333">• Full frontend</text>
+        <text x="386" y="142" font-size="8.6" fill="#333">• Security hardening</text>
+        <text x="386" y="156" font-size="8.6" fill="#333">• Audit: 10 bugs found</text>
+        <text x="386" y="170" font-size="8.6" fill="#333">• Isolated test runner</text>
+        <text x="456" y="192" text-anchor="middle" font-size="8.4" fill="#2f6b2f" font-weight="700">145 test checks</text>
+        <!-- 100 -->
+        <circle cx="628" cy="52" r="14" fill="#2f6b2f"/><text x="628" y="56" text-anchor="middle" fill="#fff" font-size="8.5" font-weight="700">100</text>
+        <rect x="552" y="76" width="160" height="128" rx="6" fill="#eef7ef" stroke="#5a8f4e" stroke-width="1.3"/>
+        <text x="632" y="94" text-anchor="middle" font-weight="700" fill="#2f6b2f">Complete</text>
+        <text x="632" y="109" text-anchor="middle" font-size="9" fill="#555">Integration closed</text>
+        <text x="562" y="128" font-size="8.6" fill="#333">• All modules joined</text>
+        <text x="562" y="142" font-size="8.6" fill="#333">• CI on every push</text>
+        <text x="562" y="156" font-size="8.6" fill="#333">• Findings documented</text>
+        <text x="562" y="170" font-size="8.6" fill="#333">• Dependency patched</text>
+        <text x="632" y="192" text-anchor="middle" font-size="8.4" fill="#2f6b2f" font-weight="700">145 passing · CI green</text>
+      </g>
+      <text x="105" y="30" text-anchor="middle" font-size="9" fill="#666">21 Jul 2026</text>
+      <text x="278" y="30" text-anchor="middle" font-size="9" fill="#666">21 Jul 2026</text>
+      <text x="452" y="30" text-anchor="middle" font-size="9" fill="#666">30 Aug 2026</text>
+      <text x="628" y="30" text-anchor="middle" font-size="9" fill="#666">31 Aug 2026</text>
+      <text x="370" y="222" text-anchor="middle" font-size="8.6" fill="#777" font-style="italic">Each milestone delivered running, tested software — never a partially built layer.</text>
+    </svg>
+    <figcaption>Figure 1 — The four implementation milestones and what each delivered.</figcaption>
+  </figure>
+
+  <table>
+    <tr><th style="width:60px">Milestone</th><th style="width:105px">Phases</th><th style="width:88px">Date</th><th>Outcome</th><th style="width:78px">Status</th></tr>
+    <tr><td><b>30%</b></td><td>Phase 0 – 1</td><td>21 Jul 2026</td><td>Repository, skeleton, database and login working</td><td><span class="pill done">Completed</span></td></tr>
+    <tr><td><b>60%</b></td><td>Phase 2 – 4</td><td>21 Jul 2026</td><td>All major functional modules working through the API</td><td><span class="pill done">Completed</span></td></tr>
+    <tr><td><b>80%</b></td><td>Phase 5 – 6 + Audit</td><td>30 Aug 2026</td><td>Full UI integrated; audit performed; test suite rebuilt</td><td><span class="pill done">Completed</span></td></tr>
+    <tr><td><b>100%</b></td><td>Integration close-out</td><td>31 Aug 2026</td><td>Everything integrated, automated in CI and documented</td><td><span class="pill done">Completed</span></td></tr>
+  </table>
+</section>
+
+<!-- ============ 30% ============ -->
+<section class="break">
+  <div class="ms-head"><span class="pc">30%</span> &nbsp;<span class="ti">Foundation — Git repository · Project skeleton · Database · Login module</span><br><span class="dt">Phases 0 – 1 &nbsp;·&nbsp; completed 21 July 2026</span></div>
+
+  <h3>4.1 What this milestone means in simple terms</h3>
+  <p>At 30% the project has <b>no features a student would notice yet</b> — but it has everything the features will stand on. The repository exists, the folder structure is decided, the database tables are created, and one complete module (login) works end to end. Choosing login first was deliberate: <b>every later feature needs to know who is asking</b>.</p>
+
+  <h3>4.2 Phases completed</h3>
+  <table>
+    <tr><th style="width:82px">Phase</th><th style="width:88px">Commit</th><th>What was built</th></tr>
+    <tr><td><b>Phase 0</b><br>Foundation</td><td><code>8eef41d</code></td><td>Node/Express project, folder skeleton, environment configuration, database connection and <code>schema.sql</code> applied on startup, central error handler, request logger, health-check endpoint</td></tr>
+    <tr><td><b>Phase 1</b><br>Authentication</td><td><code>e4b145e</code></td><td>Users table access, registration with bcrypt hashing, login issuing a JWT, <code>requireAuth</code> / <code>requireRole</code> guards, seeded admin account, profile endpoints</td></tr>
+  </table>
+
+  <h3>4.3 How the architecture was set up here</h3>
+  <p>The <b>layered architecture</b> was established at this milestone and never changed afterwards — later phases only added modules that follow the same shape:</p>
+  <figure>
+    <svg viewBox="0 0 640 118" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="9.5">
+      <defs><marker id="l1" markerWidth="8" markerHeight="8" refX="6.8" refY="2.8" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6.8,2.8 L0,5.6 Z" fill="#333"/></marker></defs>
+      <g>
+        <rect x="6" y="34" width="86" height="42" rx="5" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.4"/><text x="49" y="52" text-anchor="middle" font-weight="700">Routes</text><text x="49" y="66" text-anchor="middle" font-size="8" fill="#555">URL → handler</text>
+        <rect x="112" y="34" width="94" height="42" rx="5" fill="#fdf1e6" stroke="#c0733f" stroke-width="1.4"/><text x="159" y="52" text-anchor="middle" font-weight="700">Middleware</text><text x="159" y="66" text-anchor="middle" font-size="8" fill="#555">token · role</text>
+        <rect x="226" y="34" width="94" height="42" rx="5" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.4"/><text x="273" y="52" text-anchor="middle" font-weight="700">Controller</text><text x="273" y="66" text-anchor="middle" font-size="8" fill="#555">reads request</text>
+        <rect x="340" y="30" width="98" height="50" rx="5" fill="#dfeaf7" stroke="#1f4e79" stroke-width="2.2"/><text x="389" y="50" text-anchor="middle" font-weight="700">Service</text><text x="389" y="63" text-anchor="middle" font-size="8" fill="#333">all the rules</text><text x="389" y="74" text-anchor="middle" font-size="8" fill="#333">live here</text>
+        <rect x="458" y="34" width="94" height="42" rx="5" fill="#eaf1fb" stroke="#2e75b6" stroke-width="1.4"/><text x="505" y="52" text-anchor="middle" font-weight="700">Repository</text><text x="505" y="66" text-anchor="middle" font-size="8" fill="#555">only SQL</text>
+        <rect x="572" y="34" width="62" height="42" rx="5" fill="#f2f2f4" stroke="#6b7280" stroke-width="1.4"/><text x="603" y="52" text-anchor="middle" font-weight="700">SQLite</text><text x="603" y="66" text-anchor="middle" font-size="8" fill="#555">storage</text>
+      </g>
+      <g stroke="#333" stroke-width="1.5" marker-end="url(#l1)">
+        <line x1="92" y1="55" x2="110" y2="55"/><line x1="206" y1="55" x2="224" y2="55"/><line x1="320" y1="55" x2="338" y2="55"/>
+        <line x1="438" y1="55" x2="456" y2="55"/><line x1="552" y1="55" x2="570" y2="55"/>
+      </g>
+      <text x="320" y="20" text-anchor="middle" font-size="9" fill="#1f4e79" font-weight="700">A request always travels this path — it can never skip a layer</text>
+      <text x="320" y="102" text-anchor="middle" font-size="8.5" fill="#a12626">This is why security rules cannot be bypassed later: they sit in the Service, which every request must pass.</text>
+    </svg>
+    <figcaption>Figure 2 — The layered request path fixed at the 30% milestone.</figcaption>
+  </figure>
+  <p><b>Database:</b> two tables were created — <code>users</code> (in active use) and <code>complaints</code> (created and waiting for Phase 2). Constraints were placed in the schema itself: unique email, a foreign key from complaint to user, and <code>CHECK</code> rules limiting role, category and status to valid values.</p>
+
+  <h3>4.4 Bugs and problems at this stage</h3>
+  <div class="bug box">
+    <b>B2 — Login revealed which emails were registered.</b> Different messages for "no such user" and "wrong password" let an attacker discover valid accounts. <b>Fix:</b> one generic <code>401 Invalid email or password</code> for both.<br>
+    <b>Lesson:</b> security errors should be deliberately vague; usability errors specific.
+  </div>
+  <div class="warn box">
+    <b>Environment problem — the database driver would not install.</b> The design named <code>better-sqlite3</code>, which compiles C++ and failed without Visual Studio build tools. <b>Fix:</b> switched to Node's built-in <code>node:sqlite</code>. <b>Benefit:</b> any team member can clone and run the project with no compiler. Recorded as decision <b>D5</b>.
+  </div>
+
+  <h3>4.5 Verification</h3>
+  <p>The login module was covered by <code>tests/auth.test.js</code> — <b>24 automated checks</b>, all passing, including that the password hash never appears in a response, that a wrong password gives a generic error, and that a student cannot reach admin-only endpoints.</p>
+  <div class="viva box"><b>Viva point.</b> "We built authentication before any feature, because authorisation is not something you can add afterwards — every later endpoint needed a trustworthy answer to <i>who is calling</i>."</div>
+</section>
+
+<!-- ============ 60% ============ -->
+<section class="break">
+  <div class="ms-head"><span class="pc">60%</span> &nbsp;<span class="ti">Major Modules Functional</span><br><span class="dt">Phases 2 – 4 &nbsp;·&nbsp; completed 21 July 2026</span></div>
+
+  <h3>5.1 What this milestone means in simple terms</h3>
+  <p>At 60% the system <b>does its actual job</b>. A student can raise a complaint and track it; an administrator can find any complaint, move it through its lifecycle and see statistics. Everything works through the API — the browser screens come later. In other words, the <b>product logic is complete and proven</b> even though it is not yet pretty.</p>
+
+  <h3>5.2 Phases completed</h3>
+  <table>
+    <tr><th style="width:82px">Phase</th><th style="width:88px">Commit</th><th>What was built</th></tr>
+    <tr><td><b>Phase 2</b><br>Complaint core</td><td><code>342a397</code></td><td>Raise a complaint (auto <b>Pending</b>), list own complaints, view one, edit and delete <b>only while Pending</b>, optional image upload</td></tr>
+    <tr><td><i>Review</i></td><td><code>7668bc8</code></td><td>Mid-build review and fixes (see 5.4)</td></tr>
+    <tr><td><b>Phase 3</b><br>Admin management</td><td><code>b7f6bac</code></td><td>List all complaints joined with student name/room, search by ID/name/room, filter by category and status, pagination, status changes with remarks</td></tr>
+    <tr><td><b>Phase 4</b><br>Dashboards</td><td><code>38cc358</code></td><td>Student statistics and admin statistics — totals, counts per status, category distribution, recent complaints</td></tr>
+  </table>
+
+  <h3>5.3 How the architecture developed</h3>
+  <p>The structure did not change — it <b>replicated</b>. Each new module repeated the same four-file pattern, which is exactly the benefit the layered design was chosen for.</p>
+  <table>
+    <tr><th style="width:150px">Module added</th><th>Design decision worth explaining</th></tr>
+    <tr><td><b>Complaint Management</b></td><td>The rule "edit only while Pending" was placed in the <b>Service</b>, not the route. A route-level check protects one route; a service invariant holds for every caller, present or future.</td></tr>
+    <tr><td><b>Dashboard</b></td><td>Given <b>no repository of its own</b>. It reads counts published by the Complaint and User modules, so reporting cannot break when a table changes. Counting is done in SQL (<code>GROUP BY</code>), not in JavaScript.</td></tr>
+  </table>
+  <p>Source files grew from <b>20 to 29</b> across these phases, while the number of architectural layers stayed at five — growth was horizontal (more modules), not vertical (more complexity).</p>
+
+  <h3>5.4 Bugs found and fixed at this stage</h3>
+  <p>A deliberate review was carried out after Phase 2, before continuing. This is the clearest evidence of incremental development in the repository — the fixes have their own commit, <code>7668bc8</code>.</p>
+  <table>
+    <tr><th style="width:150px">Problem found</th><th>Why it happened</th><th style="width:31%">Fix</th></tr>
+    <tr><td><b>Seed script was broken</b></td><td><code>npm run seed</code> pointed at a file that did not exist — an advertised command that crashed</td><td>Wrote the seed script; it now loads an admin, 5 students and 13 complaints, and is safe to re-run</td></tr>
+    <tr><td><b>Insecure defaults could reach production</b></td><td>A missing JWT secret or default admin password only produced a warning</td><td>The server now <b>refuses to start</b> in production with insecure settings</td></tr>
+    <tr><td><b>Duplicate-email race</b></td><td>Two simultaneous registrations could slip past the check and hit the database constraint, returning a 500</td><td>The constraint violation is caught and returned as a clean <code>409</code></td></tr>
+  </table>
+  <div class="bug box">
+    <b>B3 — <code>resolved_at</code> was overwritten on every later update.</b> Re-saving a Resolved complaint kept moving its resolution time, and closing it reset the date. <b>Root cause:</b> the field was assigned unconditionally instead of "set once".<br>
+    <b>Fix:</b> it is written only the first time a complaint reaches Resolved. <b>Lesson:</b> "the first time X happens" is a different rule from "whenever X is true".
+  </div>
+  <div class="bug box">
+    <b>B4 — The client was trusted with its own status.</b> A crafted request could create a complaint already marked <i>Resolved</i>, skipping the workflow. <b>Fix:</b> the service <b>ignores</b> any status sent by the client and forces <code>Pending</code>. <b>Lesson:</b> never let the client set a field the workflow owns.
+  </div>
+  <div class="bug box">
+    <b>B6 — Tests silently depended on leftover data.</b> Suites passed alone but failed when run after one another, because they assumed a pristine database. <b>Fix:</b> every suite now creates its own students and complaints and asserts <i>changes</i> rather than absolute totals. <b>Lesson:</b> a test that only passes first is not really passing.
+  </div>
+
+  <h3>5.5 Verification</h3>
+  <p>The suite grew to <b>103 checks across 4 files</b> — authentication (24), complaints (24), admin (32) and dashboard (23) — and passed in any order.</p>
+  <div class="viva box"><b>Viva point.</b> "At 60% we could demonstrate the complete complaint lifecycle through the API. We deliberately proved the logic before building screens, so that any bug we found afterwards was a <i>display</i> problem, not a <i>rules</i> problem."</div>
+</section>
+<!-- ============ 80% ============ -->
+<section class="break">
+  <div class="ms-head"><span class="pc">80%</span> &nbsp;<span class="ti">Integration Testing &amp; Test-Case Preparation</span><br><span class="dt">Phases 5 – 6 + Audit pass &nbsp;·&nbsp; completed 30 August 2026</span></div>
+
+  <h3>6.1 What this milestone means in simple terms</h3>
+  <p>At 80% the browser screens were joined to the working API, so the system became a <b>real product</b> instead of an API. Then — importantly — we stopped adding features and <b>attacked our own application</b>. This audit is where most of the serious bugs were found. The suites had been green the whole time, because they tested the paths we designed; the audit tested the paths we had <i>not</i>.</p>
+
+  <h3>6.2 Phases completed</h3>
+  <table>
+    <tr><th style="width:96px">Work</th><th style="width:88px">Commit</th><th>What was done</th></tr>
+    <tr><td><b>Phase 5</b><br>Frontend UI</td><td><code>7c42abf</code></td><td>Nine pages built to the SRS wireframes — landing, login, register, student dashboard, raise complaint, my complaints, profile, admin dashboard (Chart.js), admin complaints</td></tr>
+    <tr><td><b>Phase 6</b><br>Hardening</td><td><code>4844a74</code></td><td>Security headers and Content-Security-Policy, rate limiting, real performance measurements, screenshots, documentation reconciled</td></tr>
+    <tr><td><b>Audit fixes</b></td><td><code>d070669</code><br><code>1573dce</code><br><code>0d22041</code></td><td>Type-based validation and lifecycle enforcement; upload, error-response, rate-limit and 404 hardening; admin students page and three frontend defects</td></tr>
+    <tr><td><b>Test rebuild</b></td><td><code>287ed4b</code></td><td>Isolated test runner with its own server, database and upload directory; new regression suite</td></tr>
+  </table>
+
+  <h3>6.3 The audit — how we tested</h3>
+  <div class="box">
+    The running application was attacked deliberately: <b>237 probe requests</b> with malformed and hostile input, followed by a browser walkthrough of every page at desktop and mobile widths.<br><br>
+    <b>What held:</b> SQL injection, cross-site scripting, JWT forgery, mass assignment, ownership isolation and path traversal — all resisted. <b>Zero 5xx responses</b> were produced.<br>
+    <b>What broke:</b> the ten defects below. Each one is now pinned by a permanent check in <code>tests/regression.test.js</code> so it cannot return.
+  </div>
+
+  <h3>6.4 Bugs found by the audit</h3>
+  <table>
+    <tr><th style="width:38px">ID</th><th style="width:26%">Bug</th><th style="width:31%">Root cause</th><th>Fix</th></tr>
+    <tr><td><b>B8</b></td><td><b>A JSON object was stored as the text "[object Object]"</b> — registering with an object as the name created a real account with that junk name</td><td>Every validator coerced first and checked second. <code>String({})</code> is non-empty, so it passed. The correct helper existed but <b>was never called</b></td><td>Rewrote validation around explicit type checks; wrong type is now a <code>400</code>, never coerced</td></tr>
+    <tr><td><b>B9</b></td><td><b>Any status could jump to any other</b> — a Closed complaint could go back to Pending, producing a complaint that was "Pending with a resolution date"</td><td>Only the status <i>vocabulary</i> was enforced, not the <i>ordering</i>. Validating set membership felt like validating the rule</td><td>Added a transition guard: position may stay or increase, never decrease; backwards returns <code>409</code></td></tr>
+    <tr><td><b>B10</b></td><td><b>Tests polluted the demo database</b> and needed a manually started server; one test opened the database file directly</td><td>Tests were written as "point them at whatever is on port 4000" — convenient once, coupled forever</td><td>New runner starts its own server on a throwaway database, then deletes it</td></tr>
+    <tr><td><b>B11</b></td><td><b>A requirement was invisible</b> — the admin student list (FR-17) worked on the server but no page ever called it</td><td>Built during the API phase; the UI phase never circled back. Nothing failed because nothing tested it end to end</td><td>Added the admin students page and navigation link</td></tr>
+    <tr><td><b>B12</b></td><td><b>Upload checking trusted the browser</b> — a text file declared as an image was accepted and stored</td><td>The declared MIME type was treated as a fact about the file rather than a claim by the client</td><td>The file's first bytes are read and the real format identified; impostors are deleted</td></tr>
+    <tr><td><b>B13</b></td><td><b>Framework internals leaked</b> — a malformed request returned the JSON parser's own error text</td><td>The handler returned the raw message for anything under 500 — right for our errors, wrong for the framework's</td><td>Only our own errors keep their message; everything else is mapped to written text</td></tr>
+    <tr><td><b>B14</b></td><td><b>Search wildcards</b> — typing <code>%</code> in the admin search returned every complaint</td><td>The term went to SQL <code>LIKE</code>. Parameterisation stops injection but not <code>LIKE</code>'s own metacharacters</td><td>Wildcards are escaped and every <code>LIKE</code> carries an explicit <code>ESCAPE</code> clause</td></tr>
+    <tr><td><b>B15</b></td><td><b>Long passwords were silently truncated</b> — an 80-character password could be entered with only its first 72</td><td>bcrypt hashes at most 72 bytes and ignores the rest; we set a minimum length but no maximum</td><td>Passwords over 72 bytes are rejected with a clear message</td></tr>
+    <tr><td><b>B16</b></td><td><b>Brute-force protection never actually ran</b> — the rate limiter was enabled only in production, and the app is demonstrated in development</td><td>"Don't throttle development" was reasonable; implementing it as "production only" quietly meant "never, in practice"</td><td>Active in development and production; disabled only for the test runner. Counts <i>failed</i> attempts only</td></tr>
+    <tr><td><b>B17</b></td><td><b>Six smaller defects</b> — page numbers past the end echoed back, an image could be attached but never removed, unknown pages showed Express's stock error, the admin dialog's timer could close the wrong complaint, action buttons sat off-screen on a phone, and duplicated code</td><td>Each self-contained; none touched business logic</td><td>All fixed and covered by regression checks</td></tr>
+  </table>
+
+  <div class="viva box">
+    <b>Viva point — the most important lesson of the project.</b> "Every one of these was found by <i>running</i> the application against hostile input, not by reading the code. Our test suite was green the entire time, because it tested the paths we designed. That is exactly the input an audit must not limit itself to."
+  </div>
+
+  <h3>6.5 Test cases prepared</h3>
+  <p>The test infrastructure was rebuilt so the suite is <b>self-contained and repeatable</b>:</p>
+  <ul>
+    <li><code>tests/run.js</code> starts the application on port <b>4010</b> with a throwaway database (<code>data/test.db</code>) and upload directory, waits for the health check, runs every suite, then shuts down and deletes both.</li>
+    <li>A fifth suite, <code>tests/regression.test.js</code> (<b>41 checks</b>), pins every audit finding so a fixed bug cannot silently return.</li>
+    <li>One command — <code>npm test</code> — now runs everything with no manual setup.</li>
+  </ul>
+  <table>
+    <tr><th>Suite</th><th style="width:80px">Checks</th><th>What it verifies</th></tr>
+    <tr><td><code>auth.test.js</code></td><td>24</td><td>Registration, login, token handling, role guards</td></tr>
+    <tr><td><code>complaints.test.js</code></td><td>25</td><td>Raise, view, edit/delete Pending-only, ownership, image upload</td></tr>
+    <tr><td><code>admin.test.js</code></td><td>32</td><td>List all, search, filter, pagination, status lifecycle, remarks</td></tr>
+    <tr><td><code>dashboard.test.js</code></td><td>23</td><td>Student and admin statistics, category distribution, guards</td></tr>
+    <tr><td><code>regression.test.js</code></td><td>41</td><td>One or more checks for every audit finding B8 – B17</td></tr>
+    <tr><td><b>Total</b></td><td><b>145</b></td><td><b>All passing</b></td></tr>
+  </table>
+</section>
+
+<!-- ============ 100% ============ -->
+<section class="break">
+  <div class="ms-head"><span class="pc">100%</span> &nbsp;<span class="ti">Complete System Integration</span><br><span class="dt">Integration close-out &nbsp;·&nbsp; completed 31 August 2026</span></div>
+
+  <h3>7.1 What this milestone means in simple terms</h3>
+  <p>At 100% every module is joined into one working system, the whole suite runs <b>automatically on every push</b>, and the engineering record is complete. Nothing is left half-connected: each requirement is reachable from the interface, verified by a test, and documented.</p>
+
+  <h3>7.2 Work completed</h3>
+  <table>
+    <tr><th style="width:88px">Commit</th><th style="width:34%">Work</th><th>Why it mattered</th></tr>
+    <tr><td><code>8231f58</code></td><td>Audit findings documented</td><td>All ten defects recorded with root cause, fix and lesson — the engineering log a reviewer can inspect</td></tr>
+    <tr><td><code>b2dd98c</code></td><td>Continuous Integration on GitHub Actions</td><td>The suite now runs on <b>every push and pull request</b>. Because the runner is self-contained, CI needs nothing but Node — no services, no fixtures</td></tr>
+    <tr><td><code>21f86d3</code></td><td>Screenshots regenerated + capture tool</td><td>Documentation matches the shipped product, including the new pages; screenshots can be regenerated on demand</td></tr>
+    <tr><td><code>624a517</code></td><td>Corrected a claim in the performance review</td><td>A document stated something no longer true about how Chart.js is delivered — accuracy of the record</td></tr>
+    <tr><td><code>712bd9d</code></td><td>Dependency security patch</td><td>Updated a package to clear a <b>high-severity advisory</b> — supply-chain hygiene, not just our own code</td></tr>
+  </table>
+
+  <h3>7.3 Integration proof</h3>
+  <table>
+    <tr><th style="width:38%">Integration point</th><th>Verified by</th></tr>
+    <tr><td>Frontend ↔ API</td><td>All nine pages call the API through a single wrapper that attaches the token and handles session expiry; walkthrough at desktop and mobile widths</td></tr>
+    <tr><td>API ↔ Database</td><td>145 automated checks exercising every endpoint against a real database</td></tr>
+    <tr><td>Student ↔ Administrator</td><td>End-to-end lifecycle test: a student raises a complaint, the admin advances it, the student sees the new status, remarks and resolution date</td></tr>
+    <tr><td>Requirement ↔ Interface</td><td>Audit finding <b>B11</b> closed the last gap — every requirement is now reachable from a screen, not only from a route</td></tr>
+    <tr><td>Repository ↔ CI</td><td>GitHub Actions runs the full suite on every push; a red build blocks the change</td></tr>
+  </table>
+
+  <h3>7.4 Final state of the system</h3>
+  <table>
+    <tr><th style="width:44%">Measure</th><th>Value</th></tr>
+    <tr><td>Development phases completed</td><td>7 (Phase 0 – Phase 6) + audit and close-out</td></tr>
+    <tr><td>Functional requirements implemented</td><td>41 of 41</td></tr>
+    <tr><td>Automated checks</td><td>145, all passing, in 5 suites</td></tr>
+    <tr><td>Bugs found and fixed (documented)</td><td>17 defects + 5 design decisions recorded</td></tr>
+    <tr><td>Application source files</td><td>30 server-side, 27 frontend</td></tr>
+    <tr><td>Continuous integration</td><td>Active on every push and pull request</td></tr>
+    <tr><td>Known unfixed defects</td><td><b>None</b></td></tr>
+  </table>
+</section>
+
+<!-- ============ ARCHITECTURE EVOLUTION + SUMMARY ============ -->
+<section class="break">
+  <h2>8. How the Architecture Developed</h2>
+  <p>The single most important architectural fact is that <b>the layered structure was decided once, at 30%, and never had to be changed</b>. Later milestones added modules into that structure rather than reshaping it.</p>
+  <figure>
+    <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif" font-size="9">
+      <g>
+        <!-- 30 -->
+        <rect x="10" y="30" width="158" height="176" rx="7" fill="#f7fafd" stroke="#2e75b6" stroke-width="1.4"/>
+        <text x="89" y="49" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1f4e79">30%</text>
+        <rect x="24" y="60" width="130" height="20" rx="3" fill="#ecf6ec" stroke="#5a8f4e"/><text x="89" y="74" text-anchor="middle">Authentication</text>
+        <rect x="24" y="84" width="130" height="20" rx="3" fill="#ecf6ec" stroke="#5a8f4e"/><text x="89" y="98" text-anchor="middle">User Management</text>
+        <rect x="24" y="108" width="130" height="20" rx="3" fill="#f2f2f4" stroke="#9aa2ab" stroke-dasharray="3,2"/><text x="89" y="122" text-anchor="middle" fill="#777">Database (tables ready)</text>
+        <text x="89" y="152" text-anchor="middle" font-size="8.4" fill="#555">5 layers established</text>
+        <text x="89" y="166" text-anchor="middle" font-size="8.4" fill="#555">20 source files</text>
+        <text x="89" y="188" text-anchor="middle" font-size="8.4" fill="#2f6b2f" font-weight="700">API only</text>
+
+        <!-- 60 -->
+        <rect x="186" y="30" width="158" height="176" rx="7" fill="#f7fafd" stroke="#2e75b6" stroke-width="1.4"/>
+        <text x="265" y="49" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1f4e79">60%</text>
+        <rect x="200" y="60" width="130" height="20" rx="3" fill="#ecf6ec" stroke="#5a8f4e"/><text x="265" y="74" text-anchor="middle">Authentication</text>
+        <rect x="200" y="84" width="130" height="20" rx="3" fill="#ecf6ec" stroke="#5a8f4e"/><text x="265" y="98" text-anchor="middle">User Management</text>
+        <rect x="200" y="108" width="130" height="20" rx="3" fill="#dfeaf7" stroke="#1f4e79" stroke-width="1.6"/><text x="265" y="122" text-anchor="middle" font-weight="700">Complaint Mgmt</text>
+        <rect x="200" y="132" width="130" height="20" rx="3" fill="#ecf6ec" stroke="#5a8f4e"/><text x="265" y="146" text-anchor="middle">Dashboard</text>
+        <text x="265" y="170" text-anchor="middle" font-size="8.4" fill="#555">same 5 layers · 29 files</text>
+        <text x="265" y="188" text-anchor="middle" font-size="8.4" fill="#2f6b2f" font-weight="700">All logic working</text>
+
+        <!-- 80 -->
+        <rect x="362" y="30" width="158" height="176" rx="7" fill="#fffdf7" stroke="#c98a17" stroke-width="1.4"/>
+        <text x="441" y="49" text-anchor="middle" font-size="11.5" font-weight="700" fill="#8a6111">80%</text>
+        <rect x="376" y="60" width="130" height="18" rx="3" fill="#eaf1fb" stroke="#2e75b6"/><text x="441" y="73" text-anchor="middle">Frontend (9 pages)</text>
+        <rect x="376" y="82" width="130" height="18" rx="3" fill="#fdf1e6" stroke="#c0733f"/><text x="441" y="95" text-anchor="middle">Security hardening</text>
+        <rect x="376" y="104" width="130" height="18" rx="3" fill="#fdecec" stroke="#a12626"/><text x="441" y="117" text-anchor="middle" fill="#a12626">Audit — 10 bugs fixed</text>
+        <rect x="376" y="126" width="130" height="18" rx="3" fill="#ecf6ec" stroke="#5a8f4e"/><text x="441" y="139" text-anchor="middle">Isolated test runner</text>
+        <text x="441" y="164" text-anchor="middle" font-size="8.4" fill="#555">+ validation rewritten</text>
+        <text x="441" y="177" text-anchor="middle" font-size="8.4" fill="#555">+ lifecycle enforced</text>
+        <text x="441" y="194" text-anchor="middle" font-size="8.4" fill="#2f6b2f" font-weight="700">Product, not API</text>
+
+        <!-- 100 -->
+        <rect x="538" y="30" width="172" height="176" rx="7" fill="#f6fbf6" stroke="#5a8f4e" stroke-width="1.6"/>
+        <text x="624" y="49" text-anchor="middle" font-size="11.5" font-weight="700" fill="#2f6b2f">100%</text>
+        <rect x="552" y="60" width="144" height="18" rx="3" fill="#ecf6ec" stroke="#5a8f4e"/><text x="624" y="73" text-anchor="middle">All modules integrated</text>
+        <rect x="552" y="82" width="144" height="18" rx="3" fill="#ecf6ec" stroke="#5a8f4e"/><text x="624" y="95" text-anchor="middle">CI on every push</text>
+        <rect x="552" y="104" width="144" height="18" rx="3" fill="#ecf6ec" stroke="#5a8f4e"/><text x="624" y="117" text-anchor="middle">Findings documented</text>
+        <rect x="552" y="126" width="144" height="18" rx="3" fill="#ecf6ec" stroke="#5a8f4e"/><text x="624" y="139" text-anchor="middle">Dependency patched</text>
+        <text x="624" y="164" text-anchor="middle" font-size="8.4" fill="#555">30 server + 27 frontend files</text>
+        <text x="624" y="177" text-anchor="middle" font-size="8.4" fill="#555">145 checks green</text>
+        <text x="624" y="194" text-anchor="middle" font-size="8.4" fill="#2f6b2f" font-weight="700">Complete</text>
+      </g>
+      <text x="360" y="20" text-anchor="middle" font-size="9.5" fill="#1f4e79" font-weight="700">The five layers never changed — only modules were added inside them</text>
+      <text x="360" y="228" text-anchor="middle" font-size="8.6" fill="#777" font-style="italic">Growth was horizontal (more modules), not vertical (more complexity) — which is what made the audit fixes cheap.</text>
+      <text x="360" y="243" text-anchor="middle" font-size="8.6" fill="#a12626">Every audit fix touched one layer only: validation in Services, uploads in Middleware, wildcards in the Repository.</text>
+    </svg>
+    <figcaption>Figure 3 — Architecture growth across the four milestones.</figcaption>
+  </figure>
+
+  <h2>9. All Defects at a Glance</h2>
+  <p>Seventeen defects were found, fixed and documented across the project. Grouping them shows <i>when</i> each kind of problem surfaces.</p>
+  <table>
+    <tr><th style="width:56px">Milestone</th><th style="width:96px">Defects</th><th>Character of the problems found</th></tr>
+    <tr><td><b>30%</b></td><td>B2 + environment</td><td><b>Security disclosure and tooling.</b> Login revealed valid emails; the database driver would not install without a compiler</td></tr>
+    <tr><td><b>60%</b></td><td>B1, B3, B4, B5, B6 + 3 review fixes</td><td><b>Business-rule correctness.</b> Timestamps overwritten, client-supplied status trusted, broken seed script, insecure production defaults, order-dependent tests</td></tr>
+    <tr><td><b>80%</b></td><td>B7, <b>B8 – B17</b></td><td><b>Everything the happy path never touches.</b> Type confusion, unenforced state ordering, spoofed uploads, leaked framework errors, search wildcards, truncated passwords, disabled rate limiting, an unreachable requirement</td></tr>
+    <tr><td><b>100%</b></td><td>Dependency advisory</td><td><b>Supply chain.</b> A third-party package with a known high-severity vulnerability</td></tr>
+  </table>
+  <div class="box">
+    <b>The pattern worth explaining in the viva.</b> Early milestones produced <i>logic</i> bugs, which our own tests caught. The 80% audit produced <i>assumption</i> bugs — places where we had trusted the client, trusted a type, or trusted that a documented rule was an enforced rule. Tests written from a design cannot find those, because they share the design's assumptions. Only adversarial testing does.
+  </div>
+</section>
+
+<!-- ============ VIVA PREP ============ -->
+<section class="break">
+  <h2>10. Quick Answers for the Viva</h2>
+  <table>
+    <tr><th style="width:34%">Question</th><th>Answer</th></tr>
+    <tr><td><b>Which SDLC model did you use?</b></td><td>The <b>Incremental Model</b>. Requirements were baselined in an approved SRS, the architecture was designed up front, and construction proceeded in seven increments — each delivering working, tested software, with review checkpoints between them.</td></tr>
+    <tr><td><b>Why is login the 30% milestone?</b></td><td>Because authorisation cannot be added afterwards. Every later endpoint needs a trustworthy answer to "who is calling", so authentication had to exist before any feature could be secured.</td></tr>
+    <tr><td><b>What does "major modules functional" mean at 60%?</b></td><td>The complete complaint lifecycle worked through the API — raise, track, search, advance status, view statistics — verified by 103 automated checks, before any screen was built.</td></tr>
+    <tr><td><b>How did you test the system?</b></td><td>Three ways: 145 automated integration checks across 5 suites; a deliberate audit of 237 hostile probe requests plus a full browser walkthrough; and continuous integration that runs everything on every push.</td></tr>
+    <tr><td><b>What was your most serious bug?</b></td><td><b>B9</b> — status transitions were unordered, so a Closed complaint could go back to Pending and end up "Pending with a resolution date". The lifecycle was drawn in the diagram but only the vocabulary was enforced in code, not the ordering.</td></tr>
+    <tr><td><b>Which bug taught you the most?</b></td><td><b>B16</b> — our rate limiting only ran in production, and we never run production. We had designed, documented and presented a protection that was never actually active. Security that only exists in an environment you never run is not security.</td></tr>
+    <tr><td><b>How did the architecture change over time?</b></td><td>It did not. The five layers were fixed at 30% and every later module was added inside them. That is why the audit fixes were cheap — each one touched a single layer.</td></tr>
+    <tr><td><b>How do you know it is really finished?</b></td><td>All 41 functional requirements are implemented, reachable from the interface, and covered by a passing test. CI is green, there are no known unfixed defects, and every defect we did find is documented with its root cause and fix.</td></tr>
+  </table>
+
+  <h2>11. Conclusion</h2>
+  <p>Hostel Buddy was completed through four verified milestones over roughly six weeks. The foundation and authentication were established first (30%), the complete business logic was proven through the API next (60%), the interface was integrated and the system was then audited against hostile input (80%), and finally everything was joined, automated and documented (100%).</p>
+  <p>The project's strongest evidence is not that it works, but that <b>we know why it works</b>: seventeen defects are recorded with root cause and fix, one hundred and forty-five automated checks pin the behaviour, and every one of the audit findings has a permanent regression test standing guard over it.</p>
+  <div class="viva box">
+    <b>Closing statement for the viva.</b> "We treated finding bugs in our own work as a deliverable, not an embarrassment. The audit at 80% found ten defects that our green test suite had missed — and documenting each one with its root cause is what turned this from a project that runs into a project we understand."
+  </div>
+</section>
+
+<script src="paged.polyfill.js"></script>
