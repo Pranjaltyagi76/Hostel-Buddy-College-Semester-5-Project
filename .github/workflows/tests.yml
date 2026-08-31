@@ -1,0 +1,41 @@
+name: Tests
+
+# The suite is self-contained: tests/run.js starts the app on its own port
+# against a throwaway database and upload directory, then tears both down.
+# So CI needs nothing beyond Node — no services, no fixtures, no setup step.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: API integration tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # The app uses the built-in node:sqlite module, which is available
+          # without a flag from Node 24 onwards.
+          node-version: '24.x'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run the test suite
+        run: npm test
+        env:
+          # The suite never reads the committed .env, but the app's config
+          # requires these to be present; keep them obviously non-production.
+          JWT_SECRET: ci-test-secret-not-used-in-production
+          ADMIN_EMAIL: admin@hostel.test
+          ADMIN_PASSWORD: admin123

@@ -1,5 +1,7 @@
 # 🏠 Hostel Buddy
 
+[![Tests](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml/badge.svg)](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml)
+
 **A Smart Hostel Complaint Management System** — students raise and track maintenance complaints online; administrators manage and resolve them from a dashboard. It replaces the paper complaint register with a searchable, trackable, statistics-driven web app.
 
 > Built as a **model working version**: realistic end-to-end functionality and a clean layered architecture, without the scope of a full production system.
