@@ -222,3 +222,12 @@ td.actions { white-space: nowrap; }
   .btn-logout { margin: 4px 12px; }
   .chart-grid { grid-template-columns: 1fr; }
 }
+
+/* ===== Scope banner (staff screens) =====
+   A manager's figures cover only their own hostel. Saying so on the page keeps
+   a narrowed count from looking like a bug. */
+.box-scope { border-radius: 8px; padding: 9px 14px; font-size: .92rem; margin-bottom: 14px; }
+.box-scope:empty { display: none; }
+.box-scope.scoped { background: #fdf3e6; border: 1px solid #f0dcc0; color: #8a6111; }
+.box-scope.all { background: var(--lblue, #eaf1fb); border: 1px solid #cddcee; color: var(--navy, #1f4e79); }
+.box-scope b { font-weight: 700; }

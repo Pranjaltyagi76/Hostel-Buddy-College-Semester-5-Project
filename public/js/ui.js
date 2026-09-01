@@ -40,14 +40,20 @@ const UI = {
     const user = Auth.getUser();
     const el = document.getElementById('app-nav');
     if (!el || !user) return;
-    const isAdmin = user.role === 'admin';
+    const isStaff = Auth.isStaff(user);
+    const isSuper = Auth.isSuperAdmin(user);
 
-    const links = isAdmin
-      ? [
-          ['admin.html', 'Dashboard', 'dashboard'],
-          ['admin-complaints.html', 'All Complaints', 'complaints'],
-          ['admin-students.html', 'Students', 'students'],
-        ]
+    // Both staff roles share the same screens. Hostels is super-admin only,
+    // because a manager is scoped BY a hostel and must not be able to edit one.
+    const staffLinks = [
+      ['admin.html', 'Dashboard', 'dashboard'],
+      ['admin-complaints.html', 'All Complaints', 'complaints'],
+      ['admin-students.html', 'Students', 'students'],
+    ];
+    if (isSuper) staffLinks.push(['hostels.html', 'Hostels', 'hostels']);
+
+    const links = isStaff
+      ? staffLinks
       : [
           ['dashboard.html', 'Dashboard', 'dashboard'],
           ['raise.html', 'Raise Complaint', 'raise'],
@@ -55,15 +61,21 @@ const UI = {
           ['profile.html', 'Profile', 'profile'],
         ];
 
+    // What the user is, shown plainly. A manager also sees which hostel they
+    // are scoped to, so the narrowed figures on screen are never a surprise.
+    let badge = '';
+    if (isSuper) badge = ' · Super Admin';
+    else if (isStaff) badge = user.hostel_name ? ` · Manager, ${user.hostel_name}` : ' · Manager';
+
     el.innerHTML = `
-      <nav class="topnav ${isAdmin ? 'admin' : ''}">
+      <nav class="topnav ${isStaff ? 'admin' : ''}">
         <div class="nav-inner">
-          <a class="brand" href="${isAdmin ? 'admin.html' : 'dashboard.html'}">🏠 Hostel Buddy</a>
+          <a class="brand" href="${isStaff ? 'admin.html' : 'dashboard.html'}">🏠 Hostel Buddy</a>
           <button class="nav-toggle" aria-label="Toggle menu">☰</button>
           <div class="nav-links">
             ${links.map(([href, label, key]) =>
               `<a href="${href}" class="${key === active ? 'active' : ''}">${label}</a>`).join('')}
-            <span class="nav-user">${UI.esc(user.name)}${isAdmin ? ' · Admin' : ''}</span>
+            <span class="nav-user">${UI.esc(user.name)}${UI.esc(badge)}</span>
             <button class="btn-logout" id="logoutBtn">Logout</button>
           </div>
         </div>

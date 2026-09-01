@@ -1,6 +1,6 @@
 'use strict';
 
-if (!Auth.requireAdmin()) throw new Error('redirecting');
+if (!Auth.requireStaff()) throw new Error('redirecting');
 UI.renderNav('complaints');
 
 const PAGE_SIZE = 10;
@@ -69,7 +69,7 @@ async function load() {
   try {
     const { data, pagination } = await API.get('/complaints?' + params.toString());
     cache = {};
-    data.forEach((c) => { cache[c.id] = c; });
+    data.forEach((c) => { cache[c.complaint_id] = c; });
 
     if (data.length === 0) {
       resultArea.innerHTML = '<div class="empty"><div class="big">🔍</div>No complaints match your search.</div>';
@@ -79,7 +79,7 @@ async function load() {
     resultArea.innerHTML = `
       <div class="table-wrap"><table>
         <thead><tr>
-          <th>ID</th><th>Student</th><th>Room</th><th>Category</th>
+          <th>ID</th><th>Student</th>${SHOWS_HOSTEL ? '<th>Hostel</th>' : ''}<th>Room</th><th>Category</th>
           <th>Description</th><th>Status</th><th>Submitted</th><th>Action</th>
         </tr></thead>
         <tbody>${data.map(rowHtml).join('')}</tbody>
@@ -96,16 +96,22 @@ async function load() {
   }
 }
 
+// The hostel column only earns its place for a super admin, whose list spans
+// several. A manager's rows are all their own hostel, so showing it would be a
+// column of the same value repeated.
+const SHOWS_HOSTEL = Auth.isSuperAdmin();
+
 function rowHtml(c) {
   return `<tr>
-    <td>#${c.id}</td>
+    <td>#${c.complaint_id}</td>
     <td>${UI.esc(c.student_name)}</td>
+    ${SHOWS_HOSTEL ? `<td><span class="chip">${UI.esc(c.hostel_name || '—')}</span></td>` : ''}
     <td>${UI.esc(c.room_number || '—')}</td>
     <td><span class="chip">${UI.esc(c.category)}</span></td>
-    <td>${UI.esc(short(c.description))}</td>
+    <td>${UI.esc(short(c.problem_description))}</td>
     <td>${UI.statusBadge(c.status)}</td>
     <td>${UI.fmtDay(c.created_at)}</td>
-    <td class="actions"><button class="btn btn-sm" data-manage="${c.id}">Manage</button></td>
+    <td class="actions"><button class="btn btn-sm" data-manage="${c.complaint_id}">Manage</button></td>
   </tr>`;
 }
 
@@ -133,16 +139,17 @@ function manage(id) {
   const c = cache[id];
   if (!c) return;
   cancelPendingClose();
-  modalTitle.textContent = `Complaint #${c.id}`;
+  modalTitle.textContent = `Complaint #${c.complaint_id}`;
   modal.classList.add('show');
 
   const img = c.image_url ? `<img class="detail-img" src="${UI.esc(c.image_url)}" alt="Complaint image">` : '<span class="muted">None</span>';
   modalBody.innerHTML = `
     <div id="mgError" class="alert alert-error"></div>
     <div id="mgSuccess" class="alert alert-success"></div>
-    ${detailRow('Student', `${UI.esc(c.student_name)} · Room ${UI.esc(c.room_number || '—')}`)}
+    ${detailRow('Student', `${UI.esc(c.student_name)} · ${UI.esc(c.roll_no || '—')}`)}
+    ${detailRow('Hostel', `${UI.esc(c.hostel_name || '—')} · Room ${UI.esc(c.room_number || '—')}`)}
     ${detailRow('Category', `<span class="chip">${UI.esc(c.category)}</span>`)}
-    ${detailRow('Description', UI.esc(c.description))}
+    ${detailRow('Description', UI.esc(c.problem_description))}
     ${detailRow('Submitted', UI.fmtDate(c.created_at))}
     ${detailRow('Resolved On', c.resolved_at ? UI.fmtDate(c.resolved_at) : '<span class="muted">—</span>')}
     ${detailRow('Image', img)}

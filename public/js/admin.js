@@ -1,6 +1,6 @@
 'use strict';
 
-if (!Auth.requireAdmin()) throw new Error('redirecting');
+if (!Auth.requireStaff()) throw new Error('redirecting');
 UI.renderNav('dashboard');
 
 const statsEl = document.getElementById('stats');
@@ -22,6 +22,11 @@ function statCard(num, label, accent) {
     return;
   }
 
+  // Say plainly whose figures these are. A manager's dashboard covers only
+  // their own hostel, and an unlabelled "Total Complaints: 5" next to a
+  // colleague's "13" would otherwise look like a bug rather than a boundary.
+  renderScope(d.scope);
+
   statsEl.innerHTML = [
     statCard(d.totalStudents, 'Total Students', 'students'),
     statCard(d.totalComplaints, 'Total Complaints', 'total'),
@@ -35,6 +40,18 @@ function statCard(num, label, accent) {
   renderStatusChart(d.byStatus);
   renderRecent(d.recent);
 })();
+
+function renderScope(scope) {
+  const el = document.getElementById('scopeNote');
+  if (!el) return;
+  if (scope && scope.hostel_id) {
+    el.className = 'box-scope scoped';
+    el.innerHTML = `Showing <b>${UI.esc(scope.hostel_name)}</b> only — you manage this hostel.`;
+  } else {
+    el.className = 'box-scope all';
+    el.innerHTML = 'Showing <b>all hostels</b> — you are signed in as super admin.';
+  }
+}
 
 function renderCategoryChart(byCategory) {
   const labels = Object.keys(byCategory);
@@ -81,7 +98,7 @@ function renderRecent(recent) {
       <thead><tr><th>ID</th><th>Student</th><th>Room</th><th>Category</th><th>Status</th><th>Submitted</th></tr></thead>
       <tbody>
         ${recent.map((c) => `<tr>
-          <td>#${c.id}</td>
+          <td>#${c.complaint_id}</td>
           <td>${UI.esc(c.student_name)}</td>
           <td>${UI.esc(c.room_number || '—')}</td>
           <td><span class="chip">${UI.esc(c.category)}</span></td>

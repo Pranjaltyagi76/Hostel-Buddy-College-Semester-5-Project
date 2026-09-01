@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hostels — Hostel Buddy Admin</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app-nav"></div>
+  <div class="container">
+    <div class="page-head">
+      <div>
+        <h1>Hostels &amp; Managers</h1>
+        <p class="muted">Add hostels and assign a manager to each one.</p>
+      </div>
+      <button class="btn" id="addHostelBtn">＋ Add Hostel</button>
+    </div>
+
+    <div id="pageError" class="alert alert-error"></div>
+    <div id="pageSuccess" class="alert alert-success"></div>
+
+    <div class="card">
+      <h3>Hostels</h3>
+      <div id="hostelArea" style="margin-top:8px;">
+        <div class="loading"><div class="spinner"></div>Loading hostels…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="page-head" style="margin-bottom:8px;">
+        <h3 style="margin:0;">Managers</h3>
+        <button class="btn btn-ghost" id="addManagerBtn">＋ Add Manager</button>
+      </div>
+      <div id="managerArea">
+        <div class="loading"><div class="spinner"></div>Loading managers…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">Hostel</h3>
+        <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/hostels.js"></script>
+</body>
+</html>

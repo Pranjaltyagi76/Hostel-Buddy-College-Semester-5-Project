@@ -3,7 +3,7 @@
 // FR-17 — the admin's view of every registered student account.
 // The list is small and already scoped to students by the API, so filtering
 // happens in the browser rather than costing a round trip per keystroke.
-if (!Auth.requireAdmin()) throw new Error('redirecting');
+if (!Auth.requireStaff()) throw new Error('redirecting');
 UI.renderNav('students');
 
 const resultArea = document.getElementById('resultArea');
@@ -19,7 +19,7 @@ searchInput.addEventListener('input', render);
 
 function matches(student, term) {
   if (!term) return true;
-  const haystack = [student.name, student.email, student.room_number]
+  const haystack = [student.name, student.email, student.roll_no, student.hostel_name, student.room_number]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
@@ -28,9 +28,10 @@ function matches(student, term) {
 
 function rowHtml(s) {
   return `<tr>
-    <td>#${s.id}</td>
+    <td>${UI.esc(s.roll_no || '—')}</td>
     <td>${UI.esc(s.name)}</td>
     <td>${UI.esc(s.email)}</td>
+    <td><span class="chip">${UI.esc(s.hostel_name || '—')}</span></td>
     <td>${UI.esc(s.room_number || '—')}</td>
     <td>${UI.fmtDay(s.created_at)}</td>
   </tr>`;
@@ -52,7 +53,7 @@ function render() {
   resultArea.innerHTML = `
     <div class="table-wrap"><table>
       <thead><tr>
-        <th>ID</th><th>Name</th><th>Email</th><th>Room</th><th>Registered</th>
+        <th>Roll No</th><th>Name</th><th>Email</th><th>Hostel</th><th>Room</th><th>Registered</th>
       </tr></thead>
       <tbody>${shown.map(rowHtml).join('')}</tbody>
     </table></div>

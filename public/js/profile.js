@@ -15,6 +15,8 @@ const submitBtn = document.getElementById('submitBtn');
     nameEl.value = me.name || '';
     roomEl.value = me.room_number || '';
     emailEl.value = me.email || '';
+    document.getElementById('rollNo').value = me.roll_no || '—';
+    document.getElementById('hostel').value = me.hostel_name || '—';
   } catch (err) {
     UI.showError('formError', 'Could not load profile: ' + err.message);
   }

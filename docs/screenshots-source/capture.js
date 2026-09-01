@@ -39,6 +39,10 @@ const SHOTS = [
   { file: '07-raise-complaint.png', path: '/raise.html',           as: 'student', ready: "document.getElementById('category').options.length > 1" },
   { file: '08-admin-students.png', path: '/admin-students.html',   as: 'admin',   ready: "!!document.querySelector('#resultArea table tbody tr')" },
   { file: '09-not-found.png',      path: '/no-such-page',          as: null,      ready: "!!document.querySelector('.auth-card')" },
+  // Added with the multi-hostel model: registration now needs a roll number and
+  // a hostel, and the super admin has a page for hostels and managers.
+  { file: '10-register.png',       path: '/register.html',         as: null,      ready: "document.querySelectorAll('#hostel option').length > 1" },
+  { file: '11-hostels.png',        path: '/hostels.html',          as: 'admin',   ready: "!!document.querySelector('#hostelArea table tbody tr') && !!document.querySelector('#managerArea table tbody tr')", settle: 800 },
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

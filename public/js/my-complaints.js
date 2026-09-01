@@ -22,7 +22,7 @@ async function load() {
   try {
     const list = await API.get('/complaints/mine');
     items = {};
-    list.forEach((c) => { items[c.id] = c; });
+    list.forEach((c) => { items[c.complaint_id] = c; });
 
     if (list.length === 0) {
       listArea.innerHTML = `<div class="empty"><div class="big">📭</div>
@@ -53,17 +53,17 @@ async function load() {
 function rowHtml(c) {
   const canEdit = c.status === 'Pending';
   const editBtns = canEdit
-    ? `<button class="btn btn-sm btn-ghost" data-edit="${c.id}">Edit</button>
-       <button class="btn btn-sm btn-danger" data-del="${c.id}">Delete</button>`
+    ? `<button class="btn btn-sm btn-ghost" data-edit="${c.complaint_id}">Edit</button>
+       <button class="btn btn-sm btn-danger" data-del="${c.complaint_id}">Delete</button>`
     : '';
   return `<tr>
-    <td>#${c.id}</td>
+    <td>#${c.complaint_id}</td>
     <td><span class="chip">${UI.esc(c.category)}</span></td>
-    <td>${UI.esc(short(c.description))}</td>
+    <td>${UI.esc(short(c.problem_description))}</td>
     <td>${UI.statusBadge(c.status)}</td>
     <td>${UI.fmtDay(c.created_at)}</td>
     <td class="actions">
-      <button class="btn btn-sm btn-ghost" data-view="${c.id}">View</button>
+      <button class="btn btn-sm btn-ghost" data-view="${c.complaint_id}">View</button>
       ${editBtns}
     </td>
   </tr>`;
@@ -76,13 +76,13 @@ function detailRow(k, v) {
 function viewComplaint(id) {
   const c = items[id];
   if (!c) return;
-  openModal(`Complaint #${c.id}`);
+  openModal(`Complaint #${c.complaint_id}`);
   const img = c.image_url
     ? `<img class="detail-img" src="${UI.esc(c.image_url)}" alt="Complaint image">` : '<span class="muted">None</span>';
   modalBody.innerHTML =
     detailRow('Category', `<span class="chip">${UI.esc(c.category)}</span>`) +
     detailRow('Status', UI.statusBadge(c.status)) +
-    detailRow('Description', UI.esc(c.description)) +
+    detailRow('Description', UI.esc(c.problem_description)) +
     detailRow('Admin Remarks', c.admin_remarks ? UI.esc(c.admin_remarks) : '<span class="muted">No remarks yet</span>') +
     detailRow('Submitted', UI.fmtDate(c.created_at)) +
     detailRow('Last Updated', UI.fmtDate(c.updated_at)) +
@@ -93,7 +93,7 @@ function viewComplaint(id) {
 function editComplaint(id) {
   const c = items[id];
   if (!c || c.status !== 'Pending') return;
-  openModal(`Edit Complaint #${c.id}`);
+  openModal(`Edit Complaint #${c.complaint_id}`);
   modalBody.innerHTML = `
     <div id="editError" class="alert alert-error"></div>
     <form id="editForm" novalidate>
@@ -104,7 +104,7 @@ function editComplaint(id) {
       </div>
       <div class="form-group">
         <label for="editDescription">Description</label>
-        <textarea id="editDescription" maxlength="1000">${UI.esc(c.description)}</textarea>
+        <textarea id="editDescription" maxlength="1000">${UI.esc(c.problem_description)}</textarea>
       </div>
       <div class="form-group">
         <label for="editImage">${c.image_url ? 'Replace image' : 'Attach an image'} <span class="muted">(optional)</span></label>
