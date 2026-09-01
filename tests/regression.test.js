@@ -49,7 +49,8 @@ function check(name, cond, detail = '') {
 
 (async () => {
   const uniq = Date.now();
-  const student = { name: 'Regression Student', email: `reg${uniq}@hostel.test`, password: 'secret123', room_number: 'R-1' };
+  const hostelId = (await call('GET', '/hostels')).data[0].hostel_id;
+  const student = { name: 'Regression Student', email: `reg${uniq}@hostel.test`, password: 'secret123', roll_no: `RG${uniq}`, hostel_id: hostelId, room_number: 'R-1' };
 
   let r = await call('POST', '/auth/register', { body: student });
   const studentToken = r.data?.token;
@@ -58,9 +59,9 @@ function check(name, cond, detail = '') {
 
   // ---------------------------------------------------------------- BUG-01
   console.log('\nBUG-01) A non-string value is rejected, never coerced to "[object Object]"');
-  r = await call('POST', '/auth/register', { body: { ...student, email: `obj${uniq}@h.test`, name: { a: 1 } } });
+  r = await call('POST', '/auth/register', { body: { ...student, email: `obj${uniq}@h.test`, roll_no: `O1${uniq}`, name: { a: 1 } } });
   check('object as register name -> 400', r.status === 400, `(got ${r.status})`);
-  r = await call('POST', '/auth/register', { body: { ...student, email: `obj2${uniq}@h.test`, room_number: { a: 1 } } });
+  r = await call('POST', '/auth/register', { body: { ...student, email: `obj2${uniq}@h.test`, roll_no: `O2${uniq}`, room_number: { a: 1 } } });
   check('object as room_number -> 400', r.status === 400, `(got ${r.status})`);
   r = await call('POST', '/complaints', { token: studentToken, body: { category: 'Other', description: { a: 1 } } });
   check('object as description -> 400', r.status === 400, `(got ${r.status})`);
@@ -71,9 +72,9 @@ function check(name, cond, detail = '') {
 
   // ---------------------------------------------------------------- BUG-09
   console.log('\nBUG-09) Passwords past bcrypt\'s 72-byte limit are refused, not truncated');
-  r = await call('POST', '/auth/register', { body: { name: 'Long', email: `long${uniq}@h.test`, password: 'A'.repeat(80) } });
+  r = await call('POST', '/auth/register', { body: { name: 'Long', email: `long${uniq}@h.test`, password: 'A'.repeat(80), roll_no: `LN${uniq}`, hostel_id: hostelId } });
   check('80-character password -> 400', r.status === 400, `(got ${r.status})`);
-  r = await call('POST', '/auth/register', { body: { name: 'Exact', email: `exact${uniq}@h.test`, password: 'A'.repeat(72) } });
+  r = await call('POST', '/auth/register', { body: { name: 'Exact', email: `exact${uniq}@h.test`, password: 'A'.repeat(72), roll_no: `EX${uniq}`, hostel_id: hostelId } });
   check('72-character password still accepted -> 201', r.status === 201, `(got ${r.status})`);
 
   // ---------------------------------------------------------------- BUG-05
@@ -84,7 +85,7 @@ function check(name, cond, detail = '') {
     image: { blob: new Blob([PNG_1x1], { type: 'image/png' }), name: 'ok.png' },
   }, studentToken);
   check('a genuine PNG is accepted -> 201', r.status === 201, `(got ${r.status})`);
-  const withImage = r.data?.id;
+  const withImage = r.data?.complaint_id;
   const imageUrl = r.data?.image_url;
 
   r = await sendForm('POST', '/complaints', {
@@ -112,7 +113,7 @@ function check(name, cond, detail = '') {
   // ---------------------------------------------------------------- BUG-02
   console.log('\nBUG-02) The status lifecycle only moves forward (FR-14)');
   r = await call('POST', '/complaints', { token: studentToken, body: { category: 'Wi-Fi', description: 'lifecycle' } });
-  const lc = r.data?.id;
+  const lc = r.data?.complaint_id;
   r = await call('PATCH', `/complaints/${lc}/status`, { token: adminToken, body: { status: 'Resolved' } });
   check('Pending -> Resolved allowed', r.status === 200, `(got ${r.status})`);
   check('resolved_at recorded', !!r.data?.resolved_at);

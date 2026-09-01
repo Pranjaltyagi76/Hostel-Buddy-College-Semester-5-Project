@@ -32,11 +32,12 @@ const login = async (email, password) =>
   const uniqueRoom = `SR-${ts}`;
   const email = `admflow${ts}@hostel.test`;
   const PASS = 'secret123';
-  const reg = await call('POST', '/auth/register', { body: { name: uniqueName, email, password: PASS, room_number: uniqueRoom } });
+  const hostelId = (await call('GET', '/hostels')).data[0].hostel_id;
+  const reg = await call('POST', '/auth/register', { body: { name: uniqueName, email, password: PASS, roll_no: `AD${ts}`, hostel_id: hostelId, room_number: uniqueRoom } });
   const studentToken = reg.data.token;
   // one Wi-Fi complaint owned by this student
   const created = await call('POST', '/complaints', { token: studentToken, body: { category: 'Wi-Fi', description: 'Admin-flow test complaint' } });
-  const cid = created.data.id;
+  const cid = created.data.complaint_id;
 
   console.log('\n1) Admin lists all complaints');
   let r = await call('GET', '/complaints', { token: adminToken });
@@ -53,7 +54,7 @@ const login = async (email, password) =>
   console.log('\n3) Filter by status = Pending (our complaint is Pending)');
   r = await call('GET', '/complaints?status=Pending', { token: adminToken });
   check('all rows are Pending', r.data?.data?.every(c => c.status === 'Pending'), '(mismatch)');
-  check('includes our complaint', r.data?.data?.some(c => c.id === cid));
+  check('includes our complaint', r.data?.data?.some(c => c.complaint_id === cid));
 
   console.log('\n4) Filter by category = Wi-Fi');
   r = await call('GET', '/complaints?category=Wi-Fi', { token: adminToken });
@@ -67,7 +68,7 @@ const login = async (email, password) =>
 
   console.log('\n6) Search by (unique) student name');
   r = await call('GET', `/complaints?q=${encodeURIComponent(uniqueName)}`, { token: adminToken });
-  check('finds exactly our complaint', r.data?.data?.length === 1 && r.data.data[0].id === cid, `(got ${r.data?.data?.length})`);
+  check('finds exactly our complaint', r.data?.data?.length === 1 && r.data.data[0].complaint_id === cid, `(got ${r.data?.data?.length})`);
 
   console.log('\n7) Search by (unique) room number');
   r = await call('GET', `/complaints?q=${encodeURIComponent(uniqueRoom)}`, { token: adminToken });
@@ -75,7 +76,7 @@ const login = async (email, password) =>
 
   console.log('\n8) Search by complaint id');
   r = await call('GET', `/complaints?q=${cid}`, { token: adminToken });
-  check('finds the complaint by id', r.data?.data?.some(c => c.id === cid));
+  check('finds the complaint by id', r.data?.data?.some(c => c.complaint_id === cid));
 
   console.log('\n9) Pagination');
   r = await call('GET', '/complaints?limit=5&page=1', { token: adminToken });
@@ -92,7 +93,7 @@ const login = async (email, password) =>
 
   console.log('\n11) Student sees the update + can no longer edit');
   r = await call('GET', '/complaints/mine', { token: studentToken });
-  const mine = r.data?.find(c => c.id === cid);
+  const mine = r.data?.find(c => c.complaint_id === cid);
   check('student sees In Progress', mine?.status === 'In Progress');
   check('student sees remarks', mine?.admin_remarks === 'Technician assigned.');
   r = await call('PUT', `/complaints/${cid}`, { token: studentToken, body: { description: 'too late' } });
@@ -119,6 +120,84 @@ const login = async (email, password) =>
   check('student cannot change status -> 403', r.status === 403, `(got ${r.status})`);
   r = await call('PATCH', `/complaints/999999/status`, { token: adminToken, body: { status: 'Pending' } });
   check('nonexistent complaint -> 404', r.status === 404, `(got ${r.status})`);
+
+  // ------------------------------------------------------------------
+  // Hostel scoping — a manager may only ever act within their own hostel.
+  // Two students in two different hostels, each with a complaint, then every
+  // staff operation is tried across the boundary.
+  // ------------------------------------------------------------------
+  console.log('\n15) HOSTEL SCOPING — a manager is confined to their own hostel');
+
+  const allHostels = (await call('GET', '/hostels')).data;
+  const hA = allHostels.find((h) => h.hostel_name === 'Aryabhatta Hostel');
+  const hB = allHostels.find((h) => h.hostel_name === 'Ramanujan Hostel');
+  const mgrA = await login('manager.aryabhatta@hostel.test', 'manager123');
+  const mgrB = await login('manager.ramanujan@hostel.test', 'manager123');
+
+  // A student and a complaint in each hostel.
+  const mk = async (tag, hostelId) => {
+    const u = `${tag}${ts}`;
+    const reg = await call('POST', '/auth/register', {
+      body: { name: `Scope ${tag}`, email: `sc${u}@hostel.test`, password: 'secret123', roll_no: `SC${u}`, hostel_id: hostelId },
+    });
+    const tok = reg.data.token;
+    const c = await call('POST', '/complaints', { token: tok, body: { category: 'Wi-Fi', description: `scope test ${tag}` } });
+    return { token: tok, complaintId: c.data.complaint_id, hostelId: c.data.hostel_id };
+  };
+  const inA = await mk('A', hA.hostel_id);
+  const inB = await mk('B', hB.hostel_id);
+
+  check('complaint inherits the student\'s hostel (not sent by the client)', inA.hostelId === hA.hostel_id, `(got ${inA.hostelId})`);
+  check('the two complaints are in different hostels', inA.hostelId !== inB.hostelId);
+
+  // Listing
+  r = await call('GET', '/complaints?limit=100', { token: mgrA });
+  check('manager A list contains their own complaint', r.data.data.some((c) => c.complaint_id === inA.complaintId));
+  check('manager A list EXCLUDES the other hostel\'s complaint', !r.data.data.some((c) => c.complaint_id === inB.complaintId));
+  check('every row manager A sees is their hostel', r.data.data.every((c) => c.hostel_id === hA.hostel_id));
+
+  // Reading a single complaint across the boundary
+  r = await call('GET', `/complaints/${inB.complaintId}`, { token: mgrA });
+  check('manager A CANNOT read hostel B\'s complaint -> 403', r.status === 403, `(got ${r.status})`);
+  r = await call('GET', `/complaints/${inA.complaintId}`, { token: mgrA });
+  check('manager A can read their own hostel\'s complaint -> 200', r.status === 200, `(got ${r.status})`);
+
+  // Writing across the boundary — the one that really matters
+  r = await call('PATCH', `/complaints/${inB.complaintId}/status`, { token: mgrA, body: { status: 'In Progress' } });
+  check('manager A CANNOT change hostel B\'s complaint -> 403', r.status === 403, `(got ${r.status})`);
+  r = await call('GET', `/complaints/${inB.complaintId}`, { token: mgrB });
+  check('and it really was left untouched', r.data?.status === 'Pending', `(got ${r.data?.status})`);
+
+  r = await call('PATCH', `/complaints/${inA.complaintId}/status`, { token: mgrA, body: { status: 'In Progress' } });
+  check('manager A CAN change their own hostel\'s complaint -> 200', r.status === 200, `(got ${r.status})`);
+
+  // A search term must not be able to reach across the boundary either.
+  r = await call('GET', `/complaints?q=${inB.complaintId}`, { token: mgrA });
+  check('searching by the other hostel\'s complaint id finds nothing', !r.data.data.some((c) => c.complaint_id === inB.complaintId));
+
+  // The super admin is unscoped.
+  r = await call('GET', `/complaints/${inA.complaintId}`, { token: adminToken });
+  check('super admin can read hostel A -> 200', r.status === 200, `(got ${r.status})`);
+  r = await call('GET', `/complaints/${inB.complaintId}`, { token: adminToken });
+  check('super admin can read hostel B -> 200', r.status === 200, `(got ${r.status})`);
+  r = await call('PATCH', `/complaints/${inB.complaintId}/status`, { token: adminToken, body: { status: 'In Progress' } });
+  check('super admin can act on either hostel -> 200', r.status === 200, `(got ${r.status})`);
+
+  console.log('\n16) The staff dashboard is scoped the same way');
+  const dashSuper = (await call('GET', '/dashboard/admin', { token: adminToken })).data;
+  const dashA = (await call('GET', '/dashboard/admin', { token: mgrA })).data;
+  check('super admin dashboard reports no scope', dashSuper.scope?.hostel_id === null);
+  check('manager dashboard names their hostel', dashA.scope?.hostel_name === 'Aryabhatta Hostel', `(got ${dashA.scope?.hostel_name})`);
+  check('manager sees fewer complaints than the super admin',
+    dashA.totalComplaints < dashSuper.totalComplaints,
+    `(manager ${dashA.totalComplaints}, super ${dashSuper.totalComplaints})`);
+  check('manager sees fewer students than the super admin',
+    dashA.totalStudents < dashSuper.totalStudents,
+    `(manager ${dashA.totalStudents}, super ${dashSuper.totalStudents})`);
+  check('scoped counts stay internally consistent',
+    Object.values(dashA.byStatus).reduce((a, b) => a + b, 0) === dashA.totalComplaints);
+  check('every recent row is the manager\'s own hostel',
+    dashA.recent.every((c) => c.hostel_id === hA.hostel_id));
 
   console.log(`\n=== RESULT: ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);

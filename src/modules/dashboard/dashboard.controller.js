@@ -12,7 +12,7 @@ function student(req, res, next) {
 
 function admin(req, res, next) {
   try {
-    res.json(dashboardService.adminDashboard());
+    res.json(dashboardService.adminDashboard(req.user));
   } catch (err) {
     next(err);
   }

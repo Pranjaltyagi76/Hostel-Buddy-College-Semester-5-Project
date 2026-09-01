@@ -60,20 +60,22 @@ function remove(req, res, next) {
   }
 }
 
-// Admin: list all complaints with search/filter/pagination.
+// Staff: list complaints with search/filter/pagination. The requester is
+// passed through because the service narrows the results to their hostel.
 function listAll(req, res, next) {
   try {
     const { q, category, status, page, limit } = req.query;
-    res.json(complaintsService.listAll({ q, category, status, page, limit }));
+    res.json(complaintsService.listAll(req.user, { q, category, status, page, limit }));
   } catch (err) {
     next(err);
   }
 }
 
-// Admin: change a complaint's status and remarks.
+// Staff: change a complaint's status and remarks. The requester is passed
+// through so the service can refuse a complaint outside their hostel.
 function updateStatus(req, res, next) {
   try {
-    res.json(complaintsService.updateStatus(idOf(req), req.body));
+    res.json(complaintsService.updateStatus(req.user, idOf(req), req.body));
   } catch (err) {
     next(err);
   }

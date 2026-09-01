@@ -7,7 +7,7 @@
 // deletes the database. The suites used to require a manually started server
 // and wrote into data/hostel.db — the demo database — so every run left junk
 // accounts behind. Nothing here touches the development data.
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -49,6 +49,26 @@ const childEnv = {
   UPLOAD_DIR,
   HB_TEST_BASE: BASE,
 };
+
+// Loads the demo data into the throwaway database before any suite runs.
+//
+// Since the multi-hostel model, a bare database is not enough to test against:
+// hostels can only be created by a super admin, and manager scoping cannot be
+// exercised without at least two hostels that each have a manager. Seeding
+// gives every suite the same known starting point.
+//
+// This is safe in a way the old arrangement was not — it writes to the
+// throwaway database the runner deletes afterwards, never to the demo one.
+function seedTestDatabase() {
+  const result = spawnSync(
+    process.execPath,
+    ['--disable-warning=ExperimentalWarning', path.join(ROOT, 'src', 'db', 'seed.js')],
+    { cwd: ROOT, env: childEnv, encoding: 'utf8' }
+  );
+  if (result.status !== 0) {
+    throw new Error(`could not seed the test database:\n${result.stderr || result.stdout}`);
+  }
+}
 
 function startServer() {
   const child = spawn(
@@ -97,6 +117,9 @@ function runSuite(name) {
 async function main() {
   removeTestDatabase();
   removeTestUploads();
+
+  console.log('[test] seeding the throwaway database (hostels, managers, students)');
+  seedTestDatabase();
 
   console.log(`[test] starting server on port ${PORT} with a throwaway database`);
   const server = startServer();

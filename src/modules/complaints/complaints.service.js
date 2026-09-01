@@ -1,13 +1,14 @@
 'use strict';
 
 // Business logic for complaints. Every rule that protects a complaint lives
-// here (ownership, "edit only while Pending", the status lifecycle) so it holds
-// no matter which route or caller invokes the operation.
+// here (ownership, "edit only while Pending", the status lifecycle, and now
+// hostel scoping) so it holds no matter which route or caller invokes it.
 const complaintsRepo = require('./complaints.repo');
+const usersRepo = require('../users/users.repo');
 const { removeUploadedFile } = require('../../middleware/upload');
 const { AppError } = require('../../middleware/errorHandler');
-const { CATEGORIES, STATUSES, ROLES, STAFF_ROLES } = require('../../config/constants');
-const { isString, isNonEmptyString, isTruthyFlag } = require('../../utils/validators');
+const { CATEGORIES, STATUSES, STAFF_ROLES } = require('../../config/constants');
+const { isString, isNonEmptyString, isTruthyFlag, toPositiveInt } = require('../../utils/validators');
 
 const MAX_DESCRIPTION = 1000;
 const MAX_REMARKS = 1000;
@@ -15,12 +16,40 @@ const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 20;
 
 // A complaint only ever moves forward along STATUSES (FR-14). Re-sending the
-// current status is allowed so the admin can edit remarks without a status
-// change; anything that would move backwards is rejected.
+// current status is allowed so staff can edit remarks without a status change;
+// anything that would move backwards is rejected.
 const STATUS_ORDER = new Map(STATUSES.map((s, i) => [s, i]));
 
 // Statuses at or past "Resolved" are the ones that carry a resolution date.
 const RESOLVED_INDEX = STATUS_ORDER.get('Resolved');
+
+function isStaff(requester) {
+  return STAFF_ROLES.includes(requester.role);
+}
+
+// The hostel a member of staff may act within: a manager's own hostel, or null
+// for a super admin (unscoped). Read from the database on each call rather than
+// taken from the request or the token, so a caller can never widen their own
+// scope and a reassignment takes effect immediately.
+function staffScope(requester) {
+  return usersRepo.findStaffHostelId(requester.userId);
+}
+
+// Refuses a member of staff access to a complaint outside their hostel.
+//
+// A super admin has no scope and passes everything. A manager passes only
+// complaints belonging to their hostel. This is the single place that decision
+// is made, so every staff operation inherits it.
+function assertWithinScope(requester, complaint) {
+  const scope = staffScope(requester);
+  if (scope !== null && complaint.hostel_id !== scope) {
+    throw new AppError(
+      'This complaint belongs to another hostel',
+      403,
+      'FORBIDDEN'
+    );
+  }
+}
 
 function validateCategory(category) {
   if (!isString(category) || !CATEGORIES.includes(category)) {
@@ -39,35 +68,52 @@ function validateDescription(description) {
   return value;
 }
 
-function createComplaint(userId, { category, description } = {}, imageUrl = null) {
+// The complaint's hostel is taken from the student's own record, never from
+// the request. A student cannot file a complaint against a hostel they do not
+// belong to, because they are never asked which hostel it is.
+function createComplaint(studentId, { category, description } = {}, imageUrl = null) {
   validateCategory(category);
   const cleanDescription = validateDescription(description);
-  return complaintsRepo.create({ userId, category, description: cleanDescription, imageUrl });
+
+  const student = usersRepo.findById(studentId);
+  if (!student || !student.hostel_id) {
+    throw new AppError('Your account is not linked to a hostel', 400, 'NO_HOSTEL');
+  }
+
+  return complaintsRepo.create({
+    studentId,
+    hostelId: student.hostel_id,
+    category,
+    description: cleanDescription,
+    imageUrl,
+  });
 }
 
-function listMine(userId) {
-  return complaintsRepo.findByUser(userId);
+function listMine(studentId) {
+  return complaintsRepo.findByStudent(studentId);
 }
 
-// A complaint is readable by its owner or by an admin.
-function getOne(requester, id) {
-  const complaint = complaintsRepo.findById(id);
+// A complaint is readable by its author, or by staff within scope.
+function getOne(requester, complaintId) {
+  const complaint = complaintsRepo.findById(complaintId);
   if (!complaint) throw new AppError('Complaint not found', 404, 'NOT_FOUND');
 
-  const isOwner = complaint.user_id === requester.userId;
-  const isAdmin = STAFF_ROLES.includes(requester.role);
-  if (!isOwner && !isAdmin) {
-    throw new AppError('You do not have permission to view this complaint', 403, 'FORBIDDEN');
+  if (complaint.student_id === requester.userId) return complaint;
+
+  if (isStaff(requester)) {
+    assertWithinScope(requester, complaint);
+    return complaint;
   }
-  return complaint;
+
+  throw new AppError('You do not have permission to view this complaint', 403, 'FORBIDDEN');
 }
 
 // Load a complaint and assert the student owns it AND it is still Pending.
 // This is the core FR-9 guard; enforced in the service, not just the route.
-function loadOwnedPending(userId, id) {
-  const complaint = complaintsRepo.findById(id);
+function loadOwnedPending(studentId, complaintId) {
+  const complaint = complaintsRepo.findById(complaintId);
   if (!complaint) throw new AppError('Complaint not found', 404, 'NOT_FOUND');
-  if (complaint.user_id !== userId) {
+  if (complaint.student_id !== studentId) {
     throw new AppError('You do not have permission to modify this complaint', 403, 'FORBIDDEN');
   }
   if (complaint.status !== 'Pending') {
@@ -76,13 +122,13 @@ function loadOwnedPending(userId, id) {
   return complaint;
 }
 
-function updateComplaint(userId, id, { category, description, remove_image } = {}, newImageUrl = null) {
-  const complaint = loadOwnedPending(userId, id);
+function updateComplaint(studentId, complaintId, { category, description, remove_image } = {}, newImageUrl = null) {
+  const complaint = loadOwnedPending(studentId, complaintId);
 
   const newCategory = category === undefined ? complaint.category : category;
   validateCategory(newCategory);
   const newDescription =
-    description === undefined ? complaint.description : validateDescription(description);
+    description === undefined ? complaint.problem_description : validateDescription(description);
 
   // Image rules, in priority order: a newly uploaded file replaces whatever was
   // there; otherwise an explicit "remove" clears it; otherwise it is untouched.
@@ -95,27 +141,32 @@ function updateComplaint(userId, id, { category, description, remove_image } = {
     removeUploadedFile(complaint.image_url);
   }
 
-  return complaintsRepo.update(id, { category: newCategory, description: newDescription, imageUrl });
+  return complaintsRepo.update(complaintId, {
+    category: newCategory,
+    description: newDescription,
+    imageUrl,
+  });
 }
 
-function deleteComplaint(userId, id) {
-  const complaint = loadOwnedPending(userId, id);
-  complaintsRepo.remove(id);
+function deleteComplaint(studentId, complaintId) {
+  const complaint = loadOwnedPending(studentId, complaintId);
+  complaintsRepo.remove(complaintId);
   if (complaint.image_url) removeUploadedFile(complaint.image_url);
-  return { deleted: true, id: complaint.id };
+  return { deleted: true, complaint_id: complaint.complaint_id };
 }
 
-// --- Admin operations ---
+// --- Staff operations ---
 
-// Coerce an incoming page/limit query value to a sane positive integer.
-function toPositiveInt(value, fallback) {
-  const n = parseInt(value, 10);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
+function pageOrDefault(value, fallback) {
+  return toPositiveInt(value) ?? fallback;
 }
 
-// List every complaint with optional search (id / student name / room),
-// category and status filters, and pagination.
-function listAll({ q, category, status, page, limit } = {}) {
+// Lists complaints for a member of staff, with optional search and filters.
+//
+// The hostel filter is resolved here from the caller's own record and passed
+// to the repository, so a manager's list is narrowed in SQL. It is never taken
+// from the query string — a manager cannot ask to see another hostel.
+function listAll(requester, { q, category, status, page, limit } = {}) {
   if (category && !CATEGORIES.includes(category)) {
     throw new AppError('Invalid category filter', 400, 'VALIDATION_ERROR');
   }
@@ -123,27 +174,21 @@ function listAll({ q, category, status, page, limit } = {}) {
     throw new AppError('Invalid status filter', 400, 'VALIDATION_ERROR');
   }
 
-  const pageNum = toPositiveInt(page, 1);
-  const pageSize = Math.min(toPositiveInt(limit, DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
+  const pageNum = pageOrDefault(page, 1);
+  const pageSize = Math.min(pageOrDefault(limit, DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
 
-  // The repository clamps the requested page to the last real page, so the
-  // pagination block it returns can never describe a page that doesn't exist.
   const { rows, total, page: effectivePage, totalPages } = complaintsRepo.search({
     q,
     category,
     status,
+    hostelId: staffScope(requester),
     page: pageNum,
     limit: pageSize,
   });
 
   return {
     data: rows,
-    pagination: {
-      page: effectivePage,
-      limit: pageSize,
-      total,
-      totalPages,
-    },
+    pagination: { page: effectivePage, limit: pageSize, total, totalPages },
   };
 }
 
@@ -151,10 +196,7 @@ function listAll({ q, category, status, page, limit } = {}) {
 // lifecycle. Returning to an earlier state is what previously left rows marked
 // Pending while still carrying a resolution date.
 function validateTransition(from, to) {
-  const fromIndex = STATUS_ORDER.get(from);
-  const toIndex = STATUS_ORDER.get(to);
-
-  if (toIndex < fromIndex) {
+  if (STATUS_ORDER.get(to) < STATUS_ORDER.get(from)) {
     throw new AppError(
       `A complaint cannot go back from ${from} to ${to}. The lifecycle only moves forward: ${STATUSES.join(' → ')}.`,
       409,
@@ -163,15 +205,18 @@ function validateTransition(from, to) {
   }
 }
 
-// Advance a complaint's status and record remarks. Only the admin reaches
-// this (enforced at the route); business rules for status live here.
-function updateStatus(id, { status, admin_remarks } = {}) {
+// Advance a complaint's status and record remarks.
+function updateStatus(requester, complaintId, { status, admin_remarks } = {}) {
   if (!isString(status) || !STATUSES.includes(status)) {
     throw new AppError('Please provide a valid status', 400, 'VALIDATION_ERROR');
   }
 
-  const complaint = complaintsRepo.findById(id);
+  const complaint = complaintsRepo.findById(complaintId);
   if (!complaint) throw new AppError('Complaint not found', 404, 'NOT_FOUND');
+
+  // A manager may only act on their own hostel's complaints. Checked before
+  // anything is written, and before the transition is even considered.
+  assertWithinScope(requester, complaint);
 
   validateTransition(complaint.status, status);
 
@@ -195,12 +240,12 @@ function updateStatus(id, { status, admin_remarks } = {}) {
     }
   }
 
-  // Record the resolution time only the FIRST time it becomes Resolved, so
-  // later edits or a move to Closed never reset it.
+  // Record the resolution time only the FIRST time it reaches Resolved or
+  // beyond, so later edits or a move to Closed never reset it.
   const setResolvedAt =
     STATUS_ORDER.get(status) >= RESOLVED_INDEX && !complaint.resolved_at;
 
-  return complaintsRepo.updateStatus(id, { status, adminRemarks: remarks, setResolvedAt });
+  return complaintsRepo.updateStatus(complaintId, { status, adminRemarks: remarks, setResolvedAt });
 }
 
 module.exports = {
@@ -211,4 +256,5 @@ module.exports = {
   deleteComplaint,
   listAll,
   updateStatus,
+  staffScope,
 };

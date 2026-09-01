@@ -35,15 +35,27 @@ function check(name, cond, detail = '') {
   else { console.log(`  ❌ ${name} ${detail}`); fail++; }
 }
 
-async function registerStudent(tag) {
-  const email = `c${tag}${Date.now()}@hostel.test`;
-  const r = await call('POST', '/auth/register', { body: { name: `Student ${tag}`, email, password: 'secret123', room_number: 'A-1' } });
+// Every student now needs a roll number and a hostel to register.
+async function registerStudent(tag, hostelId) {
+  const uniq = `${tag}${Date.now()}`;
+  const r = await call('POST', '/auth/register', {
+    body: {
+      name: `Student ${tag}`,
+      email: `c${uniq}@hostel.test`,
+      password: 'secret123',
+      roll_no: `C${uniq}`,
+      hostel_id: hostelId,
+      room_number: 'A-1',
+    },
+  });
   return r.data.token;
 }
 
 (async () => {
-  const tokenA = await registerStudent('A');
-  const tokenB = await registerStudent('B');
+  // Both students share a hostel so the complaints they raise land in one place.
+  const hostelId = (await call('GET', '/hostels')).data[0].hostel_id;
+  const tokenA = await registerStudent('A', hostelId);
+  const tokenB = await registerStudent('B', hostelId);
   const admin = await call('POST', '/auth/login', { body: { email: 'admin@hostel.test', password: 'admin123' } });
   const adminToken = admin.data.token;
 
@@ -52,13 +64,13 @@ async function registerStudent(tag) {
   check('returns 201', r.status === 201, `(got ${r.status})`);
   check('status is Pending', r.data?.status === 'Pending');
   check('image_url is null', r.data?.image_url === null);
-  const c1 = r.data?.id;
+  const c1 = r.data?.complaint_id;
 
   console.log('\n2) Create complaint WITH image (multipart)');
   r = await upload('POST', '/complaints', { token: tokenA, fields: { category: 'Plumbing', description: 'Leaking tap' }, file: { buf: PNG_1x1, type: 'image/png', name: 't.png' } });
   check('returns 201', r.status === 201, `(got ${r.status})`);
   check('image_url set under /uploads', typeof r.data?.image_url === 'string' && r.data.image_url.startsWith('/uploads/'));
-  const c2 = r.data?.id;
+  const c2 = r.data?.complaint_id;
   const c2img = r.data?.image_url;
 
   console.log('\n3) Uploaded image is served');
@@ -102,7 +114,7 @@ async function registerStudent(tag) {
   r = await call('PUT', `/complaints/${c1}`, { token: tokenA, body: { category: 'Electricity', description: 'Fan not working' } });
   check('edit -> 200', r.status === 200, `(got ${r.status})`);
   check('category updated', r.data?.category === 'Electricity');
-  check('description updated', r.data?.description === 'Fan not working');
+  check('description updated', r.data?.problem_description === 'Fan not working');
 
   console.log('\n11) Pending-guard: flip status to In Progress, then edit/delete blocked');
   // Advance the complaint the way the application actually does it — through

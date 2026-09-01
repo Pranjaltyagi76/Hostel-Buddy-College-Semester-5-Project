@@ -35,7 +35,8 @@ const ALL_CATEGORIES = ['Electricity','Plumbing','Water Supply','Wi-Fi','Cleanin
 
   // A brand-new student => dashboard starts empty, independent of seed state.
   const email = `dash${Date.now()}@hostel.test`;
-  const reg = await call('POST', '/auth/register', { body: { name: 'Dash Tester', email, password: 'secret123', room_number: 'Z-9' } });
+  const hostelId = (await call('GET', '/hostels')).data[0].hostel_id;
+  const reg = await call('POST', '/auth/register', { body: { name: 'Dash Tester', email, password: 'secret123', roll_no: `DS${Date.now()}`, hostel_id: hostelId, room_number: 'Z-9' } });
   const studentToken = reg.data.token;
 
   console.log('\n1) Fresh student dashboard is all zeros');
@@ -74,8 +75,8 @@ const ALL_CATEGORIES = ['Electricity','Plumbing','Water Supply','Wi-Fi','Cleanin
 
   console.log('\n6) Student dashboard reflects admin status changes');
   const mine = (await call('GET', '/complaints/mine', { token: studentToken })).data;
-  await call('PATCH', `/complaints/${mine[0].id}/status`, { token: adminToken, body: { status: 'In Progress' } });
-  await call('PATCH', `/complaints/${mine[1].id}/status`, { token: adminToken, body: { status: 'Resolved' } });
+  await call('PATCH', `/complaints/${mine[0].complaint_id}/status`, { token: adminToken, body: { status: 'In Progress' } });
+  await call('PATCH', `/complaints/${mine[1].complaint_id}/status`, { token: adminToken, body: { status: 'Resolved' } });
   r = await call('GET', '/dashboard/student', { token: studentToken });
   check('total still 3', r.data?.total === 3, `(got ${r.data?.total})`);
   check('pending 1', r.data?.pending === 1, `(got ${r.data?.pending})`);
