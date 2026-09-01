@@ -18,7 +18,7 @@ const DB_PATH = path.join(ROOT, 'data', 'test.db');
 const UPLOAD_DIR = path.join(ROOT, 'uploads', '.test');
 const HEALTH_TIMEOUT_MS = 20000;
 
-const SUITES = ['auth', 'complaints', 'admin', 'dashboard', 'regression'];
+const SUITES = ['auth', 'hostels', 'complaints', 'admin', 'dashboard', 'regression'];
 
 // SQLite in WAL mode keeps two sidecar files next to the database.
 function removeTestDatabase() {

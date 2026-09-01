@@ -2,10 +2,15 @@
 
 // Business logic for the user resource: profile read/update and the admin
 // student listing. Validation rules live here, not in the controller.
+const bcrypt = require('bcryptjs');
 const usersRepo = require('./users.repo');
+const hostelsRepo = require('../hostels/hostels.repo');
+const { validateAccountFields } = require('./account.validation');
 const { AppError } = require('../../middleware/errorHandler');
-const { isString, isNonEmptyString } = require('../../utils/validators');
+const { isString, isNonEmptyString, toPositiveInt } = require('../../utils/validators');
 const { ROLES } = require('../../config/constants');
+
+const BCRYPT_ROUNDS = 10;
 
 function getProfile(userId) {
   const user = usersRepo.findById(userId);
@@ -62,4 +67,48 @@ function listStudents(requester) {
   return usersRepo.listStudents({ hostelId });
 }
 
-module.exports = { getProfile, updateProfile, listStudents };
+// --- Manager provisioning (super admin only, enforced at the route) ---
+
+function listManagers() {
+  return usersRepo.listManagers();
+}
+
+// Creates a manager account bound to one hostel.
+//
+// Managers are provisioned, never self-registered: there is no public path to
+// this, because an account that can act on other people's complaints must be
+// granted deliberately.
+async function createManager({ name, email, password, hostel_id } = {}) {
+  const { name: cleanName, email: normalizedEmail } = validateAccountFields({ name, email, password });
+
+  const hostelId = toPositiveInt(hostel_id);
+  if (hostelId === null) {
+    throw new AppError('Please select a hostel for this manager', 400, 'VALIDATION_ERROR');
+  }
+  if (!hostelsRepo.exists(hostelId)) {
+    throw new AppError('The selected hostel does not exist', 400, 'VALIDATION_ERROR');
+  }
+
+  if (usersRepo.findByEmail(normalizedEmail)) {
+    throw new AppError('An account with this email already exists', 409, 'EMAIL_TAKEN');
+  }
+
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+  try {
+    return usersRepo.createUser({
+      name: cleanName,
+      email: normalizedEmail,
+      passwordHash,
+      role: ROLES.MANAGER,
+      hostelId,
+    });
+  } catch (err) {
+    if (String(err.message).includes('UNIQUE constraint failed')) {
+      throw new AppError('An account with this email already exists', 409, 'EMAIL_TAKEN');
+    }
+    throw err;
+  }
+}
+
+module.exports = { getProfile, updateProfile, listStudents, listManagers, createManager };

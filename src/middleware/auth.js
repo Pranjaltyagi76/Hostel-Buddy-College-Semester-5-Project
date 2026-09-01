@@ -6,7 +6,7 @@
 //   requireStaff — shorthand for "manager or super admin".
 const { verifyToken } = require('../utils/jwt');
 const { AppError } = require('./errorHandler');
-const { STAFF_ROLES } = require('../config/constants');
+const { ROLES, STAFF_ROLES } = require('../config/constants');
 
 function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
@@ -49,4 +49,9 @@ function requireRole(...roles) {
 // the previous two-role model.
 const requireStaff = requireRole(...STAFF_ROLES);
 
-module.exports = { requireAuth, requireRole, requireStaff };
+// Super admin only. Guards the things that shape the system itself rather than
+// the complaints inside it: creating hostels, and provisioning managers.
+// A manager must not be able to widen their own authority.
+const requireSuperAdmin = requireRole(ROLES.SUPER_ADMIN);
+
+module.exports = { requireAuth, requireRole, requireStaff, requireSuperAdmin };

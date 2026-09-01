@@ -7,13 +7,12 @@ const bcrypt = require('bcryptjs');
 const usersRepo = require('../users/users.repo');
 const hostelsRepo = require('../hostels/hostels.repo');
 const { signToken } = require('../../utils/jwt');
+const { validateAccountFields } = require('../users/account.validation');
 const {
   isEmail,
   isNonEmptyString,
   isString,
-  byteLength,
   toPositiveInt,
-  MAX_PASSWORD_BYTES,
 } = require('../../utils/validators');
 const { AppError } = require('../../middleware/errorHandler');
 const { ROLES } = require('../../config/constants');
@@ -33,27 +32,11 @@ function toAuthResponse(user) {
 
 async function register({ name, email, password, roll_no, hostel_id, room_number } = {}) {
   // --- validation (server is the source of truth) ---
-  // Each check tests the type first, so a non-string value is rejected rather
-  // than coerced into nonsense like "[object Object]".
-  if (!isNonEmptyString(name)) {
-    throw new AppError('Name is required', 400, 'VALIDATION_ERROR');
-  }
-  if (name.trim().length > 100) {
-    throw new AppError('Name is too long (max 100 characters)', 400, 'VALIDATION_ERROR');
-  }
-  if (!isEmail(email)) {
-    throw new AppError('A valid email address is required', 400, 'VALIDATION_ERROR');
-  }
-  if (!isString(password) || password.length < 6) {
-    throw new AppError('Password must be at least 6 characters', 400, 'VALIDATION_ERROR');
-  }
-  if (byteLength(password) > MAX_PASSWORD_BYTES) {
-    throw new AppError(
-      `Password is too long (max ${MAX_PASSWORD_BYTES} characters)`,
-      400,
-      'VALIDATION_ERROR'
-    );
-  }
+  // Name, email and password rules are shared with manager provisioning so the
+  // two creation paths cannot drift apart. Each check tests the type first, so
+  // a non-string value is rejected rather than coerced into "[object Object]".
+  const { name: cleanName, email: normalizedEmail } = validateAccountFields({ name, email, password });
+
   // Roll number identifies the student and is now required.
   if (!isNonEmptyString(roll_no)) {
     throw new AppError('Roll number is required', 400, 'VALIDATION_ERROR');
@@ -79,7 +62,6 @@ async function register({ name, email, password, roll_no, hostel_id, room_number
     }
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
   const normalizedRollNo = roll_no.trim();
 
   // --- uniqueness ---
@@ -98,7 +80,7 @@ async function register({ name, email, password, roll_no, hostel_id, room_number
   let user;
   try {
     user = usersRepo.createUser({
-      name: name.trim(),
+      name: cleanName,
       email: normalizedEmail,
       passwordHash,
       role: ROLES.STUDENT,

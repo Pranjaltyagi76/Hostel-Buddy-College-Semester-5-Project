@@ -28,4 +28,20 @@ function listStudents(req, res, next) {
   }
 }
 
-module.exports = { me, updateMe, listStudents };
+function listManagers(req, res, next) {
+  try {
+    res.json(usersService.listManagers());
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createManager(req, res, next) {
+  try {
+    res.status(201).json(await usersService.createManager(req.body));
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { me, updateMe, listStudents, listManagers, createManager };

@@ -13,7 +13,8 @@
     "test:complaints": "node --disable-warning=ExperimentalWarning tests/complaints.test.js",
     "test:admin": "node --disable-warning=ExperimentalWarning tests/admin.test.js",
     "test:dashboard": "node --disable-warning=ExperimentalWarning tests/dashboard.test.js",
-    "test:regression": "node --disable-warning=ExperimentalWarning tests/regression.test.js"
+    "test:regression": "node --disable-warning=ExperimentalWarning tests/regression.test.js",
+    "test:hostels": "node --disable-warning=ExperimentalWarning tests/hostels.test.js"
   },
   "keywords": [
     "hostel",

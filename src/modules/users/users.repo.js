@@ -123,6 +123,13 @@ function listStudents({ hostelId = null } = {}) {
     .all(ROLES.STUDENT);
 }
 
+// Every manager, with the hostel each one is scoped to. Super-admin only view.
+function listManagers() {
+  return db
+    .prepare(`${USER_SELECT} WHERE u.role = ? ORDER BY h.hostel_name, u.name`)
+    .all(ROLES.MANAGER);
+}
+
 function countStudents({ hostelId = null } = {}) {
   if (hostelId) {
     return db
@@ -151,6 +158,7 @@ module.exports = {
   rollNoExists,
   updateProfile,
   listStudents,
+  listManagers,
   countStudents,
   findStaffHostelId,
 };
