@@ -6,7 +6,7 @@
 const complaintsRepo = require('./complaints.repo');
 const { removeUploadedFile } = require('../../middleware/upload');
 const { AppError } = require('../../middleware/errorHandler');
-const { CATEGORIES, STATUSES, ROLES } = require('../../config/constants');
+const { CATEGORIES, STATUSES, ROLES, STAFF_ROLES } = require('../../config/constants');
 const { isString, isNonEmptyString, isTruthyFlag } = require('../../utils/validators');
 
 const MAX_DESCRIPTION = 1000;
@@ -55,7 +55,7 @@ function getOne(requester, id) {
   if (!complaint) throw new AppError('Complaint not found', 404, 'NOT_FOUND');
 
   const isOwner = complaint.user_id === requester.userId;
-  const isAdmin = requester.role === ROLES.ADMIN;
+  const isAdmin = STAFF_ROLES.includes(requester.role);
   if (!isOwner && !isAdmin) {
     throw new AppError('You do not have permission to view this complaint', 403, 'FORBIDDEN');
   }

@@ -2,7 +2,7 @@
 
 const express = require('express');
 const controller = require('./complaints.controller');
-const { requireAuth, requireRole } = require('../../middleware/auth');
+const { requireAuth, requireRole, requireStaff } = require('../../middleware/auth');
 const { uploadImage } = require('../../middleware/upload');
 const { ROLES } = require('../../config/constants');
 
@@ -10,8 +10,8 @@ const router = express.Router();
 
 // --- Admin: view and manage every complaint ---
 // (Listed before "/:id" so the literal paths are matched first.)
-router.get('/', requireAuth, requireRole(ROLES.ADMIN), controller.listAll);
-router.patch('/:id/status', requireAuth, requireRole(ROLES.ADMIN), controller.updateStatus);
+router.get('/', requireAuth, requireStaff, controller.listAll);
+router.patch('/:id/status', requireAuth, requireStaff, controller.updateStatus);
 
 // --- Student: create and manage their own complaints ---
 router.post('/', requireAuth, requireRole(ROLES.STUDENT), uploadImage, controller.create);

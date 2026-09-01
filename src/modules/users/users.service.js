@@ -5,6 +5,7 @@
 const usersRepo = require('./users.repo');
 const { AppError } = require('../../middleware/errorHandler');
 const { isString, isNonEmptyString } = require('../../utils/validators');
+const { ROLES } = require('../../config/constants');
 
 function getProfile(userId) {
   const user = usersRepo.findById(userId);
@@ -30,9 +31,12 @@ function updateProfile(userId, { name, room_number }) {
     }
   }
 
+  // Room number lives on the STUDENT subtype, so it only applies to students.
+  // Leaving it undefined for staff means the repository skips that update
+  // entirely rather than writing to a row that does not exist.
   let newRoom;
-  if (room_number === undefined) {
-    newRoom = user.room_number;
+  if (user.role !== ROLES.STUDENT || room_number === undefined) {
+    newRoom = undefined;
   } else if (room_number === null || room_number === '') {
     newRoom = null;
   } else {
@@ -48,8 +52,14 @@ function updateProfile(userId, { name, room_number }) {
   return usersRepo.updateProfile(userId, { name: newName, roomNumber: newRoom });
 }
 
-function listStudents() {
-  return usersRepo.listStudents();
+// Lists students for a member of staff.
+//
+// A manager sees only their own hostel; a super admin has no hostel and so
+// sees every student. The scope is resolved here from the database rather than
+// taken from the request, so a caller cannot widen it by asking.
+function listStudents(requester) {
+  const hostelId = usersRepo.findStaffHostelId(requester.userId);
+  return usersRepo.listStudents({ hostelId });
 }
 
 module.exports = { getProfile, updateProfile, listStudents };

@@ -2,8 +2,7 @@
 
 const express = require('express');
 const controller = require('./users.controller');
-const { requireAuth, requireRole } = require('../../middleware/auth');
-const { ROLES } = require('../../config/constants');
+const { requireAuth, requireStaff } = require('../../middleware/auth');
 
 const router = express.Router();
 
@@ -11,7 +10,8 @@ const router = express.Router();
 router.get('/me', requireAuth, controller.me);
 router.put('/me', requireAuth, controller.updateMe);
 
-// Only the administrator can list students.
-router.get('/', requireAuth, requireRole(ROLES.ADMIN), controller.listStudents);
+// Staff only. A manager sees their own hostel's students; a super admin sees
+// all of them. The scope is applied in the service, not here.
+router.get('/', requireAuth, requireStaff, controller.listStudents);
 
 module.exports = router;

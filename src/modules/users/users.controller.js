@@ -22,7 +22,7 @@ function updateMe(req, res, next) {
 
 function listStudents(req, res, next) {
   try {
-    res.json(usersService.listStudents());
+    res.json(usersService.listStudents(req.user));
   } catch (err) {
     next(err);
   }

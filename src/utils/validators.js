@@ -29,6 +29,22 @@ function byteLength(value) {
   return isString(value) ? Buffer.byteLength(value, 'utf8') : 0;
 }
 
+// Coerces an identifier to a positive integer, or null if it is not one.
+//
+// Accepts a JSON number or the string a form sends, but rejects anything that
+// is not a whole number above zero — including "3abc", 2.5, "" and objects.
+// Returning null rather than NaN forces callers to handle the bad case.
+function toPositiveInt(value) {
+  if (typeof value === 'number') {
+    return Number.isInteger(value) && value > 0 ? value : null;
+  }
+  if (!isString(value)) return null;
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const n = Number(trimmed);
+  return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
+
 // Accepts the several ways a checkbox arrives: JSON true, or the strings a
 // multipart form sends ("true", "1", "on").
 function isTruthyFlag(value) {
@@ -43,5 +59,6 @@ module.exports = {
   isEmail,
   isNonEmptyString,
   byteLength,
+  toPositiveInt,
   isTruthyFlag,
 };
