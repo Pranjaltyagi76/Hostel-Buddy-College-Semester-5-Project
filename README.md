@@ -54,7 +54,7 @@ Regenerate them any time with `node docs/screenshots-source/capture.js` (headles
 - Personal dashboard with their own complaint statistics
 
 **Hostel manager**
-- Everything below, narrowed to **their own hostel** — the queue, the search, the students list and every dashboard figure
+- The complaint queue for **their own hostel** — searching, filtering and paginating it, with the students list and every dashboard figure narrowed the same way
 - Advance a complaint's status and leave remarks for the student
 - Provisioned by a super admin; there is no public sign-up for this role
 
