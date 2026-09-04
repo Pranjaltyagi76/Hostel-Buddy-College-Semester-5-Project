@@ -86,6 +86,23 @@ const UI = {
       el.querySelector('.nav-links').classList.toggle('open');
   },
 
+  // Renders a complaint attachment for a detail view, or the "None" placeholder.
+  // Both the student's page and the staff page show attachments the same way,
+  // so the markup lives here rather than being written out twice.
+  //
+  // `preload="metadata"` fetches only enough of the video to draw the controls
+  // and show its length; the rest is downloaded when the viewer presses play.
+  attachmentImg(url) {
+    return url
+      ? `<img class="detail-img" src="${UI.esc(url)}" alt="Complaint image">`
+      : '<span class="muted">None</span>';
+  },
+  attachmentVideo(url) {
+    return url
+      ? `<video class="detail-video" src="${UI.esc(url)}" controls preload="metadata"></video>`
+      : '<span class="muted">None</span>';
+  },
+
   // Alert helpers — target an .alert element by id.
   showError(id, message) { this._alert(id, message, 'error'); },
   showSuccess(id, message) { this._alert(id, message, 'success'); },

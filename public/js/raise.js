@@ -19,7 +19,12 @@ description.addEventListener('input', () => { charCount.textContent = descriptio
 const form = document.getElementById('complaintForm');
 const submitBtn = document.getElementById('submitBtn');
 const imageInput = document.getElementById('image');
-const MAX_BYTES = 5 * 1024 * 1024;
+const videoInput = document.getElementById('video');
+
+// Mirrors the server's limits, so an oversized file is caught before it is
+// uploaded rather than after. The server enforces them regardless.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 30 * 1024 * 1024;
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -30,15 +35,20 @@ form.addEventListener('submit', async (e) => {
   if (!category) return UI.showError('formError', 'Please select a category.');
   if (!desc) return UI.showError('formError', 'Please describe the issue.');
 
-  const file = imageInput.files[0];
-  if (file && file.size > MAX_BYTES) {
+  const image = imageInput.files[0];
+  if (image && image.size > MAX_IMAGE_BYTES) {
     return UI.showError('formError', 'Image is too large (max 5 MB).');
+  }
+  const video = videoInput.files[0];
+  if (video && video.size > MAX_VIDEO_BYTES) {
+    return UI.showError('formError', 'Video is too large (max 30 MB).');
   }
 
   const fd = new FormData();
   fd.append('category', category);
   fd.append('description', desc);
-  if (file) fd.append('image', file);
+  if (image) fd.append('image', image);
+  if (video) fd.append('video', video);
 
   submitBtn.disabled = true;
   submitBtn.textContent = 'Submitting…';

@@ -30,8 +30,17 @@ const config = {
   dbPath: resolveFromRoot(process.env.DB_PATH, './data/hostel.db'),
   uploadDir: resolveFromRoot(process.env.UPLOAD_DIR, './uploads'),
 
-  // Upload limits
-  maxUploadBytes: 5 * 1024 * 1024, // 5 MB
+  // Upload limits.
+  //
+  // Video gets its own, much larger ceiling: a phone clip of a leaking pipe is
+  // an order of magnitude bigger than a photo of one. They are separate numbers
+  // so raising the video cap never quietly raises the image cap too.
+  //
+  // The size cap is also the *only* deliberate limit on a video. Enforcing a
+  // maximum duration would mean decoding container metadata on the server, and
+  // a bitrate-independent byte ceiling bounds the storage cost just as well.
+  maxUploadBytes: 5 * 1024 * 1024, // 5 MB  — images
+  maxVideoBytes: 30 * 1024 * 1024, // 30 MB — video
 };
 
 // In production, refuse to start on insecure defaults instead of only warning.

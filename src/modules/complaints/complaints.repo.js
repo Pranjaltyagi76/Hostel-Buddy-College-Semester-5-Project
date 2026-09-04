@@ -28,13 +28,13 @@ const COMPLAINT_SELECT = `
 
 // hostelId is supplied by the service from the student's own record — never
 // from the request — so a client cannot file a complaint against another hostel.
-function create({ studentId, hostelId, category, description, imageUrl = null }) {
+function create({ studentId, hostelId, category, description, imageUrl = null, videoUrl = null }) {
   const info = db
     .prepare(
-      `INSERT INTO complaint (student_id, hostel_id, category, problem_description, image_url, status)
-       VALUES (?, ?, ?, ?, ?, 'Pending')`
+      `INSERT INTO complaint (student_id, hostel_id, category, problem_description, image_url, video_url, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'Pending')`
     )
-    .run(studentId, hostelId, category, description, imageUrl);
+    .run(studentId, hostelId, category, description, imageUrl, videoUrl);
   return findById(Number(info.lastInsertRowid));
 }
 
@@ -50,12 +50,13 @@ function findByStudent(studentId) {
 
 // Updates the student-editable fields and bumps updated_at. Status is never
 // changed here — that is a staff-only operation.
-function update(complaintId, { category, description, imageUrl = null }) {
+function update(complaintId, { category, description, imageUrl = null, videoUrl = null }) {
   db.prepare(
     `UPDATE complaint
-        SET category = ?, problem_description = ?, image_url = ?, updated_at = datetime('now')
+        SET category = ?, problem_description = ?, image_url = ?, video_url = ?,
+            updated_at = datetime('now')
       WHERE complaint_id = ?`
-  ).run(category, description, imageUrl, complaintId);
+  ).run(category, description, imageUrl, videoUrl, complaintId);
   return findById(complaintId);
 }
 

@@ -3,7 +3,7 @@
 const express = require('express');
 const controller = require('./complaints.controller');
 const { requireAuth, requireRole, requireStaff } = require('../../middleware/auth');
-const { uploadImage } = require('../../middleware/upload');
+const { uploadComplaintMedia } = require('../../middleware/upload');
 const { ROLES } = require('../../config/constants');
 
 const router = express.Router();
@@ -14,9 +14,9 @@ router.get('/', requireAuth, requireStaff, controller.listAll);
 router.patch('/:id/status', requireAuth, requireStaff, controller.updateStatus);
 
 // --- Student: create and manage their own complaints ---
-router.post('/', requireAuth, requireRole(ROLES.STUDENT), uploadImage, controller.create);
+router.post('/', requireAuth, requireRole(ROLES.STUDENT), uploadComplaintMedia, controller.create);
 router.get('/mine', requireAuth, requireRole(ROLES.STUDENT), controller.listMine);
-router.put('/:id', requireAuth, requireRole(ROLES.STUDENT), uploadImage, controller.update);
+router.put('/:id', requireAuth, requireRole(ROLES.STUDENT), uploadComplaintMedia, controller.update);
 router.delete('/:id', requireAuth, requireRole(ROLES.STUDENT), controller.remove);
 
 // --- Owner or admin: view a single complaint (ownership enforced in service) ---

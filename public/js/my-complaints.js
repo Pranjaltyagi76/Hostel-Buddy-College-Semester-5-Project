@@ -17,6 +17,54 @@ function closeModal() { modal.classList.remove('show'); modalBody.innerHTML = ''
 
 const short = (s, n = 60) => (s && s.length > n ? s.slice(0, n) + '…' : s || '');
 
+// Mirrors the server's limits so an oversized file is caught before it is sent.
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 30 * 1024 * 1024;
+
+// The two attachment slots on the edit form, described once so the markup, the
+// size checks and the field names all stay in step. Image and video behave
+// identically — choose a file to replace what is there, or tick the box to
+// remove it — so they are driven by the same code rather than written twice.
+const ATTACHMENTS = [
+  {
+    field: 'image',
+    id: 'editImage',
+    kind: 'image',
+    article: 'An',
+    accept: 'image/png,image/jpeg,image/webp',
+    formats: 'PNG, JPEG or WEBP, up to 5 MB.',
+    maxBytes: MAX_IMAGE_BYTES,
+    tooLarge: 'Image is too large (max 5 MB).',
+  },
+  {
+    field: 'video',
+    id: 'editVideo',
+    kind: 'video',
+    article: 'A',
+    accept: 'video/mp4,video/webm',
+    formats: 'MP4 or WEBM, up to 30 MB.',
+    maxBytes: MAX_VIDEO_BYTES,
+    tooLarge: 'Video is too large (max 30 MB).',
+  },
+];
+
+// One editable attachment slot, rendered from the table above.
+function attachmentField({ id, kind, article, accept, formats }, current) {
+  return `
+      <div class="form-group">
+        <label for="${id}">${current ? `Replace ${kind}` : `Attach ${article.toLowerCase()} ${kind}`} <span class="muted">(optional)</span></label>
+        <input type="file" id="${id}" accept="${accept}">
+        <div class="hint">${current
+          ? `${article} ${kind} is already attached; choosing a new one replaces it.`
+          : formats}</div>
+        ${current ? `
+        <label class="checkbox-row" for="${id}Remove">
+          <input type="checkbox" id="${id}Remove">
+          <span>Remove the current ${kind}</span>
+        </label>` : ''}
+      </div>`;
+}
+
 async function load() {
   listArea.innerHTML = '<div class="loading"><div class="spinner"></div>Loading your complaints…</div>';
   try {
@@ -77,8 +125,6 @@ function viewComplaint(id) {
   const c = items[id];
   if (!c) return;
   openModal(`Complaint #${c.complaint_id}`);
-  const img = c.image_url
-    ? `<img class="detail-img" src="${UI.esc(c.image_url)}" alt="Complaint image">` : '<span class="muted">None</span>';
   modalBody.innerHTML =
     detailRow('Category', `<span class="chip">${UI.esc(c.category)}</span>`) +
     detailRow('Status', UI.statusBadge(c.status)) +
@@ -87,7 +133,8 @@ function viewComplaint(id) {
     detailRow('Submitted', UI.fmtDate(c.created_at)) +
     detailRow('Last Updated', UI.fmtDate(c.updated_at)) +
     detailRow('Resolved On', c.resolved_at ? UI.fmtDate(c.resolved_at) : '<span class="muted">—</span>') +
-    detailRow('Image', img);
+    detailRow('Image', UI.attachmentImg(c.image_url)) +
+    detailRow('Video', UI.attachmentVideo(c.video_url));
 }
 
 function editComplaint(id) {
@@ -106,16 +153,7 @@ function editComplaint(id) {
         <label for="editDescription">Description</label>
         <textarea id="editDescription" maxlength="1000">${UI.esc(c.problem_description)}</textarea>
       </div>
-      <div class="form-group">
-        <label for="editImage">${c.image_url ? 'Replace image' : 'Attach an image'} <span class="muted">(optional)</span></label>
-        <input type="file" id="editImage" accept="image/png,image/jpeg,image/webp">
-        <div class="hint">${c.image_url ? 'An image is already attached; choosing a new one replaces it.' : 'PNG, JPEG or WEBP, up to 5 MB.'}</div>
-        ${c.image_url ? `
-        <label class="checkbox-row" for="editRemoveImage">
-          <input type="checkbox" id="editRemoveImage">
-          <span>Remove the current image</span>
-        </label>` : ''}
-      </div>
+      ${ATTACHMENTS.map((a) => attachmentField(a, c[`${a.field}_url`])).join('')}
       <button type="submit" class="btn" id="editSubmit">Save Changes</button>
       <button type="button" class="btn btn-ghost" id="editCancel">Cancel</button>
     </form>`;
@@ -132,15 +170,18 @@ function editComplaint(id) {
     fd.append('category', category);
     fd.append('description', desc);
 
-    const file = document.getElementById('editImage').files[0];
-    const removeBox = document.getElementById('editRemoveImage');
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) return UI.showError('editError', 'Image is too large (max 5 MB).');
-      fd.append('image', file);
-    } else if (removeBox && removeBox.checked) {
-      // Only meaningful when no replacement was chosen — a new file already
-      // supersedes the old one.
-      fd.append('remove_image', 'true');
+    // A chosen file replaces whatever is there; the "remove" box is only
+    // meaningful when no replacement was picked, since a new file already
+    // supersedes the old one.
+    for (const a of ATTACHMENTS) {
+      const file = document.getElementById(a.id).files[0];
+      const removeBox = document.getElementById(`${a.id}Remove`);
+      if (file) {
+        if (file.size > a.maxBytes) return UI.showError('editError', a.tooLarge);
+        fd.append(a.field, file);
+      } else if (removeBox && removeBox.checked) {
+        fd.append(`remove_${a.field}`, 'true');
+      }
     }
 
     const btn = document.getElementById('editSubmit');

@@ -159,7 +159,7 @@ npm run test:regression  # in another (or test:auth / test:complaints / test:adm
 | `JWT_SECRET` | Secret for signing auth tokens |
 | `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Seeded administrator account |
 | `DB_PATH` | SQLite database file location |
-| `UPLOAD_DIR` | Where complaint images are stored |
+| `UPLOAD_DIR` | Where complaint images and videos are stored |
 
 ---
 
@@ -200,7 +200,7 @@ Hostel Buddy/
 ├── public/               # frontend: pages + css/ + js/ + vendor/ (Chart.js)
 ├── tests/                # API integration tests + run.js (self-contained runner)
 ├── data/                 # SQLite database (git-ignored)
-└── uploads/              # complaint images (git-ignored)
+└── uploads/              # complaint images + videos (git-ignored)
 ```
 
 ---

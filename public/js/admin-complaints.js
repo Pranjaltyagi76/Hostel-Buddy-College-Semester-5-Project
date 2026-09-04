@@ -142,7 +142,6 @@ function manage(id) {
   modalTitle.textContent = `Complaint #${c.complaint_id}`;
   modal.classList.add('show');
 
-  const img = c.image_url ? `<img class="detail-img" src="${UI.esc(c.image_url)}" alt="Complaint image">` : '<span class="muted">None</span>';
   modalBody.innerHTML = `
     <div id="mgError" class="alert alert-error"></div>
     <div id="mgSuccess" class="alert alert-success"></div>
@@ -152,7 +151,8 @@ function manage(id) {
     ${detailRow('Description', UI.esc(c.problem_description))}
     ${detailRow('Submitted', UI.fmtDate(c.created_at))}
     ${detailRow('Resolved On', c.resolved_at ? UI.fmtDate(c.resolved_at) : '<span class="muted">—</span>')}
-    ${detailRow('Image', img)}
+    ${detailRow('Image', UI.attachmentImg(c.image_url))}
+    ${detailRow('Video', UI.attachmentVideo(c.video_url))}
     <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
     <form id="statusForm">
       <div class="form-group">

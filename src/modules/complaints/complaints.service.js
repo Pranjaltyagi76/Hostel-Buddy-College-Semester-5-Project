@@ -71,7 +71,7 @@ function validateDescription(description) {
 // The complaint's hostel is taken from the student's own record, never from
 // the request. A student cannot file a complaint against a hostel they do not
 // belong to, because they are never asked which hostel it is.
-function createComplaint(studentId, { category, description } = {}, imageUrl = null) {
+function createComplaint(studentId, { category, description } = {}, media = {}) {
   validateCategory(category);
   const cleanDescription = validateDescription(description);
 
@@ -85,7 +85,8 @@ function createComplaint(studentId, { category, description } = {}, imageUrl = n
     hostelId: student.hostel_id,
     category,
     description: cleanDescription,
-    imageUrl,
+    imageUrl: media.imageUrl ?? null,
+    videoUrl: media.videoUrl ?? null,
   });
 }
 
@@ -122,7 +123,26 @@ function loadOwnedPending(studentId, complaintId) {
   return complaint;
 }
 
-function updateComplaint(studentId, complaintId, { category, description, remove_image } = {}, newImageUrl = null) {
+// Attachment rules, in priority order: a newly uploaded file replaces whatever
+// was there; otherwise an explicit "remove" flag clears it; otherwise it is
+// left untouched. Whichever file the complaint stops pointing at is deleted, so
+// the uploads directory never accumulates orphans.
+//
+// The image and the video follow exactly the same rule, so they share it.
+function resolveAttachment(currentUrl, newUrl, removeFlag) {
+  if (newUrl) {
+    if (currentUrl) removeUploadedFile(currentUrl);
+    return newUrl;
+  }
+  if (isTruthyFlag(removeFlag) && currentUrl) {
+    removeUploadedFile(currentUrl);
+    return null;
+  }
+  return currentUrl;
+}
+
+function updateComplaint(studentId, complaintId, body = {}, media = {}) {
+  const { category, description, remove_image, remove_video } = body;
   const complaint = loadOwnedPending(studentId, complaintId);
 
   const newCategory = category === undefined ? complaint.category : category;
@@ -130,28 +150,19 @@ function updateComplaint(studentId, complaintId, { category, description, remove
   const newDescription =
     description === undefined ? complaint.problem_description : validateDescription(description);
 
-  // Image rules, in priority order: a newly uploaded file replaces whatever was
-  // there; otherwise an explicit "remove" clears it; otherwise it is untouched.
-  let imageUrl = complaint.image_url;
-  if (newImageUrl) {
-    imageUrl = newImageUrl;
-    if (complaint.image_url) removeUploadedFile(complaint.image_url);
-  } else if (isTruthyFlag(remove_image) && complaint.image_url) {
-    imageUrl = null;
-    removeUploadedFile(complaint.image_url);
-  }
-
   return complaintsRepo.update(complaintId, {
     category: newCategory,
     description: newDescription,
-    imageUrl,
+    imageUrl: resolveAttachment(complaint.image_url, media.imageUrl, remove_image),
+    videoUrl: resolveAttachment(complaint.video_url, media.videoUrl, remove_video),
   });
 }
 
 function deleteComplaint(studentId, complaintId) {
   const complaint = loadOwnedPending(studentId, complaintId);
   complaintsRepo.remove(complaintId);
-  if (complaint.image_url) removeUploadedFile(complaint.image_url);
+  removeUploadedFile(complaint.image_url);
+  removeUploadedFile(complaint.video_url);
   return { deleted: true, complaint_id: complaint.complaint_id };
 }
 

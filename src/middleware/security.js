@@ -10,6 +10,7 @@ const config = require('../config/env');
 //  - scripts only from our own origin (all page scripts are external files),
 //  - inline styles allowed (pages use <style> blocks and style attributes),
 //  - images from our origin plus data: URIs,
+//  - video from our origin (complaint attachments are served from /uploads),
 //  - no plugins, and framing limited to same origin.
 const securityHeaders = helmet({
   contentSecurityPolicy: {
@@ -18,6 +19,9 @@ const securityHeaders = helmet({
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:'],
+      // Inherited from default-src anyway, but stated outright so the policy
+      // records that <video> playback is intended.
+      mediaSrc: ["'self'"],
       objectSrc: ["'none'"],
       frameAncestors: ["'self'"],
       baseUri: ["'self'"],
