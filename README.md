@@ -272,6 +272,7 @@ Errors come back in one shape: `{ "error": { "message": "...", "code": "..." } }
 | `PORT` | Server port (default 4000) |
 | `NODE_ENV` | `development` or `production` — production refuses to boot on insecure defaults |
 | `JWT_SECRET` | Secret for signing auth tokens |
+| `LOG_LEVEL` | Request logging: `api` (default), `all`, or `none` |
 | `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Seeded super-admin account |
 | `DB_PATH` | SQLite database file location |
 | `UPLOAD_DIR` | Where complaint images and videos are stored |

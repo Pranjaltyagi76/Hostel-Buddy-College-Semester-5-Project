@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Hostel Buddy">
+  <!-- A filled tile rather than a bare silhouette: the icon has to stay legible
+       on a light tab strip and a dark one, and a navy shape on transparent
+       disappears against dark chrome. -->
+  <rect width="32" height="32" rx="7" fill="#1f4e79"/>
+  <path d="M16 6.5 27 15.5h-3V25a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 8 25v-9.5H5Z" fill="#ffffff"/>
+  <rect x="13.5" y="18" width="5" height="8.5" rx="1" fill="#2e75b6"/>
+</svg>
