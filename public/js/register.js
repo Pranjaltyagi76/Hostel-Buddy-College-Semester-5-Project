@@ -1,6 +1,6 @@
 'use strict';
 
-if (Auth.isLoggedIn()) location.href = Auth.homeFor(Auth.getUser());
+// data-requires="guest" + js/guard.js send an already-signed-in visitor home.
 
 const form = document.getElementById('registerForm');
 const submitBtn = document.getElementById('submitBtn');

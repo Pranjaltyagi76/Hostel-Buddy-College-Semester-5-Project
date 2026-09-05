@@ -1,7 +1,7 @@
 'use strict';
 
-// Redirect away if already signed in.
-if (Auth.isLoggedIn()) location.href = Auth.homeFor(Auth.getUser());
+// Redirecting an already-signed-in visitor away is handled by js/guard.js
+// (data-requires="guest"), which confirms the session with the server first.
 
 const form = document.getElementById('loginForm');
 const submitBtn = document.getElementById('submitBtn');

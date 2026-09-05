@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-requires="super">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hostels — Hostel Buddy Admin</title>
+  <!-- Loaded from <head>, before the stylesheet and before any page markup:
+       a failed check must navigate away before the body is parsed. -->
+  <script src="js/auth.js"></script>
+  <script src="js/guard.js"></script>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -49,7 +53,6 @@
     </div>
   </div>
 
-  <script src="js/auth.js"></script>
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/hostels.js"></script>

@@ -10,6 +10,11 @@ const Auth = {
     localStorage.setItem(this.TOKEN_KEY, token);
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   },
+  // Replace just the cached user snapshot, keeping the token. Used by the page
+  // guard after the server tells it who this person really is.
+  saveUser(user) {
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+  },
   getToken() {
     return localStorage.getItem(this.TOKEN_KEY);
   },
@@ -26,7 +31,9 @@ const Auth = {
   },
   logout() {
     this.clear();
-    location.href = 'login.html';
+    // replace, not href: the page being left must not remain in the history,
+    // or Back returns to it — and a bfcache restore returns to it fully drawn.
+    location.replace('login.html');
   },
 
   // --- Roles ---
@@ -47,17 +54,22 @@ const Auth = {
   },
 
   // --- Page guards (call at the top of a page script) ---
+  //
+  // js/guard.js already enforced this from <head>, before the page rendered.
+  // These remain as a second line of defence: a page that ever ships without
+  // the head script, or with a mistyped data-requires, is still caught here.
+  // Every redirect uses replace() so nothing protected is left in the history.
   requireStudent() {
     const user = this.getUser();
-    if (!this.isLoggedIn() || !user) { location.href = 'login.html'; return false; }
-    if (user.role !== 'student') { location.href = 'admin.html'; return false; }
+    if (!this.isLoggedIn() || !user) { location.replace('login.html'); return false; }
+    if (user.role !== 'student') { location.replace('admin.html'); return false; }
     return true;
   },
   // Either staff role — the shared admin screens.
   requireStaff() {
     const user = this.getUser();
-    if (!this.isLoggedIn() || !user) { location.href = 'login.html'; return false; }
-    if (!this.isStaff(user)) { location.href = 'dashboard.html'; return false; }
+    if (!this.isLoggedIn() || !user) { location.replace('login.html'); return false; }
+    if (!this.isStaff(user)) { location.replace('dashboard.html'); return false; }
     return true;
   },
   // Super admin only — hostel and manager management. A manager landing here
@@ -65,8 +77,8 @@ const Auth = {
   // in perfectly well, just not for this page.
   requireSuperAdmin() {
     const user = this.getUser();
-    if (!this.isLoggedIn() || !user) { location.href = 'login.html'; return false; }
-    if (!this.isSuperAdmin(user)) { location.href = 'admin.html'; return false; }
+    if (!this.isLoggedIn() || !user) { location.replace('login.html'); return false; }
+    if (!this.isSuperAdmin(user)) { location.replace('admin.html'); return false; }
     return true;
   },
 };

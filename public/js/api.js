@@ -33,7 +33,9 @@ async function api(method, path, options = {}) {
   if (res.status === 401) {
     Auth.clear();
     const onPublic = /(^|\/)(index\.html|login\.html|register\.html)$/.test(location.pathname) || location.pathname.endsWith('/');
-    if (!onPublic) location.href = 'login.html';
+    // replace(), so the page whose session just died is not left in the
+    // history for the Back button to return to.
+    if (!onPublic) location.replace('login.html');
     throw new ApiError('Your session has expired. Please log in again.', 401, data);
   }
   if (!res.ok) {
