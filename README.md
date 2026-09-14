@@ -329,11 +329,6 @@ Documented the way real engineering work is — decisions before code, and an ho
 
 ---
 
-## 🔭 Roadmap
-
-Email & push notifications · a maintenance-staff role beneath the manager · complaint ratings · QR-code room identification · native mobile app · AI-assisted categorisation. Scope is deliberately frozen for this version — see [requirements.md](docs/requirements.md) §8.
-
----
 
 ## 📄 License
 
