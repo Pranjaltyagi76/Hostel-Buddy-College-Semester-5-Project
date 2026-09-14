@@ -330,6 +330,3 @@ Documented the way real engineering work is — decisions before code, and an ho
 ---
 
 
-## 📄 License
-
-MIT — see [package.json](package.json).
