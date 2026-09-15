@@ -119,6 +119,10 @@ CREATE INDEX IF NOT EXISTS idx_complaint_status  ON complaint(status);
 -- Category filter + distribution chart.
 CREATE INDEX IF NOT EXISTS idx_complaint_cat     ON complaint(category);
 
+-- Super-admin dashboard activity trend: complaints raised and resolved over time.
+CREATE INDEX IF NOT EXISTS idx_complaint_created ON complaint(created_at);
+CREATE INDEX IF NOT EXISTS idx_complaint_resolved ON complaint(resolved_at);
+
 -- Listing the students of one hostel.
 CREATE INDEX IF NOT EXISTS idx_student_hostel    ON student(hostel_id);
 

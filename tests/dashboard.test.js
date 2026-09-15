@@ -58,6 +58,12 @@ const ALL_CATEGORIES = ['Electricity','Plumbing','Water Supply','Wi-Fi','Cleanin
   check('byCategory sums to totalComplaints', sum(after.byCategory) === after.totalComplaints, `(${sum(after.byCategory)} vs ${after.totalComplaints})`);
   check('totalComplaints increased by exactly 3', after.totalComplaints === before.totalComplaints + 3, `(${before.totalComplaints} -> ${after.totalComplaints})`);
   check('totalStudents increased by exactly 1', after.totalStudents === before.totalStudents + 1, `(${before.totalStudents} -> ${after.totalStudents})`);
+  check('super admin activity has 30 daily points', after.activity?.periodDays === 30 && after.activity.daily?.length === 30);
+  check('activity days are chronological', after.activity.daily.every((x, i, a) => i === 0 || a[i - 1].day < x.day));
+  check('raised activity total matches daily values', after.activity.raisedTotal === after.activity.daily.reduce((n, x) => n + x.raised, 0));
+  check('resolved activity total matches daily values', after.activity.resolvedTotal === after.activity.daily.reduce((n, x) => n + x.resolved, 0));
+  check('three new complaints appear in raised activity', after.activity.raisedTotal === before.activity.raisedTotal + 3,
+    `(${before.activity.raisedTotal} -> ${after.activity.raisedTotal})`);
 
   console.log('\n3) totalStudents matches the admin student list length');
   const users = (await call('GET', '/users', { token: adminToken })).data;
@@ -83,6 +89,9 @@ const ALL_CATEGORIES = ['Electricity','Plumbing','Water Supply','Wi-Fi','Cleanin
   check('inProgress 1', r.data?.inProgress === 1, `(got ${r.data?.inProgress})`);
   check('resolved 1', r.data?.resolved === 1, `(got ${r.data?.resolved})`);
   check('parts sum to total', (r.data.pending + r.data.inProgress + r.data.resolved + r.data.closed) === r.data.total);
+  const activityAfterResolve = (await call('GET', '/dashboard/admin', { token: adminToken })).data.activity;
+  check('new resolution appears in resolved activity', activityAfterResolve.resolvedTotal === after.activity.resolvedTotal + 1,
+    `(${after.activity.resolvedTotal} -> ${activityAfterResolve.resolvedTotal})`);
 
   console.log('\n7) Guards');
   r = await call('GET', '/dashboard/admin', { token: studentToken });

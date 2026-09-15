@@ -38,6 +38,7 @@ function statCard(num, label, accent) {
 
   renderCategoryChart(d.byCategory);
   renderStatusChart(d.byStatus);
+  if (d.activity) renderActivityChart(d.activity);
   renderRecent(d.recent);
 })();
 
@@ -83,6 +84,53 @@ function renderStatusChart(byStatus) {
         legend: { display: false },
         title: { display: true, text: 'Complaints by Status', font: { size: 14 } },
       },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+}
+
+function renderActivityChart(activity) {
+  const card = document.getElementById('activityCard');
+  card.hidden = false;
+  document.getElementById('activityPeriod').textContent =
+    `Daily institution-wide activity for the last ${activity.periodDays} days.`;
+  document.getElementById('activityStats').innerHTML = [
+    statCard(activity.raisedTotal, `Raised (${activity.periodDays} days)`, 'total'),
+    statCard(activity.resolvedTotal, `Resolved (${activity.periodDays} days)`, 'resolved'),
+  ].join('');
+
+  const labels = activity.daily.map((row) => {
+    const date = new Date(`${row.day}T00:00:00`);
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  });
+
+  new Chart(document.getElementById('activityChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Raised',
+          data: activity.daily.map((row) => row.raised),
+          borderColor: '#2e75b6',
+          backgroundColor: 'rgba(46, 117, 182, .12)',
+          tension: 0.25,
+          fill: true,
+        },
+        {
+          label: 'Resolved',
+          data: activity.daily.map((row) => row.resolved),
+          borderColor: '#5a8f4e',
+          backgroundColor: 'rgba(90, 143, 78, .12)',
+          tension: 0.25,
+          fill: true,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
     },
   });

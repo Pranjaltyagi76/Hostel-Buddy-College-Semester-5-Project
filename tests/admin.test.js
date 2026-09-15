@@ -187,7 +187,9 @@ const login = async (email, password) =>
   const dashSuper = (await call('GET', '/dashboard/admin', { token: adminToken })).data;
   const dashA = (await call('GET', '/dashboard/admin', { token: mgrA })).data;
   check('super admin dashboard reports no scope', dashSuper.scope?.hostel_id === null);
+  check('super admin receives global raised/resolved activity', dashSuper.activity?.daily?.length === 30);
   check('manager dashboard names their hostel', dashA.scope?.hostel_name === 'Aryabhatta Hostel', `(got ${dashA.scope?.hostel_name})`);
+  check('manager does not receive the global activity trend', dashA.activity === undefined);
   check('manager sees fewer complaints than the super admin',
     dashA.totalComplaints < dashSuper.totalComplaints,
     `(manager ${dashA.totalComplaints}, super ${dashSuper.totalComplaints})`);

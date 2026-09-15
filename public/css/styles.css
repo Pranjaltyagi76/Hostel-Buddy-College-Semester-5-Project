@@ -206,6 +206,8 @@ td.actions { white-space: nowrap; }
 .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .chart-box { position: relative; min-height: 280px; }
 .chart-box canvas { max-height: 300px; }
+.activity-stats { max-width: 454px; margin: 16px 0; }
+.activity-chart { min-height: 300px; }
 
 /* ===== Pagination ===== */
 .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 18px; }

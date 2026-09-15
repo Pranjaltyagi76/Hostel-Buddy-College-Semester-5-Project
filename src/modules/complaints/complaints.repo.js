@@ -202,6 +202,44 @@ function recent(limit = 5, hostelId = null) {
     .all(...params);
 }
 
+// One zero-filled row per UTC day for the super-admin activity chart.
+// `resolved_at` is written only the first time a complaint reaches Resolved or
+// Closed, so it measures completed work without double-counting later updates.
+function dailyActivity(days = 30) {
+  const safeDays = Number.isInteger(days) && days > 0 && days <= 365 ? days : 30;
+  const startModifier = `-${safeDays - 1} days`;
+
+  return db.prepare(
+    `WITH RECURSIVE date_range(day) AS (
+       SELECT date('now', ?)
+       UNION ALL
+       SELECT date(day, '+1 day')
+         FROM date_range
+        WHERE day < date('now')
+     ),
+     raised AS (
+       SELECT date(created_at) AS day, COUNT(*) AS n
+         FROM complaint
+        WHERE created_at >= date('now', ?)
+        GROUP BY date(created_at)
+     ),
+     resolved AS (
+       SELECT date(resolved_at) AS day, COUNT(*) AS n
+         FROM complaint
+        WHERE resolved_at IS NOT NULL
+          AND resolved_at >= date('now', ?)
+        GROUP BY date(resolved_at)
+     )
+     SELECT d.day,
+            COALESCE(r.n, 0) AS raised,
+            COALESCE(x.n, 0) AS resolved
+       FROM date_range d
+       LEFT JOIN raised r ON r.day = d.day
+       LEFT JOIN resolved x ON x.day = d.day
+      ORDER BY d.day`
+  ).all(startModifier, startModifier, startModifier);
+}
+
 module.exports = {
   create,
   findById,
@@ -215,4 +253,5 @@ module.exports = {
   statusCounts,
   categoryCounts,
   recent,
+  dailyActivity,
 };

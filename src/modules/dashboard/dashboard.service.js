@@ -5,7 +5,9 @@
 // student and admin dashboards need.
 const complaintsRepo = require('../complaints/complaints.repo');
 const usersRepo = require('../users/users.repo');
-const { STATUSES, CATEGORIES } = require('../../config/constants');
+const { STATUSES, CATEGORIES, ROLES } = require('../../config/constants');
+
+const ACTIVITY_DAYS = 30;
 
 // Turn grouped rows like [{ status: 'Pending', n: 4 }] into a complete map
 // with every expected key present and zero-filled (so charts never miss a bar).
@@ -40,7 +42,7 @@ function adminDashboard(requester) {
   const hostelId = usersRepo.findStaffHostelId(requester.userId);
   const scope = hostelId ? usersRepo.findById(requester.userId) : null;
 
-  return {
+  const dashboard = {
     scope: hostelId
       ? { hostel_id: hostelId, hostel_name: scope ? scope.hostel_name : null }
       : { hostel_id: null, hostel_name: null },
@@ -50,6 +52,20 @@ function adminDashboard(requester) {
     byCategory: zeroFilled(CATEGORIES, complaintsRepo.categoryCounts(hostelId), 'category'),
     recent: complaintsRepo.recent(5, hostelId),
   };
+
+  // Only a super admin sees the institution-wide raised-versus-resolved
+  // activity trend. Managers keep their existing hostel-scoped dashboard.
+  if (requester.role === ROLES.SUPER_ADMIN) {
+    const daily = complaintsRepo.dailyActivity(ACTIVITY_DAYS);
+    dashboard.activity = {
+      periodDays: ACTIVITY_DAYS,
+      raisedTotal: daily.reduce((total, row) => total + row.raised, 0),
+      resolvedTotal: daily.reduce((total, row) => total + row.resolved, 0),
+      daily,
+    };
+  }
+
+  return dashboard;
 }
 
 module.exports = { studentDashboard, adminDashboard };
