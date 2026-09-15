@@ -9,6 +9,8 @@
 
 > Built as a **model working version** — realistic end-to-end functionality on a clean layered architecture, without the scope of a full production system.
 
+> **Development status:** Active — upgrades are being prepared and verified on the main branch.
+
 **What makes it more than a CRUD app:**
 
 - A **three-role ISA model** — `USER` specialised into `STUDENT`, `MANAGER` and `SUPER_ADMIN`, with the subtype's primary key doubling as its foreign key.
