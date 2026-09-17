@@ -117,7 +117,7 @@ function rowHtml(c) {
     ${SHOWS_HOSTEL ? `<td><span class="chip">${UI.esc(c.hostel_name || '—')}</span></td>` : ''}
     <td>${UI.esc(c.room_number || '—')}</td>
     <td><span class="chip">${UI.esc(c.category)}</span></td>
-    <td>${UI.esc(short(c.problem_description))}</td>
+    <td>${UI.esc(short(c.problem_description))}${c.duplicate_count > 0 ? `<div class="duplicate-flag">Possible duplicate of #${UI.esc(c.duplicate_of_ids)}</div>` : ''}</td>
     <td>${UI.priorityBadge(c.priority)}</td>
     <td>${UI.statusBadge(c.status)}</td>
     <td>${UI.slaBadge(c.sla_state)}</td>
@@ -162,6 +162,7 @@ function manage(id) {
     ${detailRow('Smart Priority', `${UI.priorityBadge(c.priority)} · Score ${c.triage_score}/100`)}
     ${detailRow('Triage Reason', UI.esc(c.triage_reason))}
     ${detailRow('SLA Target', `${UI.fmtDate(c.sla_due_at)} · ${UI.slaBadge(c.sla_state)}`)}
+    ${c.duplicate_count > 0 ? detailRow('Duplicate Detection', `<span class="duplicate-flag">Possible duplicate of complaint${c.duplicate_count === 1 ? '' : 's'} #${UI.esc(c.duplicate_of_ids)}</span>`) : ''}
     ${detailRow('Description', UI.esc(c.problem_description))}
     ${detailRow('Submitted', UI.fmtDate(c.created_at))}
     ${detailRow('Resolved On', c.resolved_at ? UI.fmtDate(c.resolved_at) : '<span class="muted">—</span>')}

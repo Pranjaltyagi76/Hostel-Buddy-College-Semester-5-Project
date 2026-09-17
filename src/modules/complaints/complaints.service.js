@@ -10,6 +10,10 @@ const { AppError } = require('../../middleware/errorHandler');
 const { CATEGORIES, STATUSES, STAFF_ROLES } = require('../../config/constants');
 const { isString, isNonEmptyString, isTruthyFlag, toPositiveInt } = require('../../utils/validators');
 const { PRIORITIES, SLA_STATES, assessComplaint } = require('./triage');
+const {
+  DUPLICATE_WINDOW_DAYS,
+  findDuplicateMatches,
+} = require('./duplicateDetection');
 
 const MAX_DESCRIPTION = 1000;
 const MAX_REMARKS = 1000;
@@ -69,6 +73,36 @@ function validateDescription(description) {
   return value;
 }
 
+function duplicateMatchesFor({ hostelId, roomNumber, category, description, excludeComplaintId = null }) {
+  const candidates = complaintsRepo.findDuplicateCandidates({
+    hostelId,
+    excludeComplaintId,
+    days: DUPLICATE_WINDOW_DAYS,
+  });
+  return findDuplicateMatches({ category, description, roomNumber }, candidates);
+}
+
+function checkDuplicates(studentId, { category, description } = {}) {
+  validateCategory(category);
+  const cleanDescription = validateDescription(description);
+  const student = usersRepo.findById(studentId);
+  if (!student || !student.hostel_id) {
+    throw new AppError('Your account is not linked to a hostel', 400, 'NO_HOSTEL');
+  }
+
+  const matches = duplicateMatchesFor({
+    hostelId: student.hostel_id,
+    roomNumber: student.room_number,
+    category,
+    description: cleanDescription,
+  });
+  return {
+    possible_duplicate: matches.length > 0,
+    checked_window_days: DUPLICATE_WINDOW_DAYS,
+    matches,
+  };
+}
+
 // The complaint's hostel is taken from the student's own record, never from
 // the request. A student cannot file a complaint against a hostel they do not
 // belong to, because they are never asked which hostel it is.
@@ -81,7 +115,14 @@ function createComplaint(studentId, { category, description } = {}, media = {}) 
     throw new AppError('Your account is not linked to a hostel', 400, 'NO_HOSTEL');
   }
 
-  return complaintsRepo.create({
+  const duplicateMatches = duplicateMatchesFor({
+    hostelId: student.hostel_id,
+    roomNumber: student.room_number,
+    category,
+    description: cleanDescription,
+  });
+
+  const complaint = complaintsRepo.create({
     studentId,
     hostelId: student.hostel_id,
     roomNumber: student.room_number,
@@ -90,7 +131,9 @@ function createComplaint(studentId, { category, description } = {}, media = {}) 
     imageUrl: media.imageUrl ?? null,
     videoUrl: media.videoUrl ?? null,
     triage: assessComplaint({ category, description: cleanDescription }),
+    duplicateMatches,
   });
+  return { ...complaint, duplicate_matches: duplicateMatches };
 }
 
 function listMine(studentId) {
@@ -153,13 +196,23 @@ function updateComplaint(studentId, complaintId, body = {}, media = {}) {
   const newDescription =
     description === undefined ? complaint.problem_description : validateDescription(description);
 
-  return complaintsRepo.update(complaintId, {
+  const duplicateMatches = duplicateMatchesFor({
+    hostelId: complaint.hostel_id,
+    roomNumber: complaint.room_number,
+    category: newCategory,
+    description: newDescription,
+    excludeComplaintId: complaintId,
+  });
+
+  const updated = complaintsRepo.update(complaintId, {
     category: newCategory,
     description: newDescription,
     imageUrl: resolveAttachment(complaint.image_url, media.imageUrl, remove_image),
     videoUrl: resolveAttachment(complaint.video_url, media.videoUrl, remove_video),
     triage: assessComplaint({ category: newCategory, description: newDescription }),
+    duplicateMatches,
   });
+  return { ...updated, duplicate_matches: duplicateMatches };
 }
 
 function deleteComplaint(studentId, complaintId) {
@@ -272,6 +325,7 @@ function updateStatus(requester, complaintId, { status, admin_remarks } = {}) {
 }
 
 module.exports = {
+  checkDuplicates,
   createComplaint,
   listMine,
   getOne,

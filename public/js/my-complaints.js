@@ -107,7 +107,7 @@ function rowHtml(c) {
   return `<tr>
     <td>#${c.complaint_id}</td>
     <td><span class="chip">${UI.esc(c.category)}</span></td>
-    <td>${UI.esc(short(c.problem_description))}</td>
+    <td>${UI.esc(short(c.problem_description))}${c.duplicate_count > 0 ? '<div class="duplicate-flag">Potential duplicate</div>' : ''}</td>
     <td>${UI.priorityBadge(c.priority)}</td>
     <td>${UI.statusBadge(c.status)}</td>
     <td>${UI.fmtDay(c.created_at)}</td>
@@ -131,6 +131,7 @@ function viewComplaint(id) {
     detailRow('Smart Priority', `${UI.priorityBadge(c.priority)} · Score ${c.triage_score}/100`) +
     detailRow('Why this priority', UI.esc(c.triage_reason)) +
     detailRow('Resolution Target', `${UI.fmtDate(c.sla_due_at)} · ${UI.slaBadge(c.sla_state)}`) +
+    (c.duplicate_count > 0 ? detailRow('Duplicate Check', `Potential duplicate of complaint${c.duplicate_count === 1 ? '' : 's'} #${UI.esc(c.duplicate_of_ids)}`) : '') +
     detailRow('Status', UI.statusBadge(c.status)) +
     detailRow('Description', UI.esc(c.problem_description)) +
     detailRow('Admin Remarks', c.admin_remarks ? UI.esc(c.admin_remarks) : '<span class="muted">No remarks yet</span>') +

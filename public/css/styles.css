@@ -117,6 +117,14 @@ input[type=file] { padding: 8px; background: #f8fafc; }
 .alert.show { display: block; }
 .alert-error { background: #fdecec; color: #a12626; border: 1px solid #f3c2c2; }
 .alert-success { background: #eaf6ea; color: #2f6b2f; border: 1px solid #c2e0c2; }
+.duplicate-warning {
+  background: #fff8e8; color: #7c570e; border: 1px solid #edcf8a;
+  border-radius: 8px; padding: 13px 15px; margin-bottom: 16px; font-size: .9rem;
+}
+.duplicate-warning h4 { margin: 0 0 6px; color: #7c570e; }
+.duplicate-warning ul { margin: 8px 0; padding-left: 20px; }
+.duplicate-warning .duplicate-note { font-size: .8rem; color: #806b43; }
+.duplicate-flag { display: inline-block; margin-top: 4px; color: #9a670f; font-size: .78rem; font-weight: 700; }
 
 /* ===== Tables ===== */
 .table-wrap { overflow-x: auto; }

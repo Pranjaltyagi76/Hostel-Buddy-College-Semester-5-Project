@@ -26,6 +26,11 @@ const COMPLAINT_SELECT = `
          t.priority, t.score AS triage_score, t.sla_hours, t.sla_due_at,
          t.reason AS triage_reason, t.assessed_at AS triage_assessed_at,
          ${SLA_STATE_SQL} AS sla_state,
+         (SELECT COUNT(*) FROM complaint_duplicate_match dm
+           WHERE dm.complaint_id = c.complaint_id) AS duplicate_count,
+         (SELECT GROUP_CONCAT(dm.matched_complaint_id, ',')
+            FROM complaint_duplicate_match dm
+           WHERE dm.complaint_id = c.complaint_id) AS duplicate_of_ids,
          u.name  AS student_name,
          u.email AS student_email,
          s.roll_no, c.room_number,
@@ -66,9 +71,21 @@ function writeTriage(complaintId, triage) {
   );
 }
 
+function writeDuplicateMatches(complaintId, matches = []) {
+  db.prepare('DELETE FROM complaint_duplicate_match WHERE complaint_id = ?').run(complaintId);
+  const insert = db.prepare(
+    `INSERT INTO complaint_duplicate_match
+       (complaint_id, matched_complaint_id, similarity_score, reason)
+     VALUES (?, ?, ?, ?)`
+  );
+  for (const match of matches) {
+    insert.run(complaintId, match.complaint_id, match.similarity_score, match.match_reason);
+  }
+}
+
 // hostelId is supplied by the service from the student's own record — never
 // from the request — so a client cannot file a complaint against another hostel.
-function create({ studentId, hostelId, roomNumber = null, category, description, imageUrl = null, videoUrl = null, triage }) {
+function create({ studentId, hostelId, roomNumber = null, category, description, imageUrl = null, videoUrl = null, triage, duplicateMatches = [] }) {
   const complaintId = inTransaction(() => {
     const info = db
       .prepare(
@@ -79,6 +96,7 @@ function create({ studentId, hostelId, roomNumber = null, category, description,
       .run(studentId, hostelId, roomNumber, category, description, imageUrl, videoUrl);
     const id = Number(info.lastInsertRowid);
     writeTriage(id, triage);
+    writeDuplicateMatches(id, duplicateMatches);
     return id;
   });
   return findById(complaintId);
@@ -96,7 +114,7 @@ function findByStudent(studentId) {
 
 // Updates the student-editable fields and bumps updated_at. Status is never
 // changed here — that is a staff-only operation.
-function update(complaintId, { category, description, imageUrl = null, videoUrl = null, triage }) {
+function update(complaintId, { category, description, imageUrl = null, videoUrl = null, triage, duplicateMatches = [] }) {
   inTransaction(() => {
     db.prepare(
       `UPDATE complaint
@@ -105,12 +123,37 @@ function update(complaintId, { category, description, imageUrl = null, videoUrl 
         WHERE complaint_id = ?`
     ).run(category, description, imageUrl, videoUrl, complaintId);
     writeTriage(complaintId, triage);
+    writeDuplicateMatches(complaintId, duplicateMatches);
   });
   return findById(complaintId);
 }
 
 function remove(complaintId) {
   db.prepare('DELETE FROM complaint WHERE complaint_id = ?').run(complaintId);
+}
+
+// Only recent, unresolved work can prevent a genuinely redundant submission.
+// The service performs the explainable similarity calculation; this query
+// merely supplies a bounded, hostel-scoped candidate set.
+function findDuplicateCandidates({ hostelId, excludeComplaintId = null, days = 30, limit = 100 }) {
+  const safeDays = Number.isInteger(days) && days > 0 && days <= 90 ? days : 30;
+  const safeLimit = Number.isInteger(limit) && limit > 0 && limit <= 200 ? limit : 100;
+  const exclude = excludeComplaintId ? 'AND c.complaint_id <> ?' : '';
+  const params = [hostelId, `-${safeDays} days`];
+  if (excludeComplaintId) params.push(excludeComplaintId);
+  params.push(safeLimit);
+
+  return db.prepare(
+    `SELECT c.complaint_id, c.category, c.problem_description,
+            c.status, c.created_at, c.room_number
+       FROM complaint c
+      WHERE c.hostel_id = ?
+        AND c.status IN ('Pending', 'In Progress')
+        AND c.created_at >= datetime('now', ?)
+        ${exclude}
+      ORDER BY c.created_at DESC, c.complaint_id DESC
+      LIMIT ?`
+  ).all(...params);
 }
 
 // --- Staff: search / filter across complaints ---
@@ -419,6 +462,7 @@ module.exports = {
   findByStudent,
   update,
   remove,
+  findDuplicateCandidates,
   search,
   updateStatus,
   statusCountsForStudent,

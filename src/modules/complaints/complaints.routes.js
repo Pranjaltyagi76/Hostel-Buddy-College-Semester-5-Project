@@ -14,6 +14,7 @@ router.get('/', requireAuth, requireStaff, controller.listAll);
 router.patch('/:id/status', requireAuth, requireStaff, controller.updateStatus);
 
 // --- Student: create and manage their own complaints ---
+router.post('/duplicates/check', requireAuth, requireRole(ROLES.STUDENT), controller.checkDuplicates);
 router.post('/', requireAuth, requireRole(ROLES.STUDENT), uploadComplaintMedia, controller.create);
 router.get('/mine', requireAuth, requireRole(ROLES.STUDENT), controller.listMine);
 router.put('/:id', requireAuth, requireRole(ROLES.STUDENT), uploadComplaintMedia, controller.update);

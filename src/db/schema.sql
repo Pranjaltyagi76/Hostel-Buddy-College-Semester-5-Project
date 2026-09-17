@@ -126,6 +126,26 @@ CREATE TABLE IF NOT EXISTS complaint_triage (
 
 
 -- ---------------------------------------------------------------------------
+-- COMPLAINT_DUPLICATE_MATCH
+--
+-- Explainable links from a newly created/edited complaint to older active
+-- complaints that crossed the duplicate threshold. Detection never deletes or
+-- blocks a complaint; staff retain the final operational decision.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS complaint_duplicate_match (
+  complaint_id         INTEGER NOT NULL
+                               REFERENCES complaint(complaint_id) ON DELETE CASCADE,
+  matched_complaint_id INTEGER NOT NULL
+                               REFERENCES complaint(complaint_id) ON DELETE CASCADE,
+  similarity_score     INTEGER NOT NULL CHECK (similarity_score BETWEEN 0 AND 100),
+  reason               TEXT    NOT NULL,
+  detected_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (complaint_id, matched_complaint_id),
+  CHECK (complaint_id <> matched_complaint_id)
+);
+
+
+-- ---------------------------------------------------------------------------
 -- Indexes
 -- ---------------------------------------------------------------------------
 -- A student opening "My Complaints".
@@ -147,6 +167,10 @@ CREATE INDEX IF NOT EXISTS idx_complaint_resolved ON complaint(resolved_at);
 -- Priority queue and SLA deadline views.
 CREATE INDEX IF NOT EXISTS idx_triage_priority ON complaint_triage(priority);
 CREATE INDEX IF NOT EXISTS idx_triage_due      ON complaint_triage(sla_due_at);
+
+-- Duplicate-link lookups in both directions.
+CREATE INDEX IF NOT EXISTS idx_duplicate_match_target
+  ON complaint_duplicate_match(matched_complaint_id);
 
 -- Listing the students of one hostel.
 CREATE INDEX IF NOT EXISTS idx_student_hostel    ON student(hostel_id);

@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml/badge.svg)](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.5-5FA04E)](https://nodejs.org)
-[![Checks](https://img.shields.io/badge/API%20checks-304-1f4e79)](#-testing)
+[![Checks](https://img.shields.io/badge/API%20checks-314-1f4e79)](#-testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](#-license)
 
 **A Smart Hostel Complaint Management System.** Students raise and track maintenance complaints online; each hostel's manager works the queue for their own hostel; a super admin oversees every hostel. It replaces the paper complaint register with something searchable, trackable and answerable.
@@ -18,7 +18,8 @@
 - **Attachments verified by their bytes**, not their declared type — including a video allowlist narrow enough that anything stored is guaranteed playable.
 - An **explainable smart-priority and SLA engine** that scores every complaint, assigns a 2–72 hour target, and tracks on-time or overdue handling.
 - **Complaint hotspot analytics** that ranks recurring room-level clusters by volume, open work, Critical cases and overdue SLAs, with period trends and recommended action.
-- **304 API integration checks**, including a regression suite that pins down every bug found in the code audit.
+- **Explainable duplicate detection** that warns students before submission and links likely repeats for staff review without exposing another student's description or identity.
+- **314 API integration checks**, including a regression suite that pins down every bug found in the code audit.
 
 ---
 
@@ -127,11 +128,11 @@ One command. It starts the server on its own port against a throwaway database a
 |-------|-------:|--------|
 | `auth` | 47 | Registration across three roles, login, JWT guards, profile |
 | `hostels` | 46 | Public hostel list, super-admin CRUD, manager provisioning |
-| `complaints` | 56 | Full student lifecycle, ownership, Pending-only edits, attachments |
+| `complaints` | 66 | Full student lifecycle, ownership, Pending-only edits, attachments and duplicate detection |
 | `admin` | 58 | Staff queue, search, filters, pagination, status transitions, **hostel scoping** |
 | `dashboard` | 48 | Student and staff statistics, scoped aggregations, activity trends and complaint hotspots |
 | `regression` | 49 | Every bug found in the code audit, plus priority/SLA policy guarantees |
-| **Total** | **304** | |
+| **Total** | **314** | |
 
 To run one suite against a server you started yourself:
 
@@ -149,7 +150,7 @@ npm run test:admin
 
 ## 🗄️ Data model
 
-Seven tables. `USER` is specialised into three subtypes; the specialisation is **disjoint** (a user is exactly one) and **total** (every user is one of them), with `role` as the discriminator. `COMPLAINT_TRIAGE` is a one-to-one extension that holds server-generated priority and SLA policy.
+Eight tables. `USER` is specialised into three subtypes; the specialisation is **disjoint** (a user is exactly one) and **total** (every user is one of them), with `role` as the discriminator. `COMPLAINT_TRIAGE` is a one-to-one extension that holds server-generated priority and SLA policy, while `COMPLAINT_DUPLICATE_MATCH` stores explainable links between likely repeats.
 
 ![ER schema](docs/migration/er-schema-v2.png)
 
@@ -216,6 +217,12 @@ The staff dashboard detects recurring clusters at the **hostel + registered room
 
 Hotspots obey the same authorization boundary as the complaint queue: a manager receives locations from their assigned hostel only, while the super admin receives an institution-wide ranking. The student's registered room is snapshotted when the complaint is raised, so later profile changes cannot rewrite hotspot history; blank rooms are grouped as `Unspecified`.
 
+### Duplicate detection
+
+Before submission, the server compares a complaint with active complaints raised in the same hostel during the previous 30 days. The transparent score combines meaningful text overlap with category and room context; a contextual match cannot compensate for unrelated descriptions. Students receive a privacy-safe warning containing only complaint ID, category, status and match score, and can still submit a genuinely separate incident.
+
+Creation performs the check again and persists up to three strongest links, preventing a race between the warning and submission. Staff see those links in the complaint queue and detail view. Editing a Pending complaint recalculates the links so stale matches are removed automatically.
+
 ---
 
 ## 📎 Attachments
@@ -276,6 +283,7 @@ All routes are prefixed `/api`. Everything except registration, login, the hoste
 | `GET` | `/users` | staff | Students — scoped to the manager's hostel |
 | `GET` `POST` | `/users/managers` | super admin | List and provision managers |
 | `POST` | `/complaints` | student | Raise one (multipart: `image`, `video`) |
+| `POST` | `/complaints/duplicates/check` | student | Privacy-safe duplicate preflight |
 | `GET` | `/complaints/mine` | student | Own complaints |
 | `PUT` `DELETE` | `/complaints/:id` | student | Edit / delete — owner and Pending only |
 | `GET` | `/complaints/:id` | owner or staff | One complaint |

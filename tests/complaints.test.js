@@ -303,6 +303,40 @@ async function registerStudent(tag, hostelId) {
     check('its uploaded video is gone -> 404', res.status === 404, `(got ${res.status})`);
   } else check('its uploaded video is gone -> 404', false, '(no video url)');
 
+  console.log('\n20) Explainable duplicate detection warns, persists, and recalculates');
+  const duplicateDraft = { category: 'Electricity', description: 'Light flickers every few seconds' };
+  r = await call('POST', '/complaints/duplicates/check', { token: tokenA, body: duplicateDraft });
+  check('preflight detects a possible duplicate', r.status === 200 && r.data?.possible_duplicate === true);
+  const match = r.data?.matches?.find(x => x.complaint_id === vidOnly);
+  check('match identifies the active complaint with a strong score', match?.similarity_score >= 70);
+  check('match includes an explainable reason', /text overlap/.test(match?.match_reason || ''));
+  check('preflight does not expose another complaint description or student',
+    r.data?.matches?.every(x => x.problem_description === undefined && x.student_name === undefined));
+
+  r = await call('POST', '/complaints/duplicates/check', {
+    token: tokenA,
+    body: { category: 'Furniture', description: 'The desk drawer handle has detached completely' },
+  });
+  check('unrelated complaint is not marked duplicate', r.status === 200 && r.data?.possible_duplicate === false);
+  r = await call('POST', '/complaints/duplicates/check', { token: adminToken, body: duplicateDraft });
+  check('staff cannot use student duplicate preflight -> 403', r.status === 403, `(got ${r.status})`);
+  r = await call('POST', '/complaints/duplicates/check', { body: duplicateDraft });
+  check('duplicate preflight requires authentication -> 401', r.status === 401, `(got ${r.status})`);
+
+  r = await call('POST', '/complaints', { token: tokenA, body: duplicateDraft });
+  const duplicateId = r.data?.complaint_id;
+  check('creation rechecks and persists the duplicate link',
+    r.status === 201 && r.data?.duplicate_count >= 1 && r.data?.duplicate_matches?.some(x => x.complaint_id === vidOnly));
+  r = await call('GET', `/complaints/${duplicateId}`, { token: adminToken });
+  check('staff can see the persisted duplicate reference',
+    r.status === 200 && r.data?.duplicate_count >= 1 && String(r.data?.duplicate_of_ids).split(',').includes(String(vidOnly)));
+  r = await call('PUT', `/complaints/${duplicateId}`, {
+    token: tokenA,
+    body: { category: 'Furniture', description: 'The desk drawer handle has detached completely' },
+  });
+  check('editing a Pending complaint recalculates and clears stale matches',
+    r.status === 200 && r.data?.duplicate_count === 0 && r.data?.duplicate_matches?.length === 0);
+
   console.log(`\n=== RESULT: ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);
 })();

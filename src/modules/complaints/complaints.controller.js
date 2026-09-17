@@ -32,6 +32,14 @@ function create(req, res, next) {
   }
 }
 
+function checkDuplicates(req, res, next) {
+  try {
+    res.json(complaintsService.checkDuplicates(req.user.userId, req.body));
+  } catch (err) {
+    next(err);
+  }
+}
+
 function listMine(req, res, next) {
   try {
     res.json(complaintsService.listMine(req.user.userId));
@@ -94,4 +102,4 @@ function updateStatus(req, res, next) {
   }
 }
 
-module.exports = { create, listMine, getOne, update, remove, listAll, updateStatus };
+module.exports = { checkDuplicates, create, listMine, getOne, update, remove, listAll, updateStatus };
