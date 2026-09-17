@@ -218,6 +218,23 @@ td.actions { white-space: nowrap; }
 .chart-box canvas { max-height: 300px; }
 .activity-stats { max-width: 454px; margin: 16px 0; }
 .activity-chart { min-height: 300px; }
+.hotspot-head { display: flex; justify-content: space-between; gap: 20px; align-items: start; }
+.hotspot-head p { margin: 0; }
+.hotspot-period { min-width: 150px; margin: 0; }
+.hotspot-period label { font-size: .82rem; }
+.hotspot-period select { padding: 8px 10px; }
+.hotspot-stats { margin: 18px 0; }
+.hotspot-layout { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(0, 1.4fr); gap: 22px; align-items: start; }
+.hotspot-chart { min-height: 330px; }
+.hotspot-action { max-width: 260px; color: var(--muted); font-size: .84rem; line-height: 1.35; }
+.badge.risk-normal { background: #eef1f5; color: #475569; }
+.badge.risk-watch { background: #eaf3fb; color: #2563a6; }
+.badge.risk-high { background: #fdf3e6; color: #9a670f; }
+.badge.risk-critical { background: #fdecec; color: #a12626; }
+.hotspot-trend { font-weight: 700; font-size: .82rem; white-space: nowrap; }
+.hotspot-trend.new, .hotspot-trend.rising { color: #a12626; }
+.hotspot-trend.steady { color: #64748b; }
+.hotspot-trend.easing { color: #2f6b2f; }
 
 /* ===== Pagination ===== */
 .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 18px; }
@@ -236,6 +253,9 @@ td.actions { white-space: nowrap; }
   .nav-user { margin: 8px 12px 4px; }
   .btn-logout { margin: 4px 12px; }
   .chart-grid { grid-template-columns: 1fr; }
+  .hotspot-head { flex-direction: column; }
+  .hotspot-period { width: 100%; }
+  .hotspot-layout { grid-template-columns: 1fr; }
 }
 
 /* ===== Scope banner (staff screens) =====

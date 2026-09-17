@@ -28,7 +28,7 @@ const COMPLAINT_SELECT = `
          ${SLA_STATE_SQL} AS sla_state,
          u.name  AS student_name,
          u.email AS student_email,
-         s.roll_no, s.room_number,
+         s.roll_no, c.room_number,
          h.hostel_name
     FROM complaint c
     JOIN student s ON s.user_id   = c.student_id
@@ -68,14 +68,15 @@ function writeTriage(complaintId, triage) {
 
 // hostelId is supplied by the service from the student's own record — never
 // from the request — so a client cannot file a complaint against another hostel.
-function create({ studentId, hostelId, category, description, imageUrl = null, videoUrl = null, triage }) {
+function create({ studentId, hostelId, roomNumber = null, category, description, imageUrl = null, videoUrl = null, triage }) {
   const complaintId = inTransaction(() => {
     const info = db
       .prepare(
-        `INSERT INTO complaint (student_id, hostel_id, category, problem_description, image_url, video_url, status)
-         VALUES (?, ?, ?, ?, ?, ?, 'Pending')`
+        `INSERT INTO complaint
+           (student_id, hostel_id, room_number, category, problem_description, image_url, video_url, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')`
       )
-      .run(studentId, hostelId, category, description, imageUrl, videoUrl);
+      .run(studentId, hostelId, roomNumber, category, description, imageUrl, videoUrl);
     const id = Number(info.lastInsertRowid);
     writeTriage(id, triage);
     return id;
@@ -156,7 +157,7 @@ function buildFilters({ q, category, status, priority, sla, hostelId }) {
     const like = `%${escapeLike(term)}%`;
     const nameLike = "u.name LIKE ? ESCAPE '\\'";
     const rollLike = "s.roll_no LIKE ? ESCAPE '\\'";
-    const roomLike = "s.room_number LIKE ? ESCAPE '\\'";
+    const roomLike = "c.room_number LIKE ? ESCAPE '\\'";
     if (/^\d+$/.test(term)) {
       // A number can match a complaint id as well as name/roll/room text.
       clauses.push(`(${nameLike} OR ${rollLike} OR ${roomLike} OR c.complaint_id = ?)`);
@@ -326,6 +327,92 @@ function dailyActivity(days = 30) {
   ).all(startModifier, startModifier, startModifier);
 }
 
+// Ranks physical complaint clusters over a rolling period. A location is the
+// hostel + registered room pair, so identical room numbers in different
+// hostels never collapse into one hotspot. The previous equally sized period
+// is included for trend detection.
+function complaintHotspots(hostelId = null, days = 30, limit = 8) {
+  const safeDays = [7, 30, 90].includes(days) ? days : 30;
+  const safeLimit = Number.isInteger(limit) && limit > 0 && limit <= 20 ? limit : 8;
+  const scopeClause = hostelId ? 'AND c.hostel_id = ?' : '';
+  const params = [`-${safeDays * 2} days`];
+  if (hostelId) params.push(hostelId);
+  params.push(`-${safeDays} days`, `-${safeDays} days`, safeLimit);
+
+  return db.prepare(
+    `WITH base AS (
+       SELECT c.complaint_id, c.hostel_id, h.hostel_name,
+              COALESCE(NULLIF(TRIM(c.room_number), ''), 'Unspecified') AS room_number,
+              c.category, c.status, c.created_at, c.resolved_at,
+              t.priority, t.sla_due_at
+         FROM complaint c
+         JOIN hostel h ON h.hostel_id = c.hostel_id
+         JOIN complaint_triage t ON t.complaint_id = c.complaint_id
+        WHERE c.created_at >= datetime('now', ?)
+          ${scopeClause}
+     ),
+     current_rows AS (
+       SELECT * FROM base WHERE created_at >= datetime('now', ?)
+     ),
+     previous_rows AS (
+       SELECT * FROM base WHERE created_at < datetime('now', ?)
+     ),
+     current_agg AS (
+       SELECT hostel_id, hostel_name, room_number,
+              COUNT(*) AS complaint_count,
+              SUM(CASE WHEN status IN ('Pending', 'In Progress') THEN 1 ELSE 0 END) AS open_count,
+              SUM(CASE WHEN priority = 'Critical' THEN 1 ELSE 0 END) AS critical_count,
+              SUM(CASE WHEN resolved_at IS NULL AND datetime('now') > sla_due_at THEN 1 ELSE 0 END) AS overdue_count,
+              MAX(created_at) AS latest_created_at
+         FROM current_rows
+        GROUP BY hostel_id, hostel_name, room_number
+     ),
+     previous_agg AS (
+       SELECT hostel_id, room_number, COUNT(*) AS previous_count
+         FROM previous_rows
+        GROUP BY hostel_id, room_number
+     ),
+     category_counts AS (
+       SELECT hostel_id, room_number, category, COUNT(*) AS category_count
+         FROM current_rows
+        GROUP BY hostel_id, room_number, category
+     ),
+     category_ranked AS (
+       SELECT *, ROW_NUMBER() OVER (
+         PARTITION BY hostel_id, room_number
+         ORDER BY category_count DESC, category ASC
+       ) AS category_rank
+         FROM category_counts
+     ),
+     scored AS (
+       SELECT a.*,
+              COALESCE(p.previous_count, 0) AS previous_count,
+              r.category AS dominant_category,
+              r.category_count AS dominant_category_count,
+              a.complaint_count + (a.open_count * 2) +
+                (a.critical_count * 3) + (a.overdue_count * 3) AS risk_score
+         FROM current_agg a
+         LEFT JOIN previous_agg p
+           ON p.hostel_id = a.hostel_id AND p.room_number = a.room_number
+         JOIN category_ranked r
+           ON r.hostel_id = a.hostel_id AND r.room_number = a.room_number
+          AND r.category_rank = 1
+     ),
+     summarized AS (
+       SELECT scored.*,
+              COUNT(*) OVER () AS total_locations,
+              SUM(complaint_count) OVER () AS period_complaints,
+              SUM(CASE WHEN risk_score >= 7 THEN 1 ELSE 0 END) OVER () AS high_risk_locations
+         FROM scored
+     )
+     SELECT *
+       FROM summarized
+      ORDER BY risk_score DESC, complaint_count DESC,
+               latest_created_at DESC, hostel_name ASC, room_number ASC
+      LIMIT ?`
+  ).all(...params);
+}
+
 module.exports = {
   create,
   findById,
@@ -342,4 +429,5 @@ module.exports = {
   slaCounts,
   recent,
   dailyActivity,
+  complaintHotspots,
 };

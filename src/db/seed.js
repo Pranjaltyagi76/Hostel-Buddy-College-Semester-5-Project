@@ -110,11 +110,11 @@ function seedComplaint({ studentId, hostelId, category, description, status, rem
   const resolvedExpr = resolvedDaysAgo != null ? `datetime('now', '-${resolvedDaysAgo} days')` : 'NULL';
   db.prepare(
     `INSERT INTO complaint
-       (student_id, hostel_id, category, problem_description, status, admin_remarks,
+       (student_id, hostel_id, room_number, category, problem_description, status, admin_remarks,
         created_at, updated_at, resolved_at)
-     VALUES (?, ?, ?, ?, ?, ?,
+     VALUES (?, ?, (SELECT room_number FROM student WHERE user_id = ?), ?, ?, ?, ?,
         datetime('now', '-${daysAgo} days'), datetime('now', '-${daysAgo} days'), ${resolvedExpr})`
-  ).run(studentId, hostelId, category, description, status, remarks);
+  ).run(studentId, hostelId, studentId, category, description, status, remarks);
 }
 
 // --- main ----------------------------------------------------------------

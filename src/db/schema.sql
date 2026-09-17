@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS complaint (
   complaint_id        INTEGER PRIMARY KEY AUTOINCREMENT,
   student_id          INTEGER NOT NULL REFERENCES student(user_id),
   hostel_id           INTEGER NOT NULL REFERENCES hostel(hostel_id),
+  room_number         TEXT,
   category            TEXT    NOT NULL
                               CHECK (category IN (
                                 'Electricity', 'Plumbing', 'Water Supply', 'Wi-Fi',

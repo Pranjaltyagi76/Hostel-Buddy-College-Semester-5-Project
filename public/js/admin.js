@@ -5,6 +5,10 @@ UI.renderNav('dashboard');
 
 const statsEl = document.getElementById('stats');
 const recentArea = document.getElementById('recentArea');
+const hotspotArea = document.getElementById('hotspotArea');
+const hotspotStats = document.getElementById('hotspotStats');
+const hotspotPeriod = document.getElementById('hotspotPeriod');
+let hotspotChart = null;
 
 const CATEGORY_COLORS = ['#2e75b6', '#5a8f4e', '#c98a17', '#7a2e8a', '#b23b3b', '#1f4e79', '#0f9b8e', '#94a3b8'];
 const STATUS_COLORS = { 'Pending': '#c98a17', 'In Progress': '#2e75b6', 'Resolved': '#5a8f4e', 'Closed': '#6b7280' };
@@ -45,6 +49,9 @@ function statCard(num, label, accent) {
   if (d.activity) renderActivityChart(d.activity);
   renderRecent(d.recent);
 })();
+
+hotspotPeriod.addEventListener('change', loadHotspots);
+loadHotspots();
 
 function renderScope(scope) {
   const el = document.getElementById('scopeNote');
@@ -183,4 +190,90 @@ function renderRecent(recent) {
         </tr>`).join('')}
       </tbody>
     </table></div>`;
+}
+
+async function loadHotspots() {
+  const days = hotspotPeriod.value;
+  if (hotspotChart) { hotspotChart.destroy(); hotspotChart = null; }
+  hotspotPeriod.disabled = true;
+  hotspotStats.innerHTML = '';
+  hotspotArea.className = 'loading';
+  hotspotArea.innerHTML = '<div class="spinner"></div>Analysing complaint clusters…';
+
+  try {
+    const data = await API.get(`/dashboard/admin/hotspots?days=${encodeURIComponent(days)}`);
+    renderHotspots(data);
+  } catch (err) {
+    hotspotArea.className = 'empty';
+    hotspotArea.innerHTML = `Could not load hotspot analytics: ${UI.esc(err.message)}`;
+  } finally {
+    hotspotPeriod.disabled = false;
+  }
+}
+
+function riskBadge(level, score) {
+  return `<span class="badge risk-${UI.esc(level.toLowerCase())}">${UI.esc(level)} · ${score}</span>`;
+}
+
+function trendLabel(location) {
+  const labels = {
+    new: `New +${location.change}`,
+    rising: `↑ ${location.change}`,
+    steady: '→ 0',
+    easing: `↓ ${Math.abs(location.change)}`,
+  };
+  return `<span class="hotspot-trend ${UI.esc(location.trend)}">${UI.esc(labels[location.trend] || location.trend)}</span>`;
+}
+
+function renderHotspots(data) {
+  hotspotStats.innerHTML = [
+    statCard(data.summary.locations, `Active locations (${data.period_days}d)`, 'total'),
+    statCard(data.summary.complaints, 'Complaints analysed', 'progress'),
+    statCard(data.summary.high_risk_locations, 'High-risk locations', 'critical'),
+  ].join('');
+
+  if (!data.locations.length) {
+    hotspotArea.className = 'empty';
+    hotspotArea.innerHTML = `No complaints were raised in the last ${data.period_days} days.`;
+    return;
+  }
+
+  hotspotArea.className = 'hotspot-layout';
+  hotspotArea.innerHTML = `
+    <div class="chart-box hotspot-chart"><canvas id="hotspotChart"></canvas></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Location</th><th>Dominant issue</th><th>Cases / trend</th><th>Pressure</th><th>Risk / action</th></tr></thead>
+      <tbody>${data.locations.map((location) => `<tr>
+        <td><b>#${location.rank}</b> ${UI.esc(location.location_label)}</td>
+        <td><span class="chip">${UI.esc(location.dominant_category)}</span><br><span class="muted">${location.dominant_category_count} case${location.dominant_category_count === 1 ? '' : 's'}</span></td>
+        <td><b>${location.complaint_count}</b> ${trendLabel(location)}<br><span class="muted">previous: ${location.previous_count}</span></td>
+        <td>${location.open_count} open<br>${location.overdue_count} overdue · ${location.critical_count} Critical</td>
+        <td>${riskBadge(location.risk_level, location.risk_score)}<div class="hotspot-action">${UI.esc(location.recommended_action)}</div></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+
+  const chartLocations = [...data.locations].reverse();
+  hotspotChart = new Chart(document.getElementById('hotspotChart'), {
+    type: 'bar',
+    data: {
+      labels: chartLocations.map((location) => location.location_label),
+      datasets: [{
+        label: 'Risk score',
+        data: chartLocations.map((location) => location.risk_score),
+        backgroundColor: chartLocations.map((location) => ({
+          Normal: '#94a3b8', Watch: '#2e75b6', High: '#c98a17', Critical: '#b23b3b',
+        })[location.risk_level]),
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: `Top complaint hotspots · ${data.period_days} days`, font: { size: 14 } },
+      },
+      scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
 }

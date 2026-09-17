@@ -44,6 +44,25 @@
       </div>
     </div>
 
+    <div class="card" id="hotspotCard" style="margin-top:22px;">
+      <div class="hotspot-head">
+        <div>
+          <h3>Complaint Hotspot Analytics</h3>
+          <p class="muted">Recurring room-level clusters ranked by volume, open work, Critical priority, and overdue SLAs.</p>
+        </div>
+        <div class="form-group hotspot-period">
+          <label for="hotspotPeriod">Time window</label>
+          <select id="hotspotPeriod">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
+      </div>
+      <div class="stats hotspot-stats" id="hotspotStats"></div>
+      <div id="hotspotArea" class="loading"><div class="spinner"></div>Analysing complaint clusters…</div>
+    </div>
+
     <div class="card" style="margin-top:22px;">
       <h3>Recent Complaints</h3>
       <div id="recentArea" style="margin-top:8px;">

@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml/badge.svg)](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.5-5FA04E)](https://nodejs.org)
-[![Checks](https://img.shields.io/badge/API%20checks-289-1f4e79)](#-testing)
+[![Checks](https://img.shields.io/badge/API%20checks-304-1f4e79)](#-testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](#-license)
 
 **A Smart Hostel Complaint Management System.** Students raise and track maintenance complaints online; each hostel's manager works the queue for their own hostel; a super admin oversees every hostel. It replaces the paper complaint register with something searchable, trackable and answerable.
@@ -17,7 +17,8 @@
 - **Hostel scoping as a real authorization boundary.** A manager cannot read, search or modify another hostel's complaint, and the scope is resolved from the caller's own database row — never from the request. It has its own tests, in both directions.
 - **Attachments verified by their bytes**, not their declared type — including a video allowlist narrow enough that anything stored is guaranteed playable.
 - An **explainable smart-priority and SLA engine** that scores every complaint, assigns a 2–72 hour target, and tracks on-time or overdue handling.
-- **289 API integration checks**, including a regression suite that pins down every bug found in the code audit.
+- **Complaint hotspot analytics** that ranks recurring room-level clusters by volume, open work, Critical cases and overdue SLAs, with period trends and recommended action.
+- **304 API integration checks**, including a regression suite that pins down every bug found in the code audit.
 
 ---
 
@@ -128,9 +129,9 @@ One command. It starts the server on its own port against a throwaway database a
 | `hostels` | 46 | Public hostel list, super-admin CRUD, manager provisioning |
 | `complaints` | 56 | Full student lifecycle, ownership, Pending-only edits, attachments |
 | `admin` | 58 | Staff queue, search, filters, pagination, status transitions, **hostel scoping** |
-| `dashboard` | 33 | Student and staff statistics, scoped aggregations, super-admin activity trend |
+| `dashboard` | 48 | Student and staff statistics, scoped aggregations, activity trends and complaint hotspots |
 | `regression` | 49 | Every bug found in the code audit, plus priority/SLA policy guarantees |
-| **Total** | **289** | |
+| **Total** | **304** | |
 
 To run one suite against a server you started yourself:
 
@@ -156,7 +157,7 @@ Four decisions worth calling out:
 
 - **Shared primary key.** Each subtype's `user_id` is both its PK and its FK to `USER`, so one person cannot hold two identities.
 - **`COMPLAINT.student_id` references `STUDENT`, not `USER`.** The database itself refuses a complaint raised by a manager — the rule does not depend on application code being correct.
-- **`COMPLAINT` stores its own `hostel_id`.** It records the hostel the complaint was raised *against*, at that time. If a student later changes hostel the history stays truthful, and scoping becomes one indexed column instead of a join.
+- **`COMPLAINT` stores its own `hostel_id` and room snapshot.** They record where the complaint was raised *at that time*. If a student later changes hostel or room, the history and hotspot ranking stay truthful.
 - **`SUPER_ADMIN` deliberately has no `hostel_id`.** Being unscoped is the whole point of the role, and the schema says so.
 
 Full rationale in **[docs/migration/PHASE-A-design.md](docs/migration/PHASE-A-design.md)**; the schema itself is [src/db/schema.sql](src/db/schema.sql).
@@ -208,6 +209,12 @@ Every complaint is scored automatically from its category and specific urgency s
 | Low | 72 hours | Routine furniture, cleaning, or general request |
 
 The dashboard reports Critical and overdue totals, staff can filter by priority or SLA state, and resolved complaints are marked as SLA met or missed.
+
+### Complaint hotspot analytics
+
+The staff dashboard detects recurring clusters at the **hostel + registered room** level over selectable 7, 30 or 90-day windows. Each location receives a transparent risk score based on complaint volume, unresolved work, Critical priority and overdue SLAs. It also shows the dominant complaint category, compares the current window with the previous equal window, and recommends the next operational action.
+
+Hotspots obey the same authorization boundary as the complaint queue: a manager receives locations from their assigned hostel only, while the super admin receives an institution-wide ranking. The student's registered room is snapshotted when the complaint is raised, so later profile changes cannot rewrite hotspot history; blank rooms are grouped as `Unspecified`.
 
 ---
 
@@ -276,6 +283,7 @@ All routes are prefixed `/api`. Everything except registration, login, the hoste
 | `PATCH` | `/complaints/:id/status` | staff | Advance status, set remarks; scoped |
 | `GET` | `/dashboard/student` | student | Own statistics |
 | `GET` | `/dashboard/admin` | staff | Totals, status split, category split, recent — scoped |
+| `GET` | `/dashboard/admin/hotspots` | staff | Ranked room hotspots — scoped; `days=7`, `30`, or `90` |
 
 Errors come back in one shape: `{ "error": { "message": "...", "code": "..." } }`.
 

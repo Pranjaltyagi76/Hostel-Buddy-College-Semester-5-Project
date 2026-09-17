@@ -9,6 +9,7 @@ const router = express.Router();
 
 // Each role sees its own dashboard.
 router.get('/student', requireAuth, requireRole(ROLES.STUDENT), controller.student);
+router.get('/admin/hotspots', requireAuth, requireStaff, controller.hotspots);
 router.get('/admin', requireAuth, requireStaff, controller.admin);
 
 module.exports = router;

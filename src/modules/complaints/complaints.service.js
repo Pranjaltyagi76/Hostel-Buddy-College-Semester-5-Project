@@ -84,6 +84,7 @@ function createComplaint(studentId, { category, description } = {}, media = {}) 
   return complaintsRepo.create({
     studentId,
     hostelId: student.hostel_id,
+    roomNumber: student.room_number,
     category,
     description: cleanDescription,
     imageUrl: media.imageUrl ?? null,

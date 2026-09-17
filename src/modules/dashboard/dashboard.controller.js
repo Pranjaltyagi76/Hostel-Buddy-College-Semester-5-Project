@@ -18,4 +18,12 @@ function admin(req, res, next) {
   }
 }
 
-module.exports = { student, admin };
+function hotspots(req, res, next) {
+  try {
+    res.json(dashboardService.complaintHotspots(req.user, req.query.days));
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { student, admin, hotspots };

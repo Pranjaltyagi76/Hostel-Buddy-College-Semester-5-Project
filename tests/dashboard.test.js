@@ -80,12 +80,56 @@ const ALL_SLA_STATES = ['on_track', 'overdue', 'met', 'missed'];
   check('recent rows include student_name', after.recent.every(x => x.student_name !== undefined));
   check('recent is newest-first', after.recent.every((x, i, a) => i === 0 || a[i-1].created_at >= x.created_at));
 
-  console.log('\n5) Student dashboard reflects the 3 new complaints');
+  console.log('\n5) Complaint hotspot analytics is ranked, actionable, and scoped');
+  r = await call('GET', '/dashboard/admin/hotspots', { token: adminToken });
+  check('hotspot endpoint returns 200', r.status === 200, `(got ${r.status})`);
+  check('default hotspot window is 30 days', r.data?.period_days === 30 && r.data?.comparison_days === 30);
+  check('hotspot summary covers locations and complaints',
+    r.data?.summary?.locations >= 1 && r.data?.summary?.complaints >= 3);
+  const ownHotspot = r.data?.locations?.find(x => x.hostel_id === hostelId && x.room_number === 'Z-9');
+  check('three complaints form a room-level hotspot', ownHotspot?.complaint_count === 3);
+  check('hotspot identifies a dominant category',
+    ALL_CATEGORIES.includes(ownHotspot?.dominant_category) && ownHotspot?.dominant_category_count >= 1);
+  check('volume and open work create a High risk score',
+    ownHotspot?.risk_level === 'High' && ownHotspot?.risk_score >= 7);
+  check('period-over-period trend marks the cluster as new',
+    ownHotspot?.trend === 'new' && ownHotspot?.previous_count === 0 && ownHotspot?.change === 3);
+  check('hotspot supplies an actionable recommendation',
+    typeof ownHotspot?.recommended_action === 'string' && ownHotspot.recommended_action.length > 10);
+
+  await call('PUT', '/users/me', {
+    token: studentToken,
+    body: { name: 'Dash Tester', room_number: 'Z-10' },
+  });
+  r = await call('GET', '/dashboard/admin/hotspots', { token: adminToken });
+  check('changing profile room does not rewrite historical complaint locations',
+    r.data?.locations?.some(x => x.hostel_id === hostelId && x.room_number === 'Z-9' && x.complaint_count === 3) &&
+      !r.data.locations.some(x => x.hostel_id === hostelId && x.room_number === 'Z-10'));
+
+  r = await call('GET', '/dashboard/admin/hotspots?days=7', { token: adminToken });
+  check('supported 7-day window is accepted', r.status === 200 && r.data?.period_days === 7);
+  r = await call('GET', '/dashboard/admin/hotspots?days=14', { token: adminToken });
+  check('unsupported hotspot window is rejected', r.status === 400 && r.data?.error?.code === 'VALIDATION_ERROR');
+
+  const managerAToken = await login('manager.aryabhatta@hostel.test', 'manager123');
+  const managerBToken = await login('manager.ramanujan@hostel.test', 'manager123');
+  r = await call('GET', '/dashboard/admin/hotspots', { token: managerAToken });
+  check('manager hotspots contain only their hostel',
+    r.status === 200 && r.data?.scope === 'managed_hostel' && r.data.locations.every(x => x.hostel_id === hostelId));
+  r = await call('GET', '/dashboard/admin/hotspots', { token: managerBToken });
+  check('another manager cannot see the new room hotspot',
+    r.status === 200 && !r.data.locations.some(x => x.hostel_id === hostelId && x.room_number === 'Z-9'));
+  r = await call('GET', '/dashboard/admin/hotspots', { token: studentToken });
+  check('student -> hotspot analytics 403', r.status === 403, `(got ${r.status})`);
+  r = await call('GET', '/dashboard/admin/hotspots');
+  check('no token -> hotspot analytics 401', r.status === 401, `(got ${r.status})`);
+
+  console.log('\n6) Student dashboard reflects the 3 new complaints');
   r = await call('GET', '/dashboard/student', { token: studentToken });
   check('total 3', r.data?.total === 3, `(got ${r.data?.total})`);
   check('pending 3', r.data?.pending === 3, `(got ${r.data?.pending})`);
 
-  console.log('\n6) Student dashboard reflects admin status changes');
+  console.log('\n7) Student dashboard reflects admin status changes');
   const mine = (await call('GET', '/complaints/mine', { token: studentToken })).data;
   await call('PATCH', `/complaints/${mine[0].complaint_id}/status`, { token: adminToken, body: { status: 'In Progress' } });
   await call('PATCH', `/complaints/${mine[1].complaint_id}/status`, { token: adminToken, body: { status: 'Resolved' } });
@@ -99,7 +143,7 @@ const ALL_SLA_STATES = ['on_track', 'overdue', 'met', 'missed'];
   check('new resolution appears in resolved activity', activityAfterResolve.resolvedTotal === after.activity.resolvedTotal + 1,
     `(${after.activity.resolvedTotal} -> ${activityAfterResolve.resolvedTotal})`);
 
-  console.log('\n7) Guards');
+  console.log('\n8) Guards');
   r = await call('GET', '/dashboard/admin', { token: studentToken });
   check('student -> admin dashboard 403', r.status === 403, `(got ${r.status})`);
   r = await call('GET', '/dashboard/student', { token: adminToken });
