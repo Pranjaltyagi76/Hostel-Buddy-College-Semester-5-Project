@@ -81,6 +81,8 @@ h1, h2, h3 { margin: 0 0 .4em; color: var(--navy); line-height: 1.25; }
 .stat.accent-resolved .num { color: var(--st-resolved); }
 .stat.accent-closed .num { color: var(--st-closed); }
 .stat.accent-students .num { color: var(--blue); }
+.stat.accent-critical .num { color: #a12626; }
+.stat.accent-overdue .num { color: #b45309; }
 
 /* ===== Forms ===== */
 .form-group { margin-bottom: 16px; }
@@ -158,6 +160,14 @@ td.actions { white-space: nowrap; }
 .badge.st-progress { background: #eaf3fb; color: var(--st-progress); }
 .badge.st-resolved { background: #ecf6ec; color: var(--st-resolved); }
 .badge.st-closed { background: #eef1f5; color: var(--st-closed); }
+.badge.pr-low { background: #eef1f5; color: #475569; }
+.badge.pr-medium { background: #eaf3fb; color: #2563a6; }
+.badge.pr-high { background: #fdf3e6; color: #9a670f; }
+.badge.pr-critical { background: #fdecec; color: #a12626; }
+.badge.sla-on_track { background: #eaf3fb; color: #2563a6; }
+.badge.sla-overdue { background: #fff1e6; color: #b45309; }
+.badge.sla-met { background: #ecf6ec; color: #2f6b2f; }
+.badge.sla-missed { background: #fdecec; color: #a12626; }
 .chip { display: inline-block; padding: 2px 9px; border-radius: 8px; font-size: .78rem; background: var(--blue-light); color: var(--navy); }
 
 /* ===== Auth pages ===== */

@@ -18,7 +18,7 @@
 // because creating a USER together with its subtype row is a data-layer
 // concern and the repositories are rebuilt in Phase C.
 const bcrypt = require('bcryptjs');
-const { initSchema, db } = require('./index');
+const { initSchema, backfillComplaintTriage, db } = require('./index');
 const { seedSuperAdmin } = require('./seedSuperAdmin');
 const { ROLES } = require('../config/constants');
 
@@ -146,6 +146,7 @@ function run() {
 
   const existing = db.prepare('SELECT COUNT(*) AS n FROM complaint').get().n;
   if (existing > 0) {
+    backfillComplaintTriage();
     console.log(`[seed] complaints already present (${existing}) — skipping complaint seed.`);
     console.log('[seed] done.');
     return;
@@ -173,6 +174,7 @@ function run() {
   inTransaction(() => {
     for (const c of complaints) seedComplaint(c);
   });
+  backfillComplaintTriage();
   console.log(`[seed] inserted ${complaints.length} complaints across 3 hostels.`);
   console.log('[seed] done.');
 }

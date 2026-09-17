@@ -60,11 +60,23 @@ const login = async (email, password) =>
   r = await call('GET', '/complaints?category=Wi-Fi', { token: adminToken });
   check('all rows are Wi-Fi', r.data?.data?.every(c => c.category === 'Wi-Fi'), '(mismatch)');
 
+  console.log('\n4b) Filter by smart priority and SLA state');
+  r = await call('GET', `/complaints?priority=${created.data.priority}`, { token: adminToken });
+  check('priority filter returns only the selected priority and includes ours',
+    r.data?.data?.every(c => c.priority === created.data.priority) && r.data.data.some(c => c.complaint_id === cid));
+  r = await call('GET', `/complaints?sla=${created.data.sla_state}`, { token: adminToken });
+  check('SLA filter returns only the selected state and includes ours',
+    r.data?.data?.every(c => c.sla_state === created.data.sla_state) && r.data.data.some(c => c.complaint_id === cid));
+
   console.log('\n5) Invalid filters rejected');
   r = await call('GET', '/complaints?status=Nope', { token: adminToken });
   check('bad status -> 400', r.status === 400, `(got ${r.status})`);
   r = await call('GET', '/complaints?category=Nope', { token: adminToken });
   check('bad category -> 400', r.status === 400, `(got ${r.status})`);
+  r = await call('GET', '/complaints?priority=Immediate', { token: adminToken });
+  check('bad priority -> 400', r.status === 400, `(got ${r.status})`);
+  r = await call('GET', '/complaints?sla=late-ish', { token: adminToken });
+  check('bad SLA state -> 400', r.status === 400, `(got ${r.status})`);
 
   console.log('\n6) Search by (unique) student name');
   r = await call('GET', `/complaints?q=${encodeURIComponent(uniqueName)}`, { token: adminToken });

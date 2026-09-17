@@ -6,6 +6,7 @@
 const complaintsRepo = require('../complaints/complaints.repo');
 const usersRepo = require('../users/users.repo');
 const { STATUSES, CATEGORIES, ROLES } = require('../../config/constants');
+const { PRIORITIES, SLA_STATES } = require('../complaints/triage');
 
 const ACTIVITY_DAYS = 30;
 
@@ -50,6 +51,8 @@ function adminDashboard(requester) {
     totalComplaints: complaintsRepo.totalCount(hostelId),
     byStatus: zeroFilled(STATUSES, complaintsRepo.statusCounts(hostelId), 'status'),
     byCategory: zeroFilled(CATEGORIES, complaintsRepo.categoryCounts(hostelId), 'category'),
+    byPriority: zeroFilled(PRIORITIES, complaintsRepo.priorityCounts(hostelId), 'priority'),
+    sla: zeroFilled(SLA_STATES, complaintsRepo.slaCounts(hostelId), 'sla_state'),
     recent: complaintsRepo.recent(5, hostelId),
   };
 

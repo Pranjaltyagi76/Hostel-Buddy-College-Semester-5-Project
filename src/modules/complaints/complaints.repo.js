@@ -10,12 +10,22 @@
 // manager may not see are never loaded in the first place.
 const { db } = require('../../db');
 
+const SLA_STATE_SQL = `CASE
+  WHEN c.resolved_at IS NOT NULL AND c.resolved_at <= t.sla_due_at THEN 'met'
+  WHEN c.resolved_at IS NOT NULL THEN 'missed'
+  WHEN datetime('now') > t.sla_due_at THEN 'overdue'
+  ELSE 'on_track'
+END`;
+
 // One projection for every read, so the shape is identical whether a student
 // is viewing their own complaint or a manager is scanning a list.
 const COMPLAINT_SELECT = `
   SELECT c.complaint_id, c.student_id, c.hostel_id,
          c.category, c.problem_description, c.image_url, c.video_url,
          c.status, c.admin_remarks, c.created_at, c.updated_at, c.resolved_at,
+         t.priority, t.score AS triage_score, t.sla_hours, t.sla_due_at,
+         t.reason AS triage_reason, t.assessed_at AS triage_assessed_at,
+         ${SLA_STATE_SQL} AS sla_state,
          u.name  AS student_name,
          u.email AS student_email,
          s.roll_no, s.room_number,
@@ -24,18 +34,53 @@ const COMPLAINT_SELECT = `
     JOIN student s ON s.user_id   = c.student_id
     JOIN user    u ON u.user_id   = c.student_id
     JOIN hostel  h ON h.hostel_id = c.hostel_id
+    JOIN complaint_triage t ON t.complaint_id = c.complaint_id
 `;
+
+function inTransaction(fn) {
+  db.exec('BEGIN');
+  try {
+    const result = fn();
+    db.exec('COMMIT');
+    return result;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+function writeTriage(complaintId, triage) {
+  db.prepare(
+    `INSERT OR REPLACE INTO complaint_triage
+       (complaint_id, priority, score, sla_hours, sla_due_at, reason, assessed_at)
+     SELECT complaint_id, ?, ?, ?, datetime(created_at, ?), ?, datetime('now')
+       FROM complaint
+      WHERE complaint_id = ?`
+  ).run(
+    triage.priority,
+    triage.score,
+    triage.slaHours,
+    `+${triage.slaHours} hours`,
+    triage.reason,
+    complaintId
+  );
+}
 
 // hostelId is supplied by the service from the student's own record — never
 // from the request — so a client cannot file a complaint against another hostel.
-function create({ studentId, hostelId, category, description, imageUrl = null, videoUrl = null }) {
-  const info = db
-    .prepare(
-      `INSERT INTO complaint (student_id, hostel_id, category, problem_description, image_url, video_url, status)
-       VALUES (?, ?, ?, ?, ?, ?, 'Pending')`
-    )
-    .run(studentId, hostelId, category, description, imageUrl, videoUrl);
-  return findById(Number(info.lastInsertRowid));
+function create({ studentId, hostelId, category, description, imageUrl = null, videoUrl = null, triage }) {
+  const complaintId = inTransaction(() => {
+    const info = db
+      .prepare(
+        `INSERT INTO complaint (student_id, hostel_id, category, problem_description, image_url, video_url, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'Pending')`
+      )
+      .run(studentId, hostelId, category, description, imageUrl, videoUrl);
+    const id = Number(info.lastInsertRowid);
+    writeTriage(id, triage);
+    return id;
+  });
+  return findById(complaintId);
 }
 
 function findById(complaintId) {
@@ -50,13 +95,16 @@ function findByStudent(studentId) {
 
 // Updates the student-editable fields and bumps updated_at. Status is never
 // changed here — that is a staff-only operation.
-function update(complaintId, { category, description, imageUrl = null, videoUrl = null }) {
-  db.prepare(
-    `UPDATE complaint
-        SET category = ?, problem_description = ?, image_url = ?, video_url = ?,
-            updated_at = datetime('now')
-      WHERE complaint_id = ?`
-  ).run(category, description, imageUrl, videoUrl, complaintId);
+function update(complaintId, { category, description, imageUrl = null, videoUrl = null, triage }) {
+  inTransaction(() => {
+    db.prepare(
+      `UPDATE complaint
+          SET category = ?, problem_description = ?, image_url = ?, video_url = ?,
+              updated_at = datetime('now')
+        WHERE complaint_id = ?`
+    ).run(category, description, imageUrl, videoUrl, complaintId);
+    writeTriage(complaintId, triage);
+  });
   return findById(complaintId);
 }
 
@@ -77,7 +125,7 @@ function escapeLike(term) {
 
 // Builds the WHERE clause and its parameters. Every value is bound, never
 // interpolated.
-function buildFilters({ q, category, status, hostelId }) {
+function buildFilters({ q, category, status, priority, sla, hostelId }) {
   const clauses = [];
   const params = [];
 
@@ -94,6 +142,14 @@ function buildFilters({ q, category, status, hostelId }) {
   if (status) {
     clauses.push('c.status = ?');
     params.push(status);
+  }
+  if (priority) {
+    clauses.push('t.priority = ?');
+    params.push(priority);
+  }
+  if (sla) {
+    clauses.push(`(${SLA_STATE_SQL}) = ?`);
+    params.push(sla);
   }
   if (typeof q === 'string' && q.trim()) {
     const term = q.trim();
@@ -119,8 +175,8 @@ function buildFilters({ q, category, status, hostelId }) {
 //
 // The requested page is clamped to the last page that actually exists, so the
 // caller can never be handed "page 99999 of 4".
-function search({ q, category, status, hostelId = null, page = 1, limit = 20 }) {
-  const { where, params } = buildFilters({ q, category, status, hostelId });
+function search({ q, category, status, priority, sla, hostelId = null, page = 1, limit = 20 }) {
+  const { where, params } = buildFilters({ q, category, status, priority, sla, hostelId });
 
   const total = db
     .prepare(
@@ -128,6 +184,7 @@ function search({ q, category, status, hostelId = null, page = 1, limit = 20 }) 
          FROM complaint c
          JOIN student s ON s.user_id = c.student_id
          JOIN user    u ON u.user_id = c.student_id
+         JOIN complaint_triage t ON t.complaint_id = c.complaint_id
          ${where}`
     )
     .get(...params).n;
@@ -194,6 +251,35 @@ function categoryCounts(hostelId = null) {
     : db.prepare('SELECT category, COUNT(*) AS n FROM complaint GROUP BY category').all();
 }
 
+function priorityCounts(hostelId = null) {
+  return hostelId
+    ? db.prepare(
+      `SELECT t.priority, COUNT(*) AS n
+         FROM complaint c
+         JOIN complaint_triage t ON t.complaint_id = c.complaint_id
+        WHERE c.hostel_id = ?
+        GROUP BY t.priority`
+    ).all(hostelId)
+    : db.prepare(
+      `SELECT t.priority, COUNT(*) AS n
+         FROM complaint c
+         JOIN complaint_triage t ON t.complaint_id = c.complaint_id
+        GROUP BY t.priority`
+    ).all();
+}
+
+function slaCounts(hostelId = null) {
+  const where = hostelId ? 'WHERE c.hostel_id = ?' : '';
+  const params = hostelId ? [hostelId] : [];
+  return db.prepare(
+    `SELECT ${SLA_STATE_SQL} AS sla_state, COUNT(*) AS n
+       FROM complaint c
+       JOIN complaint_triage t ON t.complaint_id = c.complaint_id
+       ${where}
+      GROUP BY sla_state`
+  ).all(...params);
+}
+
 function recent(limit = 5, hostelId = null) {
   const where = hostelId ? 'WHERE c.hostel_id = ?' : '';
   const params = hostelId ? [hostelId, limit] : [limit];
@@ -252,6 +338,8 @@ module.exports = {
   totalCount,
   statusCounts,
   categoryCounts,
+  priorityCounts,
+  slaCounts,
   recent,
   dailyActivity,
 };

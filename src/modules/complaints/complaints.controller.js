@@ -77,8 +77,8 @@ function remove(req, res, next) {
 // passed through because the service narrows the results to their hostel.
 function listAll(req, res, next) {
   try {
-    const { q, category, status, page, limit } = req.query;
-    res.json(complaintsService.listAll(req.user, { q, category, status, page, limit }));
+    const { q, category, status, priority, sla, page, limit } = req.query;
+    res.json(complaintsService.listAll(req.user, { q, category, status, priority, sla, page, limit }));
   } catch (err) {
     next(err);
   }

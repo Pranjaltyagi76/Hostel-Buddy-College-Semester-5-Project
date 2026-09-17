@@ -201,6 +201,45 @@ function check(name, cond, detail = '') {
   r = await call('GET', '/users', { token: studentToken });
   check('a student cannot list students -> 403', r.status === 403, `(got ${r.status})`);
 
+  // -------------------------------------------------------- SMART TRIAGE/SLA
+  console.log('\nSMART TRIAGE) Priority and SLA are server-generated and explainable');
+  r = await call('POST', '/complaints', {
+    token: studentToken,
+    body: {
+      category: 'Furniture',
+      description: 'The study chair cushion is worn out.',
+      priority: 'Critical', // must be ignored: students do not control triage
+    },
+  });
+  const lowComplaint = r.data;
+  check('low-impact complaint is assessed as Low despite forged priority', lowComplaint?.priority === 'Low');
+  check('Low priority receives a 72-hour SLA', lowComplaint?.sla_hours === 72);
+  check('assessment carries a score and an explanation',
+    typeof lowComplaint?.triage_score === 'number' && /Furniture category baseline/.test(lowComplaint?.triage_reason || ''));
+  check('new complaint has a target and starts on track', !!lowComplaint?.sla_due_at && lowComplaint?.sla_state === 'on_track');
+
+  r = await call('POST', '/complaints', {
+    token: studentToken,
+    body: { category: 'Electricity', description: 'Exposed wire is sparking and there is smoke near the door.' },
+  });
+  const criticalComplaint = r.data;
+  check('safety signals produce Critical priority', criticalComplaint?.priority === 'Critical');
+  check('Critical priority receives a 2-hour explained SLA',
+    criticalComplaint?.sla_hours === 2 && /immediate safety hazard/.test(criticalComplaint?.triage_reason || ''));
+
+  r = await call('PUT', `/complaints/${lowComplaint.complaint_id}`, {
+    token: studentToken,
+    body: { category: 'Other', description: 'There is fire and smoke here.', priority: 'Low' },
+  });
+  check('editing a Pending complaint recalculates priority and deadline',
+    r.data?.priority === 'Critical' && r.data?.sla_hours === 2 && r.data?.sla_due_at !== lowComplaint.sla_due_at);
+
+  r = await call('PATCH', `/complaints/${criticalComplaint.complaint_id}/status`, {
+    token: adminToken,
+    body: { status: 'Resolved' },
+  });
+  check('a resolution before its deadline is recorded as SLA met', r.data?.sla_state === 'met');
+
   console.log(`\n=== RESULT: ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);
 })();

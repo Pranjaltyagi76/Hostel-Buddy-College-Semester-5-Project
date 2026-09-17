@@ -9,6 +9,7 @@ const { removeUploadedFile } = require('../../middleware/upload');
 const { AppError } = require('../../middleware/errorHandler');
 const { CATEGORIES, STATUSES, STAFF_ROLES } = require('../../config/constants');
 const { isString, isNonEmptyString, isTruthyFlag, toPositiveInt } = require('../../utils/validators');
+const { PRIORITIES, SLA_STATES, assessComplaint } = require('./triage');
 
 const MAX_DESCRIPTION = 1000;
 const MAX_REMARKS = 1000;
@@ -87,6 +88,7 @@ function createComplaint(studentId, { category, description } = {}, media = {}) 
     description: cleanDescription,
     imageUrl: media.imageUrl ?? null,
     videoUrl: media.videoUrl ?? null,
+    triage: assessComplaint({ category, description: cleanDescription }),
   });
 }
 
@@ -155,6 +157,7 @@ function updateComplaint(studentId, complaintId, body = {}, media = {}) {
     description: newDescription,
     imageUrl: resolveAttachment(complaint.image_url, media.imageUrl, remove_image),
     videoUrl: resolveAttachment(complaint.video_url, media.videoUrl, remove_video),
+    triage: assessComplaint({ category: newCategory, description: newDescription }),
   });
 }
 
@@ -177,12 +180,18 @@ function pageOrDefault(value, fallback) {
 // The hostel filter is resolved here from the caller's own record and passed
 // to the repository, so a manager's list is narrowed in SQL. It is never taken
 // from the query string — a manager cannot ask to see another hostel.
-function listAll(requester, { q, category, status, page, limit } = {}) {
+function listAll(requester, { q, category, status, priority, sla, page, limit } = {}) {
   if (category && !CATEGORIES.includes(category)) {
     throw new AppError('Invalid category filter', 400, 'VALIDATION_ERROR');
   }
   if (status && !STATUSES.includes(status)) {
     throw new AppError('Invalid status filter', 400, 'VALIDATION_ERROR');
+  }
+  if (priority && !PRIORITIES.includes(priority)) {
+    throw new AppError('Invalid priority filter', 400, 'VALIDATION_ERROR');
+  }
+  if (sla && !SLA_STATES.includes(sla)) {
+    throw new AppError('Invalid SLA filter', 400, 'VALIDATION_ERROR');
   }
 
   const pageNum = pageOrDefault(page, 1);
@@ -192,6 +201,8 @@ function listAll(requester, { q, category, status, page, limit } = {}) {
     q,
     category,
     status,
+    priority,
+    sla,
     hostelId: staffScope(requester),
     page: pageNum,
     limit: pageSize,

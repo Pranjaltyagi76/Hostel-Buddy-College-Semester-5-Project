@@ -4,6 +4,13 @@
 // badges, the top navigation, and alert boxes.
 const CATEGORIES = ['Electricity', 'Plumbing', 'Water Supply', 'Wi-Fi', 'Cleaning', 'Furniture', 'Security', 'Other'];
 const STATUSES = ['Pending', 'In Progress', 'Resolved', 'Closed'];
+const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
+const SLA_STATES = [
+  { value: 'on_track', label: 'On Track' },
+  { value: 'overdue', label: 'Overdue' },
+  { value: 'met', label: 'SLA Met' },
+  { value: 'missed', label: 'SLA Missed' },
+];
 
 const UI = {
   esc(s) {
@@ -33,6 +40,19 @@ const UI = {
       'Resolved': 'st-resolved', 'Closed': 'st-closed',
     }[status] || '';
     return `<span class="badge ${cls}">${UI.esc(status)}</span>`;
+  },
+
+  priorityBadge(priority) {
+    const cls = {
+      Low: 'pr-low', Medium: 'pr-medium', High: 'pr-high', Critical: 'pr-critical',
+    }[priority] || '';
+    return `<span class="badge ${cls}">${UI.esc(priority || 'Unassessed')}</span>`;
+  },
+
+  slaBadge(state) {
+    const item = SLA_STATES.find((candidate) => candidate.value === state);
+    const label = item ? item.label : state;
+    return `<span class="badge sla-${UI.esc(state || '')}">${UI.esc(label || '—')}</span>`;
   },
 
   // Build the top navigation for the logged-in user into #app-nav.
@@ -118,3 +138,5 @@ const UI = {
 window.UI = UI;
 window.CATEGORIES = CATEGORIES;
 window.STATUSES = STATUSES;
+window.PRIORITIES = PRIORITIES;
+window.SLA_STATES = SLA_STATES;

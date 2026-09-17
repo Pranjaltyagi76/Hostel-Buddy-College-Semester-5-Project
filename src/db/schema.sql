@@ -105,6 +105,26 @@ CREATE TABLE IF NOT EXISTS complaint (
 
 
 -- ---------------------------------------------------------------------------
+-- COMPLAINT_TRIAGE
+--
+-- Server-generated priority and SLA policy for one complaint. Kept as a
+-- separate one-to-one table so the feature upgrades existing v2 databases
+-- safely without an ALTER TABLE migration. Students cannot write these fields.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS complaint_triage (
+  complaint_id INTEGER PRIMARY KEY
+                       REFERENCES complaint(complaint_id) ON DELETE CASCADE,
+  priority     TEXT    NOT NULL
+                       CHECK (priority IN ('Low', 'Medium', 'High', 'Critical')),
+  score        INTEGER NOT NULL CHECK (score BETWEEN 0 AND 100),
+  sla_hours    INTEGER NOT NULL CHECK (sla_hours IN (2, 8, 24, 72)),
+  sla_due_at   TEXT    NOT NULL,
+  reason       TEXT    NOT NULL,
+  assessed_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+
+-- ---------------------------------------------------------------------------
 -- Indexes
 -- ---------------------------------------------------------------------------
 -- A student opening "My Complaints".
@@ -122,6 +142,10 @@ CREATE INDEX IF NOT EXISTS idx_complaint_cat     ON complaint(category);
 -- Super-admin dashboard activity trend: complaints raised and resolved over time.
 CREATE INDEX IF NOT EXISTS idx_complaint_created ON complaint(created_at);
 CREATE INDEX IF NOT EXISTS idx_complaint_resolved ON complaint(resolved_at);
+
+-- Priority queue and SLA deadline views.
+CREATE INDEX IF NOT EXISTS idx_triage_priority ON complaint_triage(priority);
+CREATE INDEX IF NOT EXISTS idx_triage_due      ON complaint_triage(sla_due_at);
 
 -- Listing the students of one hostel.
 CREATE INDEX IF NOT EXISTS idx_student_hostel    ON student(hostel_id);

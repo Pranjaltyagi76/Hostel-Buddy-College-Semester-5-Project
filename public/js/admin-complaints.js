@@ -4,13 +4,15 @@ if (!Auth.requireStaff()) throw new Error('redirecting');
 UI.renderNav('complaints');
 
 const PAGE_SIZE = 10;
-const state = { q: '', category: '', status: '', page: 1 };
+const state = { q: '', category: '', status: '', priority: '', sla: '', page: 1 };
 let cache = {}; // id -> complaint row (for the modal)
 
 const resultArea = document.getElementById('resultArea');
 const searchInput = document.getElementById('search');
 const filterCategory = document.getElementById('filterCategory');
 const filterStatus = document.getElementById('filterStatus');
+const filterPriority = document.getElementById('filterPriority');
+const filterSla = document.getElementById('filterSla');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modalTitle');
 const modalBody = document.getElementById('modalBody');
@@ -18,6 +20,8 @@ const modalBody = document.getElementById('modalBody');
 // Populate filter dropdowns.
 CATEGORIES.forEach((c) => filterCategory.add(new Option(c, c)));
 STATUSES.forEach((s) => filterStatus.add(new Option(s, s)));
+PRIORITIES.forEach((priority) => filterPriority.add(new Option(priority, priority)));
+SLA_STATES.forEach(({ value, label }) => filterSla.add(new Option(label, value)));
 
 // After a successful update the dialog lingers briefly to show the confirmation,
 // then closes on a timer. The id is kept so the timer can be cancelled — without
@@ -42,7 +46,8 @@ function closeModal() {
 document.getElementById('searchBtn').onclick = applyFilters;
 document.getElementById('clearBtn').onclick = () => {
   searchInput.value = ''; filterCategory.value = ''; filterStatus.value = '';
-  Object.assign(state, { q: '', category: '', status: '', page: 1 });
+  filterPriority.value = ''; filterSla.value = '';
+  Object.assign(state, { q: '', category: '', status: '', priority: '', sla: '', page: 1 });
   load();
 };
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') applyFilters(); });
@@ -51,6 +56,8 @@ function applyFilters() {
   state.q = searchInput.value.trim();
   state.category = filterCategory.value;
   state.status = filterStatus.value;
+  state.priority = filterPriority.value;
+  state.sla = filterSla.value;
   state.page = 1;
   load();
 }
@@ -63,6 +70,8 @@ async function load() {
   if (state.q) params.set('q', state.q);
   if (state.category) params.set('category', state.category);
   if (state.status) params.set('status', state.status);
+  if (state.priority) params.set('priority', state.priority);
+  if (state.sla) params.set('sla', state.sla);
   params.set('page', state.page);
   params.set('limit', PAGE_SIZE);
 
@@ -80,7 +89,7 @@ async function load() {
       <div class="table-wrap"><table>
         <thead><tr>
           <th>ID</th><th>Student</th>${SHOWS_HOSTEL ? '<th>Hostel</th>' : ''}<th>Room</th><th>Category</th>
-          <th>Description</th><th>Status</th><th>Submitted</th><th>Action</th>
+          <th>Description</th><th>Priority</th><th>Status</th><th>SLA</th><th>Submitted</th><th>Action</th>
         </tr></thead>
         <tbody>${data.map(rowHtml).join('')}</tbody>
       </table></div>
@@ -109,7 +118,9 @@ function rowHtml(c) {
     <td>${UI.esc(c.room_number || '—')}</td>
     <td><span class="chip">${UI.esc(c.category)}</span></td>
     <td>${UI.esc(short(c.problem_description))}</td>
+    <td>${UI.priorityBadge(c.priority)}</td>
     <td>${UI.statusBadge(c.status)}</td>
+    <td>${UI.slaBadge(c.sla_state)}</td>
     <td>${UI.fmtDay(c.created_at)}</td>
     <td class="actions"><button class="btn btn-sm" data-manage="${c.complaint_id}">Manage</button></td>
   </tr>`;
@@ -148,6 +159,9 @@ function manage(id) {
     ${detailRow('Student', `${UI.esc(c.student_name)} · ${UI.esc(c.roll_no || '—')}`)}
     ${detailRow('Hostel', `${UI.esc(c.hostel_name || '—')} · Room ${UI.esc(c.room_number || '—')}`)}
     ${detailRow('Category', `<span class="chip">${UI.esc(c.category)}</span>`)}
+    ${detailRow('Smart Priority', `${UI.priorityBadge(c.priority)} · Score ${c.triage_score}/100`)}
+    ${detailRow('Triage Reason', UI.esc(c.triage_reason))}
+    ${detailRow('SLA Target', `${UI.fmtDate(c.sla_due_at)} · ${UI.slaBadge(c.sla_state)}`)}
     ${detailRow('Description', UI.esc(c.problem_description))}
     ${detailRow('Submitted', UI.fmtDate(c.created_at))}
     ${detailRow('Resolved On', c.resolved_at ? UI.fmtDate(c.resolved_at) : '<span class="muted">—</span>')}

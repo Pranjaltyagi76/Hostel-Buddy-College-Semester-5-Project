@@ -26,6 +26,8 @@ const login = async (email, password) =>
 const sum = (obj) => Object.values(obj).reduce((a, b) => a + b, 0);
 const ALL_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Closed'];
 const ALL_CATEGORIES = ['Electricity','Plumbing','Water Supply','Wi-Fi','Cleaning','Furniture','Security','Other'];
+const ALL_PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
+const ALL_SLA_STATES = ['on_track', 'overdue', 'met', 'missed'];
 
 (async () => {
   const adminToken = await login('admin@hostel.test', 'admin123');
@@ -56,6 +58,10 @@ const ALL_CATEGORIES = ['Electricity','Plumbing','Water Supply','Wi-Fi','Cleanin
   check('byCategory has all 8 categories', ALL_CATEGORIES.every(c => c in after.byCategory));
   check('byStatus sums to totalComplaints', sum(after.byStatus) === after.totalComplaints, `(${sum(after.byStatus)} vs ${after.totalComplaints})`);
   check('byCategory sums to totalComplaints', sum(after.byCategory) === after.totalComplaints, `(${sum(after.byCategory)} vs ${after.totalComplaints})`);
+  check('byPriority has all 4 priorities', ALL_PRIORITIES.every(priority => priority in after.byPriority));
+  check('byPriority sums to totalComplaints', sum(after.byPriority) === after.totalComplaints);
+  check('SLA summary has all 4 states', ALL_SLA_STATES.every(state => state in after.sla));
+  check('SLA summary sums to totalComplaints', sum(after.sla) === after.totalComplaints);
   check('totalComplaints increased by exactly 3', after.totalComplaints === before.totalComplaints + 3, `(${before.totalComplaints} -> ${after.totalComplaints})`);
   check('totalStudents increased by exactly 1', after.totalStudents === before.totalStudents + 1, `(${before.totalStudents} -> ${after.totalStudents})`);
   check('super admin activity has 30 daily points', after.activity?.periodDays === 30 && after.activity.daily?.length === 30);

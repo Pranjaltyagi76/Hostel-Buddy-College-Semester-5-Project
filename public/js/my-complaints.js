@@ -82,7 +82,7 @@ async function load() {
     listArea.innerHTML = `
       <div class="table-wrap"><table>
         <thead><tr>
-          <th>ID</th><th>Category</th><th>Description</th><th>Status</th>
+          <th>ID</th><th>Category</th><th>Description</th><th>Priority</th><th>Status</th>
           <th>Submitted</th><th>Actions</th>
         </tr></thead>
         <tbody>
@@ -108,6 +108,7 @@ function rowHtml(c) {
     <td>#${c.complaint_id}</td>
     <td><span class="chip">${UI.esc(c.category)}</span></td>
     <td>${UI.esc(short(c.problem_description))}</td>
+    <td>${UI.priorityBadge(c.priority)}</td>
     <td>${UI.statusBadge(c.status)}</td>
     <td>${UI.fmtDay(c.created_at)}</td>
     <td class="actions">
@@ -127,6 +128,9 @@ function viewComplaint(id) {
   openModal(`Complaint #${c.complaint_id}`);
   modalBody.innerHTML =
     detailRow('Category', `<span class="chip">${UI.esc(c.category)}</span>`) +
+    detailRow('Smart Priority', `${UI.priorityBadge(c.priority)} · Score ${c.triage_score}/100`) +
+    detailRow('Why this priority', UI.esc(c.triage_reason)) +
+    detailRow('Resolution Target', `${UI.fmtDate(c.sla_due_at)} · ${UI.slaBadge(c.sla_state)}`) +
     detailRow('Status', UI.statusBadge(c.status)) +
     detailRow('Description', UI.esc(c.problem_description)) +
     detailRow('Admin Remarks', c.admin_remarks ? UI.esc(c.admin_remarks) : '<span class="muted">No remarks yet</span>') +

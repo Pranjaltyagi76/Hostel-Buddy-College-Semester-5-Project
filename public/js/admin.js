@@ -8,6 +8,7 @@ const recentArea = document.getElementById('recentArea');
 
 const CATEGORY_COLORS = ['#2e75b6', '#5a8f4e', '#c98a17', '#7a2e8a', '#b23b3b', '#1f4e79', '#0f9b8e', '#94a3b8'];
 const STATUS_COLORS = { 'Pending': '#c98a17', 'In Progress': '#2e75b6', 'Resolved': '#5a8f4e', 'Closed': '#6b7280' };
+const PRIORITY_COLORS = { Low: '#94a3b8', Medium: '#2e75b6', High: '#c98a17', Critical: '#b23b3b' };
 
 function statCard(num, label, accent) {
   return `<div class="stat accent-${accent}"><div class="num">${num}</div><div class="label">${label}</div></div>`;
@@ -34,10 +35,13 @@ function statCard(num, label, accent) {
     statCard(d.byStatus['In Progress'], 'In Progress', 'progress'),
     statCard(d.byStatus['Resolved'], 'Resolved', 'resolved'),
     statCard(d.byStatus['Closed'], 'Closed', 'closed'),
+    statCard(d.byPriority['Critical'], 'Critical Priority', 'critical'),
+    statCard(d.sla.overdue, 'SLA Overdue', 'overdue'),
   ].join('');
 
   renderCategoryChart(d.byCategory);
   renderStatusChart(d.byStatus);
+  renderPriorityChart(d.byPriority);
   if (d.activity) renderActivityChart(d.activity);
   renderRecent(d.recent);
 })();
@@ -83,6 +87,30 @@ function renderStatusChart(byStatus) {
       plugins: {
         legend: { display: false },
         title: { display: true, text: 'Complaints by Status', font: { size: 14 } },
+      },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+}
+
+function renderPriorityChart(byPriority) {
+  const labels = Object.keys(byPriority);
+  new Chart(document.getElementById('priorityChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Complaints',
+        data: Object.values(byPriority),
+        backgroundColor: labels.map((priority) => PRIORITY_COLORS[priority]),
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Complaints by Priority', font: { size: 14 } },
       },
       scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
     },

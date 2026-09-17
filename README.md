@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml/badge.svg)](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.5-5FA04E)](https://nodejs.org)
-[![Checks](https://img.shields.io/badge/API%20checks-273-1f4e79)](#-testing)
+[![Checks](https://img.shields.io/badge/API%20checks-289-1f4e79)](#-testing)
 [![License](https://img.shields.io/badge/license-MIT-blue)](#-license)
 
 **A Smart Hostel Complaint Management System.** Students raise and track maintenance complaints online; each hostel's manager works the queue for their own hostel; a super admin oversees every hostel. It replaces the paper complaint register with something searchable, trackable and answerable.
@@ -16,7 +16,8 @@
 - A **three-role ISA model** — `USER` specialised into `STUDENT`, `MANAGER` and `SUPER_ADMIN`, with the subtype's primary key doubling as its foreign key.
 - **Hostel scoping as a real authorization boundary.** A manager cannot read, search or modify another hostel's complaint, and the scope is resolved from the caller's own database row — never from the request. It has its own tests, in both directions.
 - **Attachments verified by their bytes**, not their declared type — including a video allowlist narrow enough that anything stored is guaranteed playable.
-- **273 API integration checks**, including a regression suite that pins down every bug found in the code audit.
+- An **explainable smart-priority and SLA engine** that scores every complaint, assigns a 2–72 hour target, and tracks on-time or overdue handling.
+- **289 API integration checks**, including a regression suite that pins down every bug found in the code audit.
 
 ---
 
@@ -126,10 +127,10 @@ One command. It starts the server on its own port against a throwaway database a
 | `auth` | 47 | Registration across three roles, login, JWT guards, profile |
 | `hostels` | 46 | Public hostel list, super-admin CRUD, manager provisioning |
 | `complaints` | 56 | Full student lifecycle, ownership, Pending-only edits, attachments |
-| `admin` | 54 | Staff queue, search, filters, pagination, status transitions, **hostel scoping** |
-| `dashboard` | 29 | Student and staff statistics, scoped aggregations, super-admin activity trend |
-| `regression` | 41 | Every bug found in the code audit, pinned so it cannot return |
-| **Total** | **273** | |
+| `admin` | 58 | Staff queue, search, filters, pagination, status transitions, **hostel scoping** |
+| `dashboard` | 33 | Student and staff statistics, scoped aggregations, super-admin activity trend |
+| `regression` | 49 | Every bug found in the code audit, plus priority/SLA policy guarantees |
+| **Total** | **289** | |
 
 To run one suite against a server you started yourself:
 
@@ -147,7 +148,7 @@ npm run test:admin
 
 ## 🗄️ Data model
 
-Six tables. `USER` is specialised into three subtypes; the specialisation is **disjoint** (a user is exactly one) and **total** (every user is one of them), with `role` as the discriminator.
+Seven tables. `USER` is specialised into three subtypes; the specialisation is **disjoint** (a user is exactly one) and **total** (every user is one of them), with `role` as the discriminator. `COMPLAINT_TRIAGE` is a one-to-one extension that holds server-generated priority and SLA policy.
 
 ![ER schema](docs/migration/er-schema-v2.png)
 
@@ -194,6 +195,19 @@ Student submits          Staff work it                 Done
 The student is read-only on status; staff drive every transition.
 
 The lifecycle is enforced server-side: a complaint only ever moves **forward**. Re-sending the current status is allowed — so remarks can be edited without a state change — but anything that would move it backwards is rejected with `409 INVALID_TRANSITION`. The status dropdown offers only the values the server will accept. This is what guarantees a complaint can never sit at Pending while still carrying a resolution date.
+
+### Smart priority and SLA
+
+Every complaint is scored automatically from its category and specific urgency signals in the description. Students cannot choose or override priority. The result is explainable in both student and staff views, and editing a Pending complaint recalculates it from the original submission time.
+
+| Priority | Target | Typical signal |
+|---|---:|---|
+| Critical | 2 hours | Fire, smoke, electric shock, exposed wire, flooding |
+| High | 8 hours | Security or electrical issue, major service outage |
+| Medium | 24 hours | Plumbing, water supply, or operational interruption |
+| Low | 72 hours | Routine furniture, cleaning, or general request |
+
+The dashboard reports Critical and overdue totals, staff can filter by priority or SLA state, and resolved complaints are marked as SLA met or missed.
 
 ---
 
@@ -258,7 +272,7 @@ All routes are prefixed `/api`. Everything except registration, login, the hoste
 | `GET` | `/complaints/mine` | student | Own complaints |
 | `PUT` `DELETE` | `/complaints/:id` | student | Edit / delete — owner and Pending only |
 | `GET` | `/complaints/:id` | owner or staff | One complaint |
-| `GET` | `/complaints` | staff | Queue — `q`, `category`, `status`, `page`, `limit`; scoped |
+| `GET` | `/complaints` | staff | Queue — `q`, `category`, `status`, `priority`, `sla`, `page`, `limit`; scoped |
 | `PATCH` | `/complaints/:id/status` | staff | Advance status, set remarks; scoped |
 | `GET` | `/dashboard/student` | student | Own statistics |
 | `GET` | `/dashboard/admin` | staff | Totals, status split, category split, recent — scoped |
