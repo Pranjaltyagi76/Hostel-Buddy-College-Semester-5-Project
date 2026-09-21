@@ -1,15 +1,25 @@
+<div align="center">
+
 # 🏠 Hostel Buddy
 
-[![Tests](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml/badge.svg)](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml)
-[![Node](https://img.shields.io/badge/node-%E2%89%A522.5-5FA04E)](https://nodejs.org)
-[![Checks](https://img.shields.io/badge/API%20checks-314-1f4e79)](#-testing)
-[![License](https://img.shields.io/badge/license-MIT-blue)](#-license)
+### A smarter way to report, prioritize and resolve hostel complaints
 
-**A Smart Hostel Complaint Management System.** Students raise and track maintenance complaints online; each hostel's manager works the queue for their own hostel; a super admin oversees every hostel. It replaces the paper complaint register with something searchable, trackable and answerable.
+[![Tests](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml/badge.svg)](https://github.com/Pranjaltyagi76/Hostel-Buddy-College-Semester-5-Project/actions/workflows/tests.yml)
+[![Node](https://img.shields.io/badge/Node.js-%E2%89%A522.5-5FA04E?logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express&logoColor=white)](https://expressjs.com)
+[![SQLite](https://img.shields.io/badge/SQLite-node%3Asqlite-003B57?logo=sqlite&logoColor=white)](https://nodejs.org/api/sqlite.html)
+[![Checks](https://img.shields.io/badge/API_checks-314_passing-1f8f4e)](#-testing)
+[![License](https://img.shields.io/badge/License-MIT-2563EB)](#-license)
+
+**Hostel Buddy** turns a paper complaint register into a secure, searchable and intelligent workflow. Students can raise and track maintenance issues, hostel managers can act on their own queues, and the super admin can monitor the complete institution from one dashboard.
+
+[Explore features](#-feature-highlights) · [See the smart upgrades](#-novelty-upgrades) · [Run locally](#-getting-started) · [View the API](#-api-reference)
+
+</div>
 
 > Built as a **model working version** — realistic end-to-end functionality on a clean layered architecture, without the scope of a full production system.
 
-> **Development status:** Active — upgrades are being prepared and verified on the main branch.
+> **Development status:** The three novelty upgrades are implemented, integration-tested and available on the `main` branch.
 
 **What makes it more than a CRUD app:**
 
@@ -20,6 +30,44 @@
 - **Complaint hotspot analytics** that ranks recurring room-level clusters by volume, open work, Critical cases and overdue SLAs, with period trends and recommended action.
 - **Explainable duplicate detection** that warns students before submission and links likely repeats for staff review without exposing another student's description or identity.
 - **314 API integration checks**, including a regression suite that pins down every bug found in the code audit.
+
+---
+
+## 🌟 Feature highlights
+
+| 🎓 Student experience | 🛠️ Staff operations | 🧠 Intelligent layer |
+|---|---|---|
+| Raise and track complaints | Hostel-scoped work queues | Explainable priority scoring |
+| Add verified images and videos | Search, filter and paginate | Automatic SLA deadlines |
+| Receive remarks and resolution updates | Advance controlled status transitions | Room-level hotspot analytics |
+| Edit Pending complaints | Manage hostels and managers | Privacy-safe duplicate detection |
+
+## 💡 Novelty upgrades
+
+The latest upgrades move Hostel Buddy beyond basic complaint CRUD and turn historical complaint data into decisions staff can act on.
+
+| Upgrade | What it solves | How Hostel Buddy handles it | Status |
+|---|---|---|:---:|
+| **⚡ Smart Priority & SLA Engine** | Important complaints can be lost in a first-come-first-served queue | Calculates an explainable urgency score, assigns `Critical`/`High`/`Medium`/`Low` priority, creates a 2–72 hour SLA and tracks whether resolution was met or missed | ✅ Live |
+| **📍 Complaint Hotspot Analytics** | Repeated failures in the same room or area are hard to notice | Ranks hostel-room clusters across 7, 30 or 90 days using volume, open work, Critical cases and overdue SLAs, then recommends the next action | ✅ Live |
+| **🔎 Duplicate Detection** | Multiple reports of the same active issue create noisy queues | Performs a privacy-safe preflight comparison, explains the match score and links confirmed repeats while still allowing separate incidents | ✅ Live |
+
+### A connected decision flow
+
+```text
+Student submits a complaint
+            │
+            ├──► Duplicate check ──► Warn and link likely repeats
+            │
+            ├──► Priority engine ──► Score urgency and assign an SLA
+            │
+            └──► Hotspot engine ──► Detect recurring room-level risk
+                                      │
+                                      ▼
+                         Manager / super-admin action
+```
+
+Every result remains explainable: users see why a priority was assigned, staff see what makes a location risky, and duplicate warnings include a transparent similarity score.
 
 ---
 
@@ -361,4 +409,19 @@ Documented the way real engineering work is — decisions before code, and an ho
 
 ---
 
+## 📜 License
+
+Hostel Buddy is released under the **MIT License**, as declared in [package.json](package.json).
+
+---
+
+<div align="center">
+
+### Built by Group 19 as a Semester 5 college project
+
+Made to help hostel teams move from reactive complaint handling to transparent, data-informed maintenance.
+
+[⬆ Back to top](#-hostel-buddy)
+
+</div>
 
