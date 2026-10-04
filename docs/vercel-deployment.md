@@ -153,6 +153,9 @@ The owner subsequently accepted Marketplace terms, and `hostel-buddy-db` was
 provisioned on the verified free Starter plan and connected to Production.
 Live login/redeploy results are recorded separately after cloud verification.
 
+See [live verification evidence](vercel-live-verification.md) for the completed
+production login, feature smoke tests and real redeployment persistence checks.
+
 ## Attachment limitation (outside this database/login fix)
 
 Vercel attachments remain in `/tmp`, so they are temporary and instance-specific.
