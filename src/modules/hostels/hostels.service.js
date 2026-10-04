@@ -13,13 +13,13 @@ const { isString, isNonEmptyString, toPositiveInt } = require('../../utils/valid
 const MAX_NAME = 100;
 const MAX_LOCATION = 100;
 
-function listAll() {
-  return hostelsRepo.listAll();
+async function listAll() {
+  return (await hostelsRepo.listAll());
 }
 
-function getOne(hostelId) {
+async function getOne(hostelId) {
   const id = toPositiveInt(hostelId);
-  const hostel = id && hostelsRepo.findById(id);
+  const hostel = id && (await hostelsRepo.findById(id));
   if (!hostel) throw new AppError('Hostel not found', 404, 'NOT_FOUND');
   return hostel;
 }
@@ -59,15 +59,15 @@ function validateFields({ hostel_name, location, capacity }) {
   return { name, location: cleanLocation, capacity: cleanCapacity };
 }
 
-function create(dto = {}) {
+async function create(dto = {}) {
   const fields = validateFields(dto);
 
-  if (hostelsRepo.findByName(fields.name)) {
+  if ((await hostelsRepo.findByName(fields.name))) {
     throw new AppError('A hostel with this name already exists', 409, 'HOSTEL_NAME_TAKEN');
   }
 
   try {
-    return hostelsRepo.create(fields);
+    return (await hostelsRepo.create(fields));
   } catch (err) {
     // Backstop for the race between the check above and the insert.
     if (String(err.message).includes('UNIQUE constraint failed')) {
@@ -77,22 +77,22 @@ function create(dto = {}) {
   }
 }
 
-function update(hostelId, dto = {}) {
-  const existing = getOne(hostelId);
+async function update(hostelId, dto = {}) {
+  const existing = (await getOne(hostelId));
   const fields = validateFields(dto);
 
   // Renaming onto another hostel's name is a conflict; keeping your own is not.
-  const clash = hostelsRepo.findByName(fields.name);
+  const clash = (await hostelsRepo.findByName(fields.name));
   if (clash && clash.hostel_id !== existing.hostel_id) {
     throw new AppError('A hostel with this name already exists', 409, 'HOSTEL_NAME_TAKEN');
   }
 
-  return hostelsRepo.update(existing.hostel_id, fields);
+  return (await hostelsRepo.update(existing.hostel_id, fields));
 }
 
-function remove(hostelId) {
-  const existing = getOne(hostelId);
-  const { students, managers, complaints } = hostelsRepo.usage(existing.hostel_id);
+async function remove(hostelId) {
+  const existing = (await getOne(hostelId));
+  const { students, managers, complaints } = (await hostelsRepo.usage(existing.hostel_id));
 
   if (students || managers || complaints) {
     const parts = [];
@@ -106,7 +106,7 @@ function remove(hostelId) {
     );
   }
 
-  hostelsRepo.remove(existing.hostel_id);
+  (await hostelsRepo.remove(existing.hostel_id));
   return { deleted: true, hostel_id: existing.hostel_id };
 }
 

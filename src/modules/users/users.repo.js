@@ -25,16 +25,8 @@ const USER_SELECT = `
     LEFT JOIN hostel  h ON h.hostel_id = COALESCE(s.hostel_id, m.hostel_id)
 `;
 
-function inTransaction(fn) {
-  db.exec('BEGIN');
-  try {
-    const out = fn();
-    db.exec('COMMIT');
-    return out;
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
+async function inTransaction(fn) {
+  return (await db.transaction(fn));
 }
 
 // Creates the USER row and its matching subtype row together.
@@ -43,32 +35,32 @@ function inTransaction(fn) {
 // but SQL alone cannot enforce that the row is really there. Writing both
 // inside one transaction is what makes the claim true — a half-created user
 // is never visible to anything else.
-function createUser({ name, email, passwordHash, role, rollNo = null, hostelId = null, roomNumber = null }) {
-  return inTransaction(() => {
-    const info = db
+async function createUser({ name, email, passwordHash, role, rollNo = null, hostelId = null, roomNumber = null }) {
+  return (await inTransaction(async () => {
+    const info = (await db
       .prepare('INSERT INTO user (name, email, password_hash, role) VALUES (?, ?, ?, ?)')
-      .run(name, email, passwordHash, role);
+      .run(name, email, passwordHash, role));
     const userId = Number(info.lastInsertRowid);
 
     if (role === ROLES.STUDENT) {
-      db.prepare(
+      (await db.prepare(
         'INSERT INTO student (user_id, roll_no, hostel_id, room_number) VALUES (?, ?, ?, ?)'
-      ).run(userId, rollNo, hostelId, roomNumber);
+      ).run(userId, rollNo, hostelId, roomNumber));
     } else if (role === ROLES.MANAGER) {
-      db.prepare('INSERT INTO manager (user_id, hostel_id) VALUES (?, ?)').run(userId, hostelId);
+      (await db.prepare('INSERT INTO manager (user_id, hostel_id) VALUES (?, ?)').run(userId, hostelId));
     } else {
-      db.prepare('INSERT INTO super_admin (user_id) VALUES (?)').run(userId);
+      (await db.prepare('INSERT INTO super_admin (user_id) VALUES (?)').run(userId));
     }
 
-    return findById(userId);
-  });
+    return (await findById(userId));
+  }));
 }
 
 // Full row INCLUDING the password hash — used only to verify credentials.
 // Kept separate from findById so that returning the hash requires deliberately
 // choosing this function.
-function findAuthByEmail(email) {
-  return db
+async function findAuthByEmail(email) {
+  return (await db
     .prepare(
       `SELECT u.user_id, u.name, u.email, u.password_hash, u.role, u.created_at,
               s.roll_no, s.room_number,
@@ -80,63 +72,63 @@ function findAuthByEmail(email) {
          LEFT JOIN hostel  h ON h.hostel_id = COALESCE(s.hostel_id, m.hostel_id)
         WHERE u.email = ?`
     )
-    .get(email);
+    .get(email));
 }
 
 // Public row (no hash) — safe to hand back to a client.
-function findByEmail(email) {
-  return db.prepare(`${USER_SELECT} WHERE u.email = ?`).get(email);
+async function findByEmail(email) {
+  return (await db.prepare(`${USER_SELECT} WHERE u.email = ?`).get(email));
 }
 
-function findById(userId) {
-  return db.prepare(`${USER_SELECT} WHERE u.user_id = ?`).get(userId);
+async function findById(userId) {
+  return (await db.prepare(`${USER_SELECT} WHERE u.user_id = ?`).get(userId));
 }
 
-function rollNoExists(rollNo) {
-  return !!db.prepare('SELECT 1 FROM student WHERE roll_no = ?').get(rollNo);
+async function rollNoExists(rollNo) {
+  return !!(await db.prepare('SELECT 1 FROM student WHERE roll_no = ?').get(rollNo));
 }
 
 // Updates the name on USER and, for a student, the room number on STUDENT.
 // The STUDENT update simply affects no rows for a manager or super admin.
-function updateProfile(userId, { name, roomNumber }) {
-  return inTransaction(() => {
-    db.prepare('UPDATE user SET name = ? WHERE user_id = ?').run(name, userId);
+async function updateProfile(userId, { name, roomNumber }) {
+  return (await inTransaction(async () => {
+    (await db.prepare('UPDATE user SET name = ? WHERE user_id = ?').run(name, userId));
     if (roomNumber !== undefined) {
-      db.prepare('UPDATE student SET room_number = ? WHERE user_id = ?').run(roomNumber, userId);
+      (await db.prepare('UPDATE student SET room_number = ? WHERE user_id = ?').run(roomNumber, userId));
     }
-    return findById(userId);
-  });
+    return (await findById(userId));
+  }));
 }
 
 // Lists students, optionally narrowed to one hostel.
 //
 // `hostelId` is how a manager is scoped: they pass their own hostel and see
 // only its students, while a super admin passes nothing and sees everyone.
-function listStudents({ hostelId = null } = {}) {
+async function listStudents({ hostelId = null } = {}) {
   if (hostelId) {
-    return db
+    return (await db
       .prepare(`${USER_SELECT} WHERE u.role = ? AND s.hostel_id = ? ORDER BY u.created_at DESC, u.user_id DESC`)
-      .all(ROLES.STUDENT, hostelId);
+      .all(ROLES.STUDENT, hostelId));
   }
-  return db
+  return (await db
     .prepare(`${USER_SELECT} WHERE u.role = ? ORDER BY u.created_at DESC, u.user_id DESC`)
-    .all(ROLES.STUDENT);
+    .all(ROLES.STUDENT));
 }
 
 // Every manager, with the hostel each one is scoped to. Super-admin only view.
-function listManagers() {
-  return db
+async function listManagers() {
+  return (await db
     .prepare(`${USER_SELECT} WHERE u.role = ? ORDER BY h.hostel_name, u.name`)
-    .all(ROLES.MANAGER);
+    .all(ROLES.MANAGER));
 }
 
-function countStudents({ hostelId = null } = {}) {
+async function countStudents({ hostelId = null } = {}) {
   if (hostelId) {
-    return db
+    return (await db
       .prepare('SELECT COUNT(*) AS n FROM student WHERE hostel_id = ?')
-      .get(hostelId).n;
+      .get(hostelId)).n;
   }
-  return db.prepare('SELECT COUNT(*) AS n FROM student').get().n;
+  return (await db.prepare('SELECT COUNT(*) AS n FROM student').get()).n;
 }
 
 // The hostel a member of staff is scoped to: a manager's own hostel, or null
@@ -145,8 +137,8 @@ function countStudents({ hostelId = null } = {}) {
 // Read from the database rather than carried in the session token, so that
 // reassigning or demoting a manager takes effect on their very next request
 // instead of whenever their token happens to expire.
-function findStaffHostelId(userId) {
-  const row = db.prepare('SELECT hostel_id FROM manager WHERE user_id = ?').get(userId);
+async function findStaffHostelId(userId) {
+  const row = (await db.prepare('SELECT hostel_id FROM manager WHERE user_id = ?').get(userId));
   return row ? row.hostel_id : null;
 }
 

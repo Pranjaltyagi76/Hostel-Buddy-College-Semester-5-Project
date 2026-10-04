@@ -28,7 +28,15 @@ async function api(method, path, options = {}) {
 
   let data = null;
   const text = await res.text();
-  if (text) { try { data = JSON.parse(text); } catch { data = text; } }
+  if (text) {
+    try { data = JSON.parse(text); } catch {
+      throw new ApiError('The API returned a page instead of JSON. Check the deployment routing.', res.status, null);
+    }
+  }
+
+  if (res.status === 401 && data?.error?.code === 'INVALID_CREDENTIALS') {
+    throw new ApiError(data.error.message || 'Invalid email or password', 401, data);
+  }
 
   if (res.status === 401) {
     Auth.clear();

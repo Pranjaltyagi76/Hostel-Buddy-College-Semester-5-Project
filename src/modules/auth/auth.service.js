@@ -49,7 +49,7 @@ async function register({ name, email, password, roll_no, hostel_id, room_number
   if (hostelId === null) {
     throw new AppError('Please select a hostel', 400, 'VALIDATION_ERROR');
   }
-  if (!hostelsRepo.exists(hostelId)) {
+  if (!(await hostelsRepo.exists(hostelId))) {
     throw new AppError('The selected hostel does not exist', 400, 'VALIDATION_ERROR');
   }
   // Room number is optional: absent, null, or blank all mean "not given".
@@ -65,10 +65,10 @@ async function register({ name, email, password, roll_no, hostel_id, room_number
   const normalizedRollNo = roll_no.trim();
 
   // --- uniqueness ---
-  if (usersRepo.findByEmail(normalizedEmail)) {
+  if ((await usersRepo.findByEmail(normalizedEmail))) {
     throw new AppError('An account with this email already exists', 409, 'EMAIL_TAKEN');
   }
-  if (usersRepo.rollNoExists(normalizedRollNo)) {
+  if ((await usersRepo.rollNoExists(normalizedRollNo))) {
     throw new AppError('An account with this roll number already exists', 409, 'ROLL_NO_TAKEN');
   }
 
@@ -79,7 +79,7 @@ async function register({ name, email, password, roll_no, hostel_id, room_number
 
   let user;
   try {
-    user = usersRepo.createUser({
+    user = (await usersRepo.createUser({
       name: cleanName,
       email: normalizedEmail,
       passwordHash,
@@ -87,7 +87,7 @@ async function register({ name, email, password, roll_no, hostel_id, room_number
       rollNo: normalizedRollNo,
       hostelId,
       roomNumber: room_number ? room_number.trim() || null : null,
-    });
+    }));
   } catch (err) {
     // Backstop for the race between the checks above and this insert: the DB's
     // UNIQUE constraints are the source of truth, so map them to clean 409s.
@@ -111,7 +111,7 @@ async function login({ email, password } = {}) {
   if (!isEmail(email) || !isString(password) || !password) throw invalid;
 
   // findAuthByEmail is the one lookup that returns the password hash.
-  const row = usersRepo.findAuthByEmail(email.trim().toLowerCase());
+  const row = (await usersRepo.findAuthByEmail(email.trim().toLowerCase()));
   if (!row) throw invalid;
 
   const ok = await bcrypt.compare(password, row.password_hash);

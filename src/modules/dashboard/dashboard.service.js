@@ -22,8 +22,8 @@ function zeroFilled(keys, rows, keyField) {
   return map;
 }
 
-function studentDashboard(studentId) {
-  const byStatus = zeroFilled(STATUSES, complaintsRepo.statusCountsForStudent(studentId), 'status');
+async function studentDashboard(studentId) {
+  const byStatus = zeroFilled(STATUSES, (await complaintsRepo.statusCountsForStudent(studentId)), 'status');
   const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
   return {
     total,
@@ -41,27 +41,27 @@ function studentDashboard(studentId) {
 // status breakdown, the category chart and the recent list all describe the
 // same population. Scoping only some of them would produce a dashboard whose
 // numbers contradict each other.
-function adminDashboard(requester) {
-  const hostelId = usersRepo.findStaffHostelId(requester.userId);
-  const scope = hostelId ? usersRepo.findById(requester.userId) : null;
+async function adminDashboard(requester) {
+  const hostelId = (await usersRepo.findStaffHostelId(requester.userId));
+  const scope = hostelId ? (await usersRepo.findById(requester.userId)) : null;
 
   const dashboard = {
     scope: hostelId
       ? { hostel_id: hostelId, hostel_name: scope ? scope.hostel_name : null }
       : { hostel_id: null, hostel_name: null },
-    totalStudents: usersRepo.countStudents({ hostelId }),
-    totalComplaints: complaintsRepo.totalCount(hostelId),
-    byStatus: zeroFilled(STATUSES, complaintsRepo.statusCounts(hostelId), 'status'),
-    byCategory: zeroFilled(CATEGORIES, complaintsRepo.categoryCounts(hostelId), 'category'),
-    byPriority: zeroFilled(PRIORITIES, complaintsRepo.priorityCounts(hostelId), 'priority'),
-    sla: zeroFilled(SLA_STATES, complaintsRepo.slaCounts(hostelId), 'sla_state'),
-    recent: complaintsRepo.recent(5, hostelId),
+    totalStudents: (await usersRepo.countStudents({ hostelId })),
+    totalComplaints: (await complaintsRepo.totalCount(hostelId)),
+    byStatus: zeroFilled(STATUSES, (await complaintsRepo.statusCounts(hostelId)), 'status'),
+    byCategory: zeroFilled(CATEGORIES, (await complaintsRepo.categoryCounts(hostelId)), 'category'),
+    byPriority: zeroFilled(PRIORITIES, (await complaintsRepo.priorityCounts(hostelId)), 'priority'),
+    sla: zeroFilled(SLA_STATES, (await complaintsRepo.slaCounts(hostelId)), 'sla_state'),
+    recent: (await complaintsRepo.recent(5, hostelId)),
   };
 
   // Only a super admin sees the institution-wide raised-versus-resolved
   // activity trend. Managers keep their existing hostel-scoped dashboard.
   if (requester.role === ROLES.SUPER_ADMIN) {
-    const daily = complaintsRepo.dailyActivity(ACTIVITY_DAYS);
+    const daily = (await complaintsRepo.dailyActivity(ACTIVITY_DAYS));
     dashboard.activity = {
       periodDays: ACTIVITY_DAYS,
       raisedTotal: daily.reduce((total, row) => total + row.raised, 0),
@@ -104,14 +104,14 @@ function recommendedAction(row) {
 // dashboard payload: the period can be changed without reloading every chart.
 // The repository receives the caller's resolved hostel scope, never one from
 // the query string.
-function complaintHotspots(requester, requestedDays) {
+async function complaintHotspots(requester, requestedDays) {
   const days = requestedDays === undefined ? 30 : Number(requestedDays);
   if (!HOTSPOT_PERIODS.includes(days) || String(days) !== String(requestedDays ?? days).trim()) {
     throw new AppError('Hotspot period must be 7, 30, or 90 days', 400, 'VALIDATION_ERROR');
   }
 
-  const hostelId = usersRepo.findStaffHostelId(requester.userId);
-  const rows = complaintsRepo.complaintHotspots(hostelId, days, 8);
+  const hostelId = (await usersRepo.findStaffHostelId(requester.userId));
+  const rows = (await complaintsRepo.complaintHotspots(hostelId, days, 8));
   const locations = rows.map((row, index) => ({
     rank: index + 1,
     hostel_id: row.hostel_id,

@@ -15,28 +15,27 @@ const { db } = require('./index');
 const config = require('../config/env');
 const { ROLES } = require('../config/constants');
 
-function seedSuperAdmin() {
+async function seedSuperAdmin() {
   const email = config.admin.email.trim().toLowerCase();
-
-  const existing = db.prepare('SELECT user_id, email FROM user WHERE email = ?').get(email);
-  if (existing) return existing;
-
-  const passwordHash = bcrypt.hashSync(config.admin.password, 10);
-
-  db.exec('BEGIN');
-  try {
-    const info = db
+  const passwordHash = await bcrypt.hash(config.admin.password, 10);
+  return db.transaction(async () => {
+    // Check inside the write transaction: simultaneous cold starts create one
+    // account. Env password changes must never silently reset an existing user.
+    const existing = await db.prepare('SELECT user_id, email, role FROM user WHERE email = ?').get(email);
+    if (existing) {
+      if (existing.role !== ROLES.SUPER_ADMIN) {
+        throw new Error('ADMIN_EMAIL belongs to a non-admin account; choose a different email');
+      }
+      return existing;
+    }
+    const info = await db
       .prepare('INSERT INTO user (name, email, password_hash, role) VALUES (?, ?, ?, ?)')
       .run(config.admin.name, email, passwordHash, ROLES.SUPER_ADMIN);
     const userId = Number(info.lastInsertRowid);
-    db.prepare('INSERT INTO super_admin (user_id) VALUES (?)').run(userId);
-    db.exec('COMMIT');
+    await db.prepare('INSERT INTO super_admin (user_id) VALUES (?)').run(userId);
     console.log(`[seed] super administrator created: ${email}`);
     return { user_id: userId, email };
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
+  });
 }
 
 module.exports = { seedSuperAdmin };

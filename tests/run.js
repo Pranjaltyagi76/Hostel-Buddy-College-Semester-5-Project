@@ -10,6 +10,7 @@
 const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('node:url');
 
 const ROOT = path.resolve(__dirname, '..');
 const PORT = Number(process.env.HB_TEST_PORT) || 4010;
@@ -44,6 +45,12 @@ function removeTestUploads() {
 const childEnv = {
   ...process.env,
   NODE_ENV: 'test',
+  VERCEL: '',
+  // Never point the suite at a developer's live/cloud database by inheritance.
+  TURSO_DATABASE_URL: process.env.HB_TEST_DATABASE_BACKEND === 'libsql' ? pathToFileURL(DB_PATH).href : '',
+  TURSO_AUTH_TOKEN: '',
+  ADMIN_EMAIL: 'admin@hostel.test',
+  ADMIN_PASSWORD: 'admin123',
   PORT: String(PORT),
   DB_PATH,
   UPLOAD_DIR,
@@ -118,6 +125,7 @@ async function main() {
   removeTestDatabase();
   removeTestUploads();
 
+  console.log(`[test] backend: ${childEnv.TURSO_DATABASE_URL ? 'libSQL SDK (local file)' : 'Node SQLite'}`);
   console.log('[test] seeding the throwaway database (hostels, managers, students)');
   seedTestDatabase();
 

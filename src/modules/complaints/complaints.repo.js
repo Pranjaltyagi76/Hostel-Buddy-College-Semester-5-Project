@@ -42,20 +42,12 @@ const COMPLAINT_SELECT = `
     JOIN complaint_triage t ON t.complaint_id = c.complaint_id
 `;
 
-function inTransaction(fn) {
-  db.exec('BEGIN');
-  try {
-    const result = fn();
-    db.exec('COMMIT');
-    return result;
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
+async function inTransaction(fn) {
+  return (await db.transaction(fn));
 }
 
-function writeTriage(complaintId, triage) {
-  db.prepare(
+async function writeTriage(complaintId, triage) {
+  (await db.prepare(
     `INSERT OR REPLACE INTO complaint_triage
        (complaint_id, priority, score, sla_hours, sla_due_at, reason, assessed_at)
      SELECT complaint_id, ?, ?, ?, datetime(created_at, ?), ?, datetime('now')
@@ -68,74 +60,74 @@ function writeTriage(complaintId, triage) {
     `+${triage.slaHours} hours`,
     triage.reason,
     complaintId
-  );
+  ));
 }
 
-function writeDuplicateMatches(complaintId, matches = []) {
-  db.prepare('DELETE FROM complaint_duplicate_match WHERE complaint_id = ?').run(complaintId);
+async function writeDuplicateMatches(complaintId, matches = []) {
+  (await db.prepare('DELETE FROM complaint_duplicate_match WHERE complaint_id = ?').run(complaintId));
   const insert = db.prepare(
     `INSERT INTO complaint_duplicate_match
        (complaint_id, matched_complaint_id, similarity_score, reason)
      VALUES (?, ?, ?, ?)`
   );
   for (const match of matches) {
-    insert.run(complaintId, match.complaint_id, match.similarity_score, match.match_reason);
+    (await insert.run(complaintId, match.complaint_id, match.similarity_score, match.match_reason));
   }
 }
 
 // hostelId is supplied by the service from the student's own record — never
 // from the request — so a client cannot file a complaint against another hostel.
-function create({ studentId, hostelId, roomNumber = null, category, description, imageUrl = null, videoUrl = null, triage, duplicateMatches = [] }) {
-  const complaintId = inTransaction(() => {
-    const info = db
+async function create({ studentId, hostelId, roomNumber = null, category, description, imageUrl = null, videoUrl = null, triage, duplicateMatches = [] }) {
+  const complaintId = (await inTransaction(async () => {
+    const info = (await db
       .prepare(
         `INSERT INTO complaint
            (student_id, hostel_id, room_number, category, problem_description, image_url, video_url, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')`
       )
-      .run(studentId, hostelId, roomNumber, category, description, imageUrl, videoUrl);
+      .run(studentId, hostelId, roomNumber, category, description, imageUrl, videoUrl));
     const id = Number(info.lastInsertRowid);
-    writeTriage(id, triage);
-    writeDuplicateMatches(id, duplicateMatches);
+    (await writeTriage(id, triage));
+    (await writeDuplicateMatches(id, duplicateMatches));
     return id;
-  });
-  return findById(complaintId);
+  }));
+  return (await findById(complaintId));
 }
 
-function findById(complaintId) {
-  return db.prepare(`${COMPLAINT_SELECT} WHERE c.complaint_id = ?`).get(complaintId);
+async function findById(complaintId) {
+  return (await db.prepare(`${COMPLAINT_SELECT} WHERE c.complaint_id = ?`).get(complaintId));
 }
 
-function findByStudent(studentId) {
-  return db
+async function findByStudent(studentId) {
+  return (await db
     .prepare(`${COMPLAINT_SELECT} WHERE c.student_id = ? ORDER BY c.created_at DESC, c.complaint_id DESC`)
-    .all(studentId);
+    .all(studentId));
 }
 
 // Updates the student-editable fields and bumps updated_at. Status is never
 // changed here — that is a staff-only operation.
-function update(complaintId, { category, description, imageUrl = null, videoUrl = null, triage, duplicateMatches = [] }) {
-  inTransaction(() => {
-    db.prepare(
+async function update(complaintId, { category, description, imageUrl = null, videoUrl = null, triage, duplicateMatches = [] }) {
+  (await inTransaction(async () => {
+    (await db.prepare(
       `UPDATE complaint
           SET category = ?, problem_description = ?, image_url = ?, video_url = ?,
               updated_at = datetime('now')
         WHERE complaint_id = ?`
-    ).run(category, description, imageUrl, videoUrl, complaintId);
-    writeTriage(complaintId, triage);
-    writeDuplicateMatches(complaintId, duplicateMatches);
-  });
-  return findById(complaintId);
+    ).run(category, description, imageUrl, videoUrl, complaintId));
+    (await writeTriage(complaintId, triage));
+    (await writeDuplicateMatches(complaintId, duplicateMatches));
+  }));
+  return (await findById(complaintId));
 }
 
-function remove(complaintId) {
-  db.prepare('DELETE FROM complaint WHERE complaint_id = ?').run(complaintId);
+async function remove(complaintId) {
+  (await db.prepare('DELETE FROM complaint WHERE complaint_id = ?').run(complaintId));
 }
 
 // Only recent, unresolved work can prevent a genuinely redundant submission.
 // The service performs the explainable similarity calculation; this query
 // merely supplies a bounded, hostel-scoped candidate set.
-function findDuplicateCandidates({ hostelId, excludeComplaintId = null, days = 30, limit = 100 }) {
+async function findDuplicateCandidates({ hostelId, excludeComplaintId = null, days = 30, limit = 100 }) {
   const safeDays = Number.isInteger(days) && days > 0 && days <= 90 ? days : 30;
   const safeLimit = Number.isInteger(limit) && limit > 0 && limit <= 200 ? limit : 100;
   const exclude = excludeComplaintId ? 'AND c.complaint_id <> ?' : '';
@@ -143,7 +135,7 @@ function findDuplicateCandidates({ hostelId, excludeComplaintId = null, days = 3
   if (excludeComplaintId) params.push(excludeComplaintId);
   params.push(safeLimit);
 
-  return db.prepare(
+  return (await db.prepare(
     `SELECT c.complaint_id, c.category, c.problem_description,
             c.status, c.created_at, c.room_number
        FROM complaint c
@@ -153,7 +145,7 @@ function findDuplicateCandidates({ hostelId, excludeComplaintId = null, days = 3
         ${exclude}
       ORDER BY c.created_at DESC, c.complaint_id DESC
       LIMIT ?`
-  ).all(...params);
+  ).all(...params));
 }
 
 // --- Staff: search / filter across complaints ---
@@ -219,10 +211,10 @@ function buildFilters({ q, category, status, priority, sla, hostelId }) {
 //
 // The requested page is clamped to the last page that actually exists, so the
 // caller can never be handed "page 99999 of 4".
-function search({ q, category, status, priority, sla, hostelId = null, page = 1, limit = 20 }) {
+async function search({ q, category, status, priority, sla, hostelId = null, page = 1, limit = 20 }) {
   const { where, params } = buildFilters({ q, category, status, priority, sla, hostelId });
 
-  const total = db
+  const total = (await db
     .prepare(
       `SELECT COUNT(*) AS n
          FROM complaint c
@@ -231,15 +223,15 @@ function search({ q, category, status, priority, sla, hostelId = null, page = 1,
          JOIN complaint_triage t ON t.complaint_id = c.complaint_id
          ${where}`
     )
-    .get(...params).n;
+    .get(...params)).n;
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const effectivePage = Math.min(Math.max(1, page), totalPages);
   const offset = (effectivePage - 1) * limit;
 
-  const rows = db
+  const rows = (await db
     .prepare(`${COMPLAINT_SELECT} ${where} ORDER BY c.created_at DESC, c.complaint_id DESC LIMIT ? OFFSET ?`)
-    .all(...params, limit, offset);
+    .all(...params, limit, offset));
 
   return { rows, total, page: effectivePage, totalPages };
 }
@@ -247,21 +239,21 @@ function search({ q, category, status, priority, sla, hostelId = null, page = 1,
 // --- Staff: change status / remarks ---
 // setResolvedAt is decided by the service ("set once, the first time a
 // complaint reaches Resolved or beyond"); this layer writes what it is told.
-function updateStatus(complaintId, { status, adminRemarks = null, setResolvedAt = false }) {
+async function updateStatus(complaintId, { status, adminRemarks = null, setResolvedAt = false }) {
   if (setResolvedAt) {
-    db.prepare(
+    (await db.prepare(
       `UPDATE complaint
           SET status = ?, admin_remarks = ?, updated_at = datetime('now'), resolved_at = datetime('now')
         WHERE complaint_id = ?`
-    ).run(status, adminRemarks, complaintId);
+    ).run(status, adminRemarks, complaintId));
   } else {
-    db.prepare(
+    (await db.prepare(
       `UPDATE complaint
           SET status = ?, admin_remarks = ?, updated_at = datetime('now')
         WHERE complaint_id = ?`
-    ).run(status, adminRemarks, complaintId);
+    ).run(status, adminRemarks, complaintId));
   }
-  return findById(complaintId);
+  return (await findById(complaintId));
 }
 
 // --- Aggregations (used by the dashboard module) ---
@@ -271,75 +263,75 @@ function updateStatus(complaintId, { status, adminRemarks = null, setResolvedAt 
 // Each takes the same optional hostelId, so a manager's dashboard describes
 // their hostel and a super admin's describes the whole system.
 
-function statusCountsForStudent(studentId) {
-  return db
+async function statusCountsForStudent(studentId) {
+  return (await db
     .prepare('SELECT status, COUNT(*) AS n FROM complaint WHERE student_id = ? GROUP BY status')
-    .all(studentId);
+    .all(studentId));
 }
 
-function totalCount(hostelId = null) {
+async function totalCount(hostelId = null) {
   return hostelId
-    ? db.prepare('SELECT COUNT(*) AS n FROM complaint WHERE hostel_id = ?').get(hostelId).n
-    : db.prepare('SELECT COUNT(*) AS n FROM complaint').get().n;
+    ? (await db.prepare('SELECT COUNT(*) AS n FROM complaint WHERE hostel_id = ?').get(hostelId)).n
+    : (await db.prepare('SELECT COUNT(*) AS n FROM complaint').get()).n;
 }
 
-function statusCounts(hostelId = null) {
+async function statusCounts(hostelId = null) {
   return hostelId
-    ? db.prepare('SELECT status, COUNT(*) AS n FROM complaint WHERE hostel_id = ? GROUP BY status').all(hostelId)
-    : db.prepare('SELECT status, COUNT(*) AS n FROM complaint GROUP BY status').all();
+    ? (await db.prepare('SELECT status, COUNT(*) AS n FROM complaint WHERE hostel_id = ? GROUP BY status').all(hostelId))
+    : (await db.prepare('SELECT status, COUNT(*) AS n FROM complaint GROUP BY status').all());
 }
 
-function categoryCounts(hostelId = null) {
+async function categoryCounts(hostelId = null) {
   return hostelId
-    ? db.prepare('SELECT category, COUNT(*) AS n FROM complaint WHERE hostel_id = ? GROUP BY category').all(hostelId)
-    : db.prepare('SELECT category, COUNT(*) AS n FROM complaint GROUP BY category').all();
+    ? (await db.prepare('SELECT category, COUNT(*) AS n FROM complaint WHERE hostel_id = ? GROUP BY category').all(hostelId))
+    : (await db.prepare('SELECT category, COUNT(*) AS n FROM complaint GROUP BY category').all());
 }
 
-function priorityCounts(hostelId = null) {
+async function priorityCounts(hostelId = null) {
   return hostelId
-    ? db.prepare(
+    ? (await db.prepare(
       `SELECT t.priority, COUNT(*) AS n
          FROM complaint c
          JOIN complaint_triage t ON t.complaint_id = c.complaint_id
         WHERE c.hostel_id = ?
         GROUP BY t.priority`
-    ).all(hostelId)
-    : db.prepare(
+    ).all(hostelId))
+    : (await db.prepare(
       `SELECT t.priority, COUNT(*) AS n
          FROM complaint c
          JOIN complaint_triage t ON t.complaint_id = c.complaint_id
         GROUP BY t.priority`
-    ).all();
+    ).all());
 }
 
-function slaCounts(hostelId = null) {
+async function slaCounts(hostelId = null) {
   const where = hostelId ? 'WHERE c.hostel_id = ?' : '';
   const params = hostelId ? [hostelId] : [];
-  return db.prepare(
+  return (await db.prepare(
     `SELECT ${SLA_STATE_SQL} AS sla_state, COUNT(*) AS n
        FROM complaint c
        JOIN complaint_triage t ON t.complaint_id = c.complaint_id
        ${where}
       GROUP BY sla_state`
-  ).all(...params);
+  ).all(...params));
 }
 
-function recent(limit = 5, hostelId = null) {
+async function recent(limit = 5, hostelId = null) {
   const where = hostelId ? 'WHERE c.hostel_id = ?' : '';
   const params = hostelId ? [hostelId, limit] : [limit];
-  return db
+  return (await db
     .prepare(`${COMPLAINT_SELECT} ${where} ORDER BY c.created_at DESC, c.complaint_id DESC LIMIT ?`)
-    .all(...params);
+    .all(...params));
 }
 
 // One zero-filled row per UTC day for the super-admin activity chart.
 // `resolved_at` is written only the first time a complaint reaches Resolved or
 // Closed, so it measures completed work without double-counting later updates.
-function dailyActivity(days = 30) {
+async function dailyActivity(days = 30) {
   const safeDays = Number.isInteger(days) && days > 0 && days <= 365 ? days : 30;
   const startModifier = `-${safeDays - 1} days`;
 
-  return db.prepare(
+  return (await db.prepare(
     `WITH RECURSIVE date_range(day) AS (
        SELECT date('now', ?)
        UNION ALL
@@ -367,14 +359,14 @@ function dailyActivity(days = 30) {
        LEFT JOIN raised r ON r.day = d.day
        LEFT JOIN resolved x ON x.day = d.day
       ORDER BY d.day`
-  ).all(startModifier, startModifier, startModifier);
+  ).all(startModifier, startModifier, startModifier));
 }
 
 // Ranks physical complaint clusters over a rolling period. A location is the
 // hostel + registered room pair, so identical room numbers in different
 // hostels never collapse into one hotspot. The previous equally sized period
 // is included for trend detection.
-function complaintHotspots(hostelId = null, days = 30, limit = 8) {
+async function complaintHotspots(hostelId = null, days = 30, limit = 8) {
   const safeDays = [7, 30, 90].includes(days) ? days : 30;
   const safeLimit = Number.isInteger(limit) && limit > 0 && limit <= 20 ? limit : 8;
   const scopeClause = hostelId ? 'AND c.hostel_id = ?' : '';
@@ -382,7 +374,7 @@ function complaintHotspots(hostelId = null, days = 30, limit = 8) {
   if (hostelId) params.push(hostelId);
   params.push(`-${safeDays} days`, `-${safeDays} days`, safeLimit);
 
-  return db.prepare(
+  return (await db.prepare(
     `WITH base AS (
        SELECT c.complaint_id, c.hostel_id, h.hostel_name,
               COALESCE(NULLIF(TRIM(c.room_number), ''), 'Unspecified') AS room_number,
@@ -453,7 +445,7 @@ function complaintHotspots(hostelId = null, days = 30, limit = 8) {
       ORDER BY risk_score DESC, complaint_count DESC,
                latest_created_at DESC, hostel_name ASC, room_number ASC
       LIMIT ?`
-  ).all(...params);
+  ).all(...params));
 }
 
 module.exports = {

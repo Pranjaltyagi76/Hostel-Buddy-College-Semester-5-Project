@@ -2,25 +2,25 @@
 
 const dashboardService = require('./dashboard.service');
 
-function student(req, res, next) {
+async function student(req, res, next) {
   try {
-    res.json(dashboardService.studentDashboard(req.user.userId));
+    res.json((await dashboardService.studentDashboard(req.user.userId)));
   } catch (err) {
     next(err);
   }
 }
 
-function admin(req, res, next) {
+async function admin(req, res, next) {
   try {
-    res.json(dashboardService.adminDashboard(req.user));
+    res.json((await dashboardService.adminDashboard(req.user)));
   } catch (err) {
     next(err);
   }
 }
 
-function hotspots(req, res, next) {
+async function hotspots(req, res, next) {
   try {
-    res.json(dashboardService.complaintHotspots(req.user, req.query.days));
+    res.json((await dashboardService.complaintHotspots(req.user, req.query.days)));
   } catch (err) {
     next(err);
   }

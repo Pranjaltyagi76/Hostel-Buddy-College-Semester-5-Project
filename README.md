@@ -150,6 +150,33 @@ For development with auto-restart:
 npm run dev
 ```
 
+### Vercel deployment with persistent accounts
+
+Vercel imports the Express app directly. API requests await schema initialization
+and creation of the first super admin. Local development uses SQLite; Vercel
+requires a remote Turso/libSQL database shared by all Function instances.
+Production startup never creates demo accounts with known passwords.
+
+Required Vercel environment variables:
+
+- `JWT_SECRET` - a strong random signing secret
+- `ADMIN_PASSWORD` - a non-default super-admin password
+- `ADMIN_EMAIL` and `ADMIN_NAME` - optional account overrides
+- `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` - the persistent database connection
+
+For a class demo only, `ALLOW_DEMO_ADMIN_PASSWORD=true` explicitly permits the
+default admin password. This exception does not bypass database/JWT checks.
+Do not store real student data when this setting is enabled.
+
+The first deployment creates the configured admin only if its email is absent.
+Changing `ADMIN_PASSWORD` later does not reset an existing account. Keep
+`JWT_SECRET` stable across redeploys. Old local/demo data is not automatically
+migrated. See [the deployment guide](docs/vercel-deployment.md) for setup and checks.
+
+> Complaint attachments still use temporary `/tmp` storage on Vercel. Database
+> persistence does not make attachments durable; object storage/direct uploads
+> are a separate upgrade. Local uploads remain persistent.
+
 ### Demo logins (after `npm run seed`)
 
 | Role | Email | Password |

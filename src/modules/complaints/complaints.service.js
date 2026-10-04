@@ -36,8 +36,8 @@ function isStaff(requester) {
 // for a super admin (unscoped). Read from the database on each call rather than
 // taken from the request or the token, so a caller can never widen their own
 // scope and a reassignment takes effect immediately.
-function staffScope(requester) {
-  return usersRepo.findStaffHostelId(requester.userId);
+async function staffScope(requester) {
+  return (await usersRepo.findStaffHostelId(requester.userId));
 }
 
 // Refuses a member of staff access to a complaint outside their hostel.
@@ -45,8 +45,8 @@ function staffScope(requester) {
 // A super admin has no scope and passes everything. A manager passes only
 // complaints belonging to their hostel. This is the single place that decision
 // is made, so every staff operation inherits it.
-function assertWithinScope(requester, complaint) {
-  const scope = staffScope(requester);
+async function assertWithinScope(requester, complaint) {
+  const scope = (await staffScope(requester));
   if (scope !== null && complaint.hostel_id !== scope) {
     throw new AppError(
       'This complaint belongs to another hostel',
@@ -73,29 +73,29 @@ function validateDescription(description) {
   return value;
 }
 
-function duplicateMatchesFor({ hostelId, roomNumber, category, description, excludeComplaintId = null }) {
-  const candidates = complaintsRepo.findDuplicateCandidates({
+async function duplicateMatchesFor({ hostelId, roomNumber, category, description, excludeComplaintId = null }) {
+  const candidates = (await complaintsRepo.findDuplicateCandidates({
     hostelId,
     excludeComplaintId,
     days: DUPLICATE_WINDOW_DAYS,
-  });
+  }));
   return findDuplicateMatches({ category, description, roomNumber }, candidates);
 }
 
-function checkDuplicates(studentId, { category, description } = {}) {
+async function checkDuplicates(studentId, { category, description } = {}) {
   validateCategory(category);
   const cleanDescription = validateDescription(description);
-  const student = usersRepo.findById(studentId);
+  const student = (await usersRepo.findById(studentId));
   if (!student || !student.hostel_id) {
     throw new AppError('Your account is not linked to a hostel', 400, 'NO_HOSTEL');
   }
 
-  const matches = duplicateMatchesFor({
+  const matches = (await duplicateMatchesFor({
     hostelId: student.hostel_id,
     roomNumber: student.room_number,
     category,
     description: cleanDescription,
-  });
+  }));
   return {
     possible_duplicate: matches.length > 0,
     checked_window_days: DUPLICATE_WINDOW_DAYS,
@@ -106,23 +106,23 @@ function checkDuplicates(studentId, { category, description } = {}) {
 // The complaint's hostel is taken from the student's own record, never from
 // the request. A student cannot file a complaint against a hostel they do not
 // belong to, because they are never asked which hostel it is.
-function createComplaint(studentId, { category, description } = {}, media = {}) {
+async function createComplaint(studentId, { category, description } = {}, media = {}) {
   validateCategory(category);
   const cleanDescription = validateDescription(description);
 
-  const student = usersRepo.findById(studentId);
+  const student = (await usersRepo.findById(studentId));
   if (!student || !student.hostel_id) {
     throw new AppError('Your account is not linked to a hostel', 400, 'NO_HOSTEL');
   }
 
-  const duplicateMatches = duplicateMatchesFor({
+  const duplicateMatches = (await duplicateMatchesFor({
     hostelId: student.hostel_id,
     roomNumber: student.room_number,
     category,
     description: cleanDescription,
-  });
+  }));
 
-  const complaint = complaintsRepo.create({
+  const complaint = (await complaintsRepo.create({
     studentId,
     hostelId: student.hostel_id,
     roomNumber: student.room_number,
@@ -132,23 +132,23 @@ function createComplaint(studentId, { category, description } = {}, media = {}) 
     videoUrl: media.videoUrl ?? null,
     triage: assessComplaint({ category, description: cleanDescription }),
     duplicateMatches,
-  });
+  }));
   return { ...complaint, duplicate_matches: duplicateMatches };
 }
 
-function listMine(studentId) {
-  return complaintsRepo.findByStudent(studentId);
+async function listMine(studentId) {
+  return (await complaintsRepo.findByStudent(studentId));
 }
 
 // A complaint is readable by its author, or by staff within scope.
-function getOne(requester, complaintId) {
-  const complaint = complaintsRepo.findById(complaintId);
+async function getOne(requester, complaintId) {
+  const complaint = (await complaintsRepo.findById(complaintId));
   if (!complaint) throw new AppError('Complaint not found', 404, 'NOT_FOUND');
 
   if (complaint.student_id === requester.userId) return complaint;
 
   if (isStaff(requester)) {
-    assertWithinScope(requester, complaint);
+    (await assertWithinScope(requester, complaint));
     return complaint;
   }
 
@@ -157,8 +157,8 @@ function getOne(requester, complaintId) {
 
 // Load a complaint and assert the student owns it AND it is still Pending.
 // This is the core FR-9 guard; enforced in the service, not just the route.
-function loadOwnedPending(studentId, complaintId) {
-  const complaint = complaintsRepo.findById(complaintId);
+async function loadOwnedPending(studentId, complaintId) {
+  const complaint = (await complaintsRepo.findById(complaintId));
   if (!complaint) throw new AppError('Complaint not found', 404, 'NOT_FOUND');
   if (complaint.student_id !== studentId) {
     throw new AppError('You do not have permission to modify this complaint', 403, 'FORBIDDEN');
@@ -187,37 +187,37 @@ function resolveAttachment(currentUrl, newUrl, removeFlag) {
   return currentUrl;
 }
 
-function updateComplaint(studentId, complaintId, body = {}, media = {}) {
+async function updateComplaint(studentId, complaintId, body = {}, media = {}) {
   const { category, description, remove_image, remove_video } = body;
-  const complaint = loadOwnedPending(studentId, complaintId);
+  const complaint = (await loadOwnedPending(studentId, complaintId));
 
   const newCategory = category === undefined ? complaint.category : category;
   validateCategory(newCategory);
   const newDescription =
     description === undefined ? complaint.problem_description : validateDescription(description);
 
-  const duplicateMatches = duplicateMatchesFor({
+  const duplicateMatches = (await duplicateMatchesFor({
     hostelId: complaint.hostel_id,
     roomNumber: complaint.room_number,
     category: newCategory,
     description: newDescription,
     excludeComplaintId: complaintId,
-  });
+  }));
 
-  const updated = complaintsRepo.update(complaintId, {
+  const updated = (await complaintsRepo.update(complaintId, {
     category: newCategory,
     description: newDescription,
     imageUrl: resolveAttachment(complaint.image_url, media.imageUrl, remove_image),
     videoUrl: resolveAttachment(complaint.video_url, media.videoUrl, remove_video),
     triage: assessComplaint({ category: newCategory, description: newDescription }),
     duplicateMatches,
-  });
+  }));
   return { ...updated, duplicate_matches: duplicateMatches };
 }
 
-function deleteComplaint(studentId, complaintId) {
-  const complaint = loadOwnedPending(studentId, complaintId);
-  complaintsRepo.remove(complaintId);
+async function deleteComplaint(studentId, complaintId) {
+  const complaint = (await loadOwnedPending(studentId, complaintId));
+  (await complaintsRepo.remove(complaintId));
   removeUploadedFile(complaint.image_url);
   removeUploadedFile(complaint.video_url);
   return { deleted: true, complaint_id: complaint.complaint_id };
@@ -234,7 +234,7 @@ function pageOrDefault(value, fallback) {
 // The hostel filter is resolved here from the caller's own record and passed
 // to the repository, so a manager's list is narrowed in SQL. It is never taken
 // from the query string — a manager cannot ask to see another hostel.
-function listAll(requester, { q, category, status, priority, sla, page, limit } = {}) {
+async function listAll(requester, { q, category, status, priority, sla, page, limit } = {}) {
   if (category && !CATEGORIES.includes(category)) {
     throw new AppError('Invalid category filter', 400, 'VALIDATION_ERROR');
   }
@@ -251,16 +251,16 @@ function listAll(requester, { q, category, status, priority, sla, page, limit } 
   const pageNum = pageOrDefault(page, 1);
   const pageSize = Math.min(pageOrDefault(limit, DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
 
-  const { rows, total, page: effectivePage, totalPages } = complaintsRepo.search({
+  const { rows, total, page: effectivePage, totalPages } = (await complaintsRepo.search({
     q,
     category,
     status,
     priority,
     sla,
-    hostelId: staffScope(requester),
+    hostelId: (await staffScope(requester)),
     page: pageNum,
     limit: pageSize,
-  });
+  }));
 
   return {
     data: rows,
@@ -282,17 +282,17 @@ function validateTransition(from, to) {
 }
 
 // Advance a complaint's status and record remarks.
-function updateStatus(requester, complaintId, { status, admin_remarks } = {}) {
+async function updateStatus(requester, complaintId, { status, admin_remarks } = {}) {
   if (!isString(status) || !STATUSES.includes(status)) {
     throw new AppError('Please provide a valid status', 400, 'VALIDATION_ERROR');
   }
 
-  const complaint = complaintsRepo.findById(complaintId);
+  const complaint = (await complaintsRepo.findById(complaintId));
   if (!complaint) throw new AppError('Complaint not found', 404, 'NOT_FOUND');
 
   // A manager may only act on their own hostel's complaints. Checked before
   // anything is written, and before the transition is even considered.
-  assertWithinScope(requester, complaint);
+  (await assertWithinScope(requester, complaint));
 
   validateTransition(complaint.status, status);
 
@@ -321,7 +321,7 @@ function updateStatus(requester, complaintId, { status, admin_remarks } = {}) {
   const setResolvedAt =
     STATUS_ORDER.get(status) >= RESOLVED_INDEX && !complaint.resolved_at;
 
-  return complaintsRepo.updateStatus(complaintId, { status, adminRemarks: remarks, setResolvedAt });
+  return (await complaintsRepo.updateStatus(complaintId, { status, adminRemarks: remarks, setResolvedAt }));
 }
 
 module.exports = {

@@ -3,16 +3,10 @@
 // Application entry point: prepare the database, then start listening.
 const app = require('./app');
 const config = require('./config/env');
-const { initSchema } = require('./db');
-const { seedSuperAdmin } = require('./db/seedSuperAdmin');
+const { prepareDatabase } = require('./db/prepare');
 
-function start() {
-  // Ensure tables and indexes exist before serving traffic.
-  initSchema();
-  console.log(`[db] schema ready at ${config.dbPath}`);
-
-  // Ensure the single super-administrator account exists.
-  seedSuperAdmin();
+async function start() {
+  await prepareDatabase();
 
   app.listen(config.port, () => {
     console.log(`[server] Hostel Buddy running at http://localhost:${config.port}`);
@@ -20,4 +14,11 @@ function start() {
   });
 }
 
-start();
+// Vercel imports this module and invokes the exported Express application.
+// Local execution still starts the regular long-running HTTP server.
+if (require.main === module) start().catch((err) => {
+  console.error('[server] startup failed:', err.message);
+  process.exitCode = 1;
+});
+
+module.exports = app;

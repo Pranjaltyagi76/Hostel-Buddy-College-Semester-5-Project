@@ -22,9 +22,9 @@ const mediaOf = (req) => ({ imageUrl: urlOf(req, 'image'), videoUrl: urlOf(req, 
 // neither file has anything referring to it.
 const discardUploads = (req) => uploadedFiles(req).forEach((f) => removeUploadedFile(f.filename));
 
-function create(req, res, next) {
+async function create(req, res, next) {
   try {
-    const complaint = complaintsService.createComplaint(req.user.userId, req.body, mediaOf(req));
+    const complaint = (await complaintsService.createComplaint(req.user.userId, req.body, mediaOf(req)));
     res.status(201).json(complaint);
   } catch (err) {
     discardUploads(req);
@@ -32,25 +32,25 @@ function create(req, res, next) {
   }
 }
 
-function checkDuplicates(req, res, next) {
+async function checkDuplicates(req, res, next) {
   try {
-    res.json(complaintsService.checkDuplicates(req.user.userId, req.body));
+    res.json((await complaintsService.checkDuplicates(req.user.userId, req.body)));
   } catch (err) {
     next(err);
   }
 }
 
-function listMine(req, res, next) {
+async function listMine(req, res, next) {
   try {
-    res.json(complaintsService.listMine(req.user.userId));
+    res.json((await complaintsService.listMine(req.user.userId)));
   } catch (err) {
     next(err);
   }
 }
 
-function getOne(req, res, next) {
+async function getOne(req, res, next) {
   try {
-    res.json(complaintsService.getOne(req.user, idOf(req)));
+    res.json((await complaintsService.getOne(req.user, idOf(req))));
   } catch (err) {
     next(err);
   }
@@ -58,14 +58,14 @@ function getOne(req, res, next) {
 
 // The body may carry `remove_image` / `remove_video` flags alongside the
 // editable fields; the service decides what they mean.
-function update(req, res, next) {
+async function update(req, res, next) {
   try {
-    const complaint = complaintsService.updateComplaint(
+    const complaint = (await complaintsService.updateComplaint(
       req.user.userId,
       idOf(req),
       req.body,
       mediaOf(req)
-    );
+    ));
     res.json(complaint);
   } catch (err) {
     discardUploads(req);
@@ -73,9 +73,9 @@ function update(req, res, next) {
   }
 }
 
-function remove(req, res, next) {
+async function remove(req, res, next) {
   try {
-    res.json(complaintsService.deleteComplaint(req.user.userId, idOf(req)));
+    res.json((await complaintsService.deleteComplaint(req.user.userId, idOf(req))));
   } catch (err) {
     next(err);
   }
@@ -83,10 +83,10 @@ function remove(req, res, next) {
 
 // Staff: list complaints with search/filter/pagination. The requester is
 // passed through because the service narrows the results to their hostel.
-function listAll(req, res, next) {
+async function listAll(req, res, next) {
   try {
     const { q, category, status, priority, sla, page, limit } = req.query;
-    res.json(complaintsService.listAll(req.user, { q, category, status, priority, sla, page, limit }));
+    res.json((await complaintsService.listAll(req.user, { q, category, status, priority, sla, page, limit })));
   } catch (err) {
     next(err);
   }
@@ -94,9 +94,9 @@ function listAll(req, res, next) {
 
 // Staff: change a complaint's status and remarks. The requester is passed
 // through so the service can refuse a complaint outside their hostel.
-function updateStatus(req, res, next) {
+async function updateStatus(req, res, next) {
   try {
-    res.json(complaintsService.updateStatus(req.user, idOf(req), req.body));
+    res.json((await complaintsService.updateStatus(req.user, idOf(req), req.body)));
   } catch (err) {
     next(err);
   }

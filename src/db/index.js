@@ -10,32 +10,32 @@ const db = require('./connection');
 // databases predate the column, so add it once and capture each complaint's
 // current student room at migration time. New complaints write the snapshot
 // directly and therefore never move when a profile is edited later.
-function ensureComplaintRoomSnapshot() {
-  const columns = db.prepare('PRAGMA table_info(complaint)').all();
+async function ensureComplaintRoomSnapshot() {
+  const columns = (await db.prepare('PRAGMA table_info(complaint)').all());
   if (!columns.some((column) => column.name === 'room_number')) {
-    db.exec('ALTER TABLE complaint ADD COLUMN room_number TEXT');
-    db.exec(
+    (await db.exec('ALTER TABLE complaint ADD COLUMN room_number TEXT'));
+    (await db.exec(
       `UPDATE complaint
           SET room_number = (
             SELECT s.room_number FROM student s WHERE s.user_id = complaint.student_id
           )`
-    );
+    ));
   }
-  db.exec(
+  (await db.exec(
     'CREATE INDEX IF NOT EXISTS idx_complaint_hotspot ON complaint(hostel_id, room_number, created_at)'
-  );
+  ));
 }
 
 // Inserts triage rows for complaints created before the priority/SLA feature
 // existed. It is idempotent: only complaints without a matching row are read.
-function backfillComplaintTriage() {
+async function backfillComplaintTriage() {
   const { assessComplaint } = require('../modules/complaints/triage');
-  const missing = db.prepare(
+  const missing = (await db.prepare(
     `SELECT c.complaint_id, c.category, c.problem_description
        FROM complaint c
        LEFT JOIN complaint_triage t ON t.complaint_id = c.complaint_id
       WHERE t.complaint_id IS NULL`
-  ).all();
+  ).all());
   if (!missing.length) return 0;
 
   const insert = db.prepare(
@@ -46,35 +46,32 @@ function backfillComplaintTriage() {
       WHERE complaint_id = ?`
   );
 
-  db.exec('BEGIN');
-  try {
+  return (await db.transaction(async () => {
     for (const complaint of missing) {
       const result = assessComplaint({
         category: complaint.category,
         description: complaint.problem_description,
       });
-      insert.run(
+      (await insert.run(
         result.priority,
         result.score,
         result.slaHours,
         `+${result.slaHours} hours`,
         result.reason,
         complaint.complaint_id
-      );
+      ));
     }
-    db.exec('COMMIT');
     return missing.length;
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
+  }));
 }
 
-function initSchema() {
+async function initSchema() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-  db.exec(schema);
-  ensureComplaintRoomSnapshot();
-  backfillComplaintTriage();
+  return (await db.transaction(async () => {
+    (await db.exec(schema));
+    (await ensureComplaintRoomSnapshot());
+    (await backfillComplaintTriage());
+  }));
 }
 
 module.exports = { db, initSchema, backfillComplaintTriage };

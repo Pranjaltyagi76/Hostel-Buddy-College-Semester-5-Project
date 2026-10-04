@@ -2,33 +2,33 @@
 
 const hostelsService = require('./hostels.service');
 
-function list(req, res, next) {
+async function list(req, res, next) {
   try {
-    res.json(hostelsService.listAll());
+    res.json((await hostelsService.listAll()));
   } catch (err) {
     next(err);
   }
 }
 
-function create(req, res, next) {
+async function create(req, res, next) {
   try {
-    res.status(201).json(hostelsService.create(req.body));
+    res.status(201).json((await hostelsService.create(req.body)));
   } catch (err) {
     next(err);
   }
 }
 
-function update(req, res, next) {
+async function update(req, res, next) {
   try {
-    res.json(hostelsService.update(req.params.id, req.body));
+    res.json((await hostelsService.update(req.params.id, req.body)));
   } catch (err) {
     next(err);
   }
 }
 
-function remove(req, res, next) {
+async function remove(req, res, next) {
   try {
-    res.json(hostelsService.remove(req.params.id));
+    res.json((await hostelsService.remove(req.params.id)));
   } catch (err) {
     next(err);
   }

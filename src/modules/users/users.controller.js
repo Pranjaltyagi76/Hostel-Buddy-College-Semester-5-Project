@@ -4,33 +4,33 @@
 // shape the response. No business logic here.
 const usersService = require('./users.service');
 
-function me(req, res, next) {
+async function me(req, res, next) {
   try {
-    res.json(usersService.getProfile(req.user.userId));
+    res.json((await usersService.getProfile(req.user.userId)));
   } catch (err) {
     next(err);
   }
 }
 
-function updateMe(req, res, next) {
+async function updateMe(req, res, next) {
   try {
-    res.json(usersService.updateProfile(req.user.userId, req.body));
+    res.json((await usersService.updateProfile(req.user.userId, req.body)));
   } catch (err) {
     next(err);
   }
 }
 
-function listStudents(req, res, next) {
+async function listStudents(req, res, next) {
   try {
-    res.json(usersService.listStudents(req.user));
+    res.json((await usersService.listStudents(req.user)));
   } catch (err) {
     next(err);
   }
 }
 
-function listManagers(req, res, next) {
+async function listManagers(req, res, next) {
   try {
-    res.json(usersService.listManagers());
+    res.json((await usersService.listManagers()));
   } catch (err) {
     next(err);
   }

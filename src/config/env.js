@@ -5,9 +5,13 @@
 // process.env directly, so there is one place that defines defaults.
 require('dotenv').config();
 
+const os = require('os');
 const path = require('path');
 
 const rootDir = path.resolve(__dirname, '..', '..');
+const isVercel = Boolean(process.env.VERCEL);
+const databaseUrl = (process.env.TURSO_DATABASE_URL || '').trim();
+const vercelRuntimeDir = path.join(os.tmpdir(), 'hostel-buddy');
 const resolveFromRoot = (p, fallback) =>
   path.resolve(rootDir, p || fallback);
 
@@ -30,6 +34,11 @@ function readLogLevel(raw) {
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT) || 4000,
+  isVercel,
+  storageMode: databaseUrl ? (/^file:/.test(databaseUrl) ? 'persistent-libsql-file' : 'persistent-turso') : 'persistent-local',
+  databaseUrl,
+  databaseAuthToken: process.env.TURSO_AUTH_TOKEN,
+  allowDemoAdminPassword: process.env.ALLOW_DEMO_ADMIN_PASSWORD === 'true',
 
   // Auth
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
@@ -46,8 +55,16 @@ const config = {
   logLevel: readLogLevel(process.env.LOG_LEVEL),
 
   // Storage
-  dbPath: resolveFromRoot(process.env.DB_PATH, './data/hostel.db'),
-  uploadDir: resolveFromRoot(process.env.UPLOAD_DIR, './uploads'),
+  // Local development uses SQLite; Vercel must use the remote database.
+  // Attachments on Vercel are still temporary until object storage is added.
+  dbPath: resolveFromRoot(
+    process.env.DB_PATH,
+    isVercel ? path.join(vercelRuntimeDir, 'hostel.db') : './data/hostel.db'
+  ),
+  uploadDir: resolveFromRoot(
+    process.env.UPLOAD_DIR,
+    isVercel ? path.join(vercelRuntimeDir, 'uploads') : './uploads'
+  ),
 
   // Upload limits.
   //
@@ -58,27 +75,37 @@ const config = {
   // The size cap is also the *only* deliberate limit on a video. Enforcing a
   // maximum duration would mean decoding container metadata on the server, and
   // a bitrate-independent byte ceiling bounds the storage cost just as well.
-  maxUploadBytes: 5 * 1024 * 1024, // 5 MB  — images
-  maxVideoBytes: 30 * 1024 * 1024, // 30 MB — video
+  maxUploadBytes: (isVercel ? 4 : 5) * 1024 * 1024,
+  maxVideoBytes: (isVercel ? 4 : 30) * 1024 * 1024,
 };
 
 // In production, refuse to start on insecure defaults instead of only warning.
-// A graded/deployed demo must never boot with a guessable secret or password.
-if (config.env === 'production') {
+// A weak admin password requires an explicit demo-only opt-in. JWT and durable
+// storage safeguards are never bypassed by this setting.
+if (config.env === 'production' || isVercel) {
   const problems = [];
-  if (!process.env.JWT_SECRET || config.jwtSecret === 'dev-secret-change-me') {
+  if (!process.env.JWT_SECRET || ['dev-secret-change-me', 'change-me-to-a-long-random-secret'].includes(config.jwtSecret)) {
     problems.push('JWT_SECRET must be set to a strong, random value');
   } else if (config.jwtSecret.length < 16) {
     problems.push('JWT_SECRET is too short (use at least 16 characters)');
   }
-  if (config.admin.password === 'admin123') {
-    problems.push('ADMIN_PASSWORD must be changed from the default');
+  if (config.admin.password === 'admin123' && !config.allowDemoAdminPassword) {
+    problems.push('ADMIN_PASSWORD must be changed from the default (or explicitly opt in with ALLOW_DEMO_ADMIN_PASSWORD=true for a class demo)');
+  }
+  if (isVercel && (!databaseUrl || !config.databaseAuthToken)) {
+    problems.push('Vercel requires TURSO_DATABASE_URL and TURSO_AUTH_TOKEN for durable accounts');
+  }
+  if (isVercel && !/^(libsql|https):\/\//.test(databaseUrl)) {
+    problems.push('TURSO_DATABASE_URL must be a remote libsql:// or https:// URL');
   }
   if (problems.length) {
     throw new Error(
       '[config] Refusing to start in production with insecure settings:\n  - ' +
         problems.join('\n  - ')
     );
+  }
+  if (config.admin.password === 'admin123' && config.allowDemoAdminPassword) {
+    console.warn('[config] Demo-only weak admin password enabled. Do not use real student data.');
   }
 }
 

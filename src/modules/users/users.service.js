@@ -12,14 +12,14 @@ const { ROLES } = require('../../config/constants');
 
 const BCRYPT_ROUNDS = 10;
 
-function getProfile(userId) {
-  const user = usersRepo.findById(userId);
+async function getProfile(userId) {
+  const user = (await usersRepo.findById(userId));
   if (!user) throw new AppError('User not found', 404, 'NOT_FOUND');
   return user;
 }
 
-function updateProfile(userId, { name, room_number }) {
-  const user = usersRepo.findById(userId);
+async function updateProfile(userId, { name, room_number }) {
+  const user = (await usersRepo.findById(userId));
   if (!user) throw new AppError('User not found', 404, 'NOT_FOUND');
 
   // Only name and room number are editable; email and role are fixed.
@@ -54,7 +54,7 @@ function updateProfile(userId, { name, room_number }) {
     }
   }
 
-  return usersRepo.updateProfile(userId, { name: newName, roomNumber: newRoom });
+  return (await usersRepo.updateProfile(userId, { name: newName, roomNumber: newRoom }));
 }
 
 // Lists students for a member of staff.
@@ -62,15 +62,15 @@ function updateProfile(userId, { name, room_number }) {
 // A manager sees only their own hostel; a super admin has no hostel and so
 // sees every student. The scope is resolved here from the database rather than
 // taken from the request, so a caller cannot widen it by asking.
-function listStudents(requester) {
-  const hostelId = usersRepo.findStaffHostelId(requester.userId);
-  return usersRepo.listStudents({ hostelId });
+async function listStudents(requester) {
+  const hostelId = (await usersRepo.findStaffHostelId(requester.userId));
+  return (await usersRepo.listStudents({ hostelId }));
 }
 
 // --- Manager provisioning (super admin only, enforced at the route) ---
 
-function listManagers() {
-  return usersRepo.listManagers();
+async function listManagers() {
+  return (await usersRepo.listManagers());
 }
 
 // Creates a manager account bound to one hostel.
@@ -85,24 +85,24 @@ async function createManager({ name, email, password, hostel_id } = {}) {
   if (hostelId === null) {
     throw new AppError('Please select a hostel for this manager', 400, 'VALIDATION_ERROR');
   }
-  if (!hostelsRepo.exists(hostelId)) {
+  if (!(await hostelsRepo.exists(hostelId))) {
     throw new AppError('The selected hostel does not exist', 400, 'VALIDATION_ERROR');
   }
 
-  if (usersRepo.findByEmail(normalizedEmail)) {
+  if ((await usersRepo.findByEmail(normalizedEmail))) {
     throw new AppError('An account with this email already exists', 409, 'EMAIL_TAKEN');
   }
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
   try {
-    return usersRepo.createUser({
+    return (await usersRepo.createUser({
       name: cleanName,
       email: normalizedEmail,
       passwordHash,
       role: ROLES.MANAGER,
       hostelId,
-    });
+    }));
   } catch (err) {
     if (String(err.message).includes('UNIQUE constraint failed')) {
       throw new AppError('An account with this email already exists', 409, 'EMAIL_TAKEN');

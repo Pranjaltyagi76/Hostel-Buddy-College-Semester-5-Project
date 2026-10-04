@@ -7,6 +7,7 @@ const express = require('express');
 const path = require('path');
 
 const config = require('./config/env');
+const { prepareDatabase } = require('./db/prepare');
 const requestLogger = require('./middleware/requestLogger');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { securityHeaders, authLimiter } = require('./middleware/security');
@@ -28,10 +29,22 @@ app.use(securityHeaders); // security headers first, before any response is buil
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
+// Vercel imports the app without npm start. Await readiness on API requests.
+app.use('/api', async (req, res, next) => {
+  try { await prepareDatabase(); next(); } catch (err) { next(err); }
+});
 
 // --- Health check (Phase 0) ---
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true, service: 'hostel-buddy', time: new Date().toISOString() });
+app.get('/api/health', async (req, res, next) => {
+  try {
+    await require('./db').db.prepare('SELECT 1 AS ready').get();
+    res.json({
+      ok: true,
+      service: 'hostel-buddy',
+      storage: config.storageMode,
+      time: new Date().toISOString(),
+    });
+  } catch (err) { next(err); }
 });
 
 // --- API routes ---

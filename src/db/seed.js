@@ -27,27 +27,19 @@ const MANAGER_PASSWORD = 'manager123';
 
 // --- small helpers -------------------------------------------------------
 
-function inTransaction(fn) {
-  db.exec('BEGIN');
-  try {
-    const out = fn();
-    db.exec('COMMIT');
-    return out;
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
+async function inTransaction(fn) {
+  return (await db.transaction(fn));
 }
 
-function findUserByEmail(email) {
-  return db.prepare('SELECT user_id, role FROM user WHERE email = ?').get(email);
+async function findUserByEmail(email) {
+  return (await db.prepare('SELECT user_id, role FROM user WHERE email = ?').get(email));
 }
 
-function insertUser(name, email, password, role) {
+async function insertUser(name, email, password, role) {
   const hash = bcrypt.hashSync(password, 10);
-  const info = db
+  const info = (await db
     .prepare('INSERT INTO user (name, email, password_hash, role) VALUES (?, ?, ?, ?)')
-    .run(name, email.toLowerCase(), hash, role);
+    .run(name, email.toLowerCase(), hash, role));
   return Number(info.lastInsertRowid);
 }
 
@@ -59,17 +51,17 @@ const HOSTELS = [
   { name: 'Bhaskara Hostel', location: 'East Campus', capacity: 150 },
 ];
 
-function ensureHostels() {
+async function ensureHostels() {
   const ids = {};
   for (const h of HOSTELS) {
-    const found = db.prepare('SELECT hostel_id FROM hostel WHERE hostel_name = ?').get(h.name);
+    const found = (await db.prepare('SELECT hostel_id FROM hostel WHERE hostel_name = ?').get(h.name));
     if (found) {
       ids[h.name] = found.hostel_id;
       continue;
     }
-    const info = db
+    const info = (await db
       .prepare('INSERT INTO hostel (hostel_name, location, capacity) VALUES (?, ?, ?)')
-      .run(h.name, h.location, h.capacity);
+      .run(h.name, h.location, h.capacity));
     ids[h.name] = Number(info.lastInsertRowid);
   }
   return ids;
@@ -77,26 +69,26 @@ function ensureHostels() {
 
 // --- managers and students ----------------------------------------------
 
-function ensureManager(name, email, hostelId) {
-  const existing = findUserByEmail(email);
+async function ensureManager(name, email, hostelId) {
+  const existing = (await findUserByEmail(email));
   if (existing) return existing.user_id;
-  return inTransaction(() => {
-    const userId = insertUser(name, email, MANAGER_PASSWORD, ROLES.MANAGER);
-    db.prepare('INSERT INTO manager (user_id, hostel_id) VALUES (?, ?)').run(userId, hostelId);
+  return (await inTransaction(async () => {
+    const userId = (await insertUser(name, email, MANAGER_PASSWORD, ROLES.MANAGER));
+    (await db.prepare('INSERT INTO manager (user_id, hostel_id) VALUES (?, ?)').run(userId, hostelId));
     return userId;
-  });
+  }));
 }
 
-function ensureStudent(name, email, rollNo, hostelId, room) {
-  const existing = findUserByEmail(email);
+async function ensureStudent(name, email, rollNo, hostelId, room) {
+  const existing = (await findUserByEmail(email));
   if (existing) return existing.user_id;
-  return inTransaction(() => {
-    const userId = insertUser(name, email, STUDENT_PASSWORD, ROLES.STUDENT);
-    db.prepare(
+  return (await inTransaction(async () => {
+    const userId = (await insertUser(name, email, STUDENT_PASSWORD, ROLES.STUDENT));
+    (await db.prepare(
       'INSERT INTO student (user_id, roll_no, hostel_id, room_number) VALUES (?, ?, ?, ?)'
-    ).run(userId, rollNo, hostelId, room);
+    ).run(userId, rollNo, hostelId, room));
     return userId;
-  });
+  }));
 }
 
 // --- complaints ----------------------------------------------------------
@@ -104,49 +96,52 @@ function ensureStudent(name, email, rollNo, hostelId, room) {
 // Inserted with an explicit status and date, bypassing the service (which
 // intentionally forces new complaints to Pending) so the demo data shows the
 // whole lifecycle. hostel_id is taken from the student who raised it.
-function seedComplaint({ studentId, hostelId, category, description, status, remarks = null, daysAgo = 0, resolvedDaysAgo = null }) {
+async function seedComplaint({ studentId, hostelId, category, description, status, remarks = null, daysAgo = 0, resolvedDaysAgo = null }) {
   // daysAgo / resolvedDaysAgo are integers fixed in this file, so inlining them
   // into the datetime() modifiers is safe.
   const resolvedExpr = resolvedDaysAgo != null ? `datetime('now', '-${resolvedDaysAgo} days')` : 'NULL';
-  db.prepare(
+  (await db.prepare(
     `INSERT INTO complaint
        (student_id, hostel_id, room_number, category, problem_description, status, admin_remarks,
         created_at, updated_at, resolved_at)
      VALUES (?, ?, (SELECT room_number FROM student WHERE user_id = ?), ?, ?, ?, ?,
         datetime('now', '-${daysAgo} days'), datetime('now', '-${daysAgo} days'), ${resolvedExpr})`
-  ).run(studentId, hostelId, studentId, category, description, status, remarks);
+  ).run(studentId, hostelId, studentId, category, description, status, remarks));
 }
 
 // --- main ----------------------------------------------------------------
 
-function run() {
-  initSchema();
+async function run() {
+  if (require('../config/env').env === 'production' || require('../config/env').isVercel) {
+    throw new Error('Demo seed is for local development/tests only; it creates known passwords');
+  }
+  await initSchema();
 
-  const hostel = ensureHostels();
+  const hostel = (await ensureHostels());
   console.log(`[seed] ${HOSTELS.length} hostels ready.`);
 
-  seedSuperAdmin();
+  (await seedSuperAdmin());
 
   const arya = hostel['Aryabhatta Hostel'];
   const raman = hostel['Ramanujan Hostel'];
   const bhas = hostel['Bhaskara Hostel'];
 
-  ensureManager('Suresh Menon', 'manager.aryabhatta@hostel.test', arya);
-  ensureManager('Deepa Iyer', 'manager.ramanujan@hostel.test', raman);
-  ensureManager('Vikram Bose', 'manager.bhaskara@hostel.test', bhas);
+  (await ensureManager('Suresh Menon', 'manager.aryabhatta@hostel.test', arya));
+  (await ensureManager('Deepa Iyer', 'manager.ramanujan@hostel.test', raman));
+  (await ensureManager('Vikram Bose', 'manager.bhaskara@hostel.test', bhas));
   console.log(`[seed] 3 managers ready (password: ${MANAGER_PASSWORD}).`);
 
-  const rahul  = ensureStudent('Rahul Sharma', 'rahul@hostel.test',  '2024BCS1001', arya,  'B-204');
-  const ananya = ensureStudent('Ananya Verma', 'ananya@hostel.test', '2024BCS1002', arya,  'A-112');
-  const karan  = ensureStudent('Karan Nair',   'karan@hostel.test',  '2024BCS1003', raman, 'C-007');
-  const priya  = ensureStudent('Priya Singh',  'priya@hostel.test',  '2024BCS1004', raman, 'B-210');
-  const amit   = ensureStudent('Amit Kumar',   'amit@hostel.test',   '2024BCS1005', bhas,  'D-305');
-  const sneha  = ensureStudent('Sneha Rao',    'sneha@hostel.test',  '2024BCS1006', bhas,  'D-110');
+  const rahul  = (await ensureStudent('Rahul Sharma', 'rahul@hostel.test',  '2024BCS1001', arya,  'B-204'));
+  const ananya = (await ensureStudent('Ananya Verma', 'ananya@hostel.test', '2024BCS1002', arya,  'A-112'));
+  const karan  = (await ensureStudent('Karan Nair',   'karan@hostel.test',  '2024BCS1003', raman, 'C-007'));
+  const priya  = (await ensureStudent('Priya Singh',  'priya@hostel.test',  '2024BCS1004', raman, 'B-210'));
+  const amit   = (await ensureStudent('Amit Kumar',   'amit@hostel.test',   '2024BCS1005', bhas,  'D-305'));
+  const sneha  = (await ensureStudent('Sneha Rao',    'sneha@hostel.test',  '2024BCS1006', bhas,  'D-110'));
   console.log(`[seed] 6 students ready (password: ${STUDENT_PASSWORD}).`);
 
-  const existing = db.prepare('SELECT COUNT(*) AS n FROM complaint').get().n;
+  const existing = (await db.prepare('SELECT COUNT(*) AS n FROM complaint').get()).n;
   if (existing > 0) {
-    backfillComplaintTriage();
+    await backfillComplaintTriage();
     console.log(`[seed] complaints already present (${existing}) — skipping complaint seed.`);
     console.log('[seed] done.');
     return;
@@ -171,12 +166,14 @@ function run() {
     { studentId: sneha,  hostelId: bhas,  category: 'Other',        description: 'Request to add a dustbin on the floor.',        status: 'Closed',      remarks: 'Dustbin provided.',              daysAgo: 18, resolvedDaysAgo: 15 },
   ];
 
-  inTransaction(() => {
-    for (const c of complaints) seedComplaint(c);
-  });
-  backfillComplaintTriage();
+  (await inTransaction(async () => {
+    for (const c of complaints) (await seedComplaint(c));
+  }));
+  await backfillComplaintTriage();
   console.log(`[seed] inserted ${complaints.length} complaints across 3 hostels.`);
   console.log('[seed] done.');
 }
 
-run();
+if (require.main === module) run().catch((err) => { console.error('[seed]', err.message); process.exitCode = 1; });
+
+module.exports = { run };
