@@ -82,17 +82,39 @@ function renderManagers() {
   }
   managerArea.innerHTML = `
     <div class="table-wrap"><table>
-      <thead><tr><th>Name</th><th>Email</th><th>Manages</th><th>Added</th></tr></thead>
+      <thead><tr><th>Name</th><th>Email</th><th>Manages</th><th>Added</th><th>Actions</th></tr></thead>
       <tbody>
         ${managers.map((m) => `<tr>
           <td>${UI.esc(m.name)}</td>
           <td>${UI.esc(m.email)}</td>
           <td><span class="chip">${UI.esc(m.hostel_name || '—')}</span></td>
           <td>${UI.fmtDay(m.created_at)}</td>
+          <td class="actions">
+            <button class="btn btn-sm btn-danger" data-del-manager="${m.user_id}">Remove</button>
+          </td>
         </tr>`).join('')}
       </tbody>
     </table></div>`;
+
+  managerArea.querySelectorAll('[data-del-manager]').forEach((b) => {
+    b.onclick = () => deleteManager(+b.dataset.delManager);
+  });
 }
+
+async function deleteManager(managerId) {
+  const manager = managers.find((m) => m.user_id === managerId);
+  if (!manager) return;
+  if (!confirm(`Remove manager "${manager.name}" for ${manager.hostel_name || 'hostel'}? This cannot be undone.`)) return;
+  UI.hideAlert('pageError');
+  try {
+    await API.del(`/users/managers/${managerId}`);
+    flashSuccess('Manager removed.');
+    load();
+  } catch (err) {
+    UI.showError('pageError', err.message);
+  }
+}
+
 
 // --- hostel create / edit --------------------------------------------------
 

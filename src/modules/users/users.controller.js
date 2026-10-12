@@ -44,4 +44,21 @@ async function createManager(req, res, next) {
   }
 }
 
-module.exports = { me, updateMe, listStudents, listManagers, createManager };
+async function deleteManager(req, res, next) {
+  try {
+    res.json(await usersService.deleteManager(req.user, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteStudent(req, res, next) {
+  try {
+    res.json(await usersService.deleteStudent(req.user, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { me, updateMe, listStudents, listManagers, createManager, deleteManager, deleteStudent };
+

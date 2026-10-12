@@ -14,9 +14,16 @@ router.put('/me', requireAuth, controller.updateMe);
 // Declared before "/" so the literal path matches first.
 router.get('/managers', requireAuth, requireSuperAdmin, controller.listManagers);
 router.post('/managers', requireAuth, requireSuperAdmin, controller.createManager);
+router.delete('/managers/:id', requireAuth, requireSuperAdmin, controller.deleteManager);
+
+// Staff only. A manager can remove students of their own hostel; a super admin
+// can remove any student.
+router.delete('/students/:id', requireAuth, requireStaff, controller.deleteStudent);
+router.delete('/:id', requireAuth, requireStaff, controller.deleteStudent);
 
 // Staff only. A manager sees their own hostel's students; a super admin sees
 // all of them. The scope is applied in the service, not here.
 router.get('/', requireAuth, requireStaff, controller.listStudents);
 
 module.exports = router;
+

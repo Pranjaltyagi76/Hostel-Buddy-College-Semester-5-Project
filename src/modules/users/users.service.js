@@ -111,4 +111,55 @@ async function createManager({ name, email, password, hostel_id } = {}) {
   }
 }
 
-module.exports = { getProfile, updateProfile, listStudents, listManagers, createManager };
+// Removes a student. A manager can only remove a student belonging to their
+// own hostel; a super admin has no hostel restriction and can remove any student.
+async function deleteStudent(requester, targetStudentId) {
+  const studentId = toPositiveInt(targetStudentId);
+  if (!studentId) {
+    throw new AppError('Invalid student ID', 400, 'VALIDATION_ERROR');
+  }
+
+  const student = (await usersRepo.findById(studentId));
+  if (!student || student.role !== ROLES.STUDENT) {
+    throw new AppError('Student not found', 404, 'NOT_FOUND');
+  }
+
+  if (requester.role === ROLES.MANAGER) {
+    const managerHostelId = (await usersRepo.findStaffHostelId(requester.userId));
+    if (!managerHostelId || student.hostel_id !== managerHostelId) {
+      throw new AppError('You do not have permission to remove students from another hostel', 403, 'FORBIDDEN');
+    }
+  }
+
+  return (await usersRepo.deleteStudent(studentId));
+}
+
+// Removes a manager. Super-admin only (guarded at route level as well).
+async function deleteManager(requester, targetManagerId) {
+  const managerId = toPositiveInt(targetManagerId);
+  if (!managerId) {
+    throw new AppError('Invalid manager ID', 400, 'VALIDATION_ERROR');
+  }
+
+  const manager = (await usersRepo.findById(managerId));
+  if (!manager || manager.role !== ROLES.MANAGER) {
+    throw new AppError('Manager not found', 404, 'NOT_FOUND');
+  }
+
+  if (requester.userId === managerId) {
+    throw new AppError('You cannot delete your own account', 400, 'VALIDATION_ERROR');
+  }
+
+  return (await usersRepo.deleteManager(managerId));
+}
+
+module.exports = {
+  getProfile,
+  updateProfile,
+  listStudents,
+  listManagers,
+  createManager,
+  deleteStudent,
+  deleteManager,
+};
+

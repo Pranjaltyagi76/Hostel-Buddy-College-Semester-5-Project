@@ -154,7 +154,7 @@ const login = async (email, password) =>
     });
     const tok = reg.data.token;
     const c = await call('POST', '/complaints', { token: tok, body: { category: 'Wi-Fi', description: `scope test ${tag}` } });
-    return { token: tok, complaintId: c.data.complaint_id, hostelId: c.data.hostel_id };
+    return { token: tok, complaintId: c.data.complaint_id, hostelId: c.data.hostel_id, userId: reg.data.user.user_id };
   };
   const inA = await mk('A', hA.hostel_id);
   const inB = await mk('B', hB.hostel_id);
@@ -212,6 +212,26 @@ const login = async (email, password) =>
     Object.values(dashA.byStatus).reduce((a, b) => a + b, 0) === dashA.totalComplaints);
   check('every recent row is the manager\'s own hostel',
     dashA.recent.every((c) => c.hostel_id === hA.hostel_id));
+
+  console.log('\n17) Student removal — hostel scoped for managers, unscoped for super admin');
+  r = await call('DELETE', `/users/students/${inB.userId}`, { token: mgrA });
+  check('manager A CANNOT delete student in hostel B -> 403', r.status === 403, `(got ${r.status})`);
+
+  r = await call('DELETE', `/users/students/${inA.userId}`, { token: studentToken });
+  check('student CANNOT delete student -> 403', r.status === 403, `(got ${r.status})`);
+
+  r = await call('DELETE', `/users/students/${inA.userId}`, { token: mgrA });
+  check('manager A CAN delete student in hostel A -> 200', r.status === 200, `(got ${r.status})`);
+  check('payload confirms deleted', r.data?.deleted === true);
+
+  r = await call('GET', `/complaints/${inA.complaintId}`, { token: adminToken });
+  check('complaint of deleted student is removed -> 404', r.status === 404, `(got ${r.status})`);
+
+  r = await call('DELETE', `/users/students/${inB.userId}`, { token: adminToken });
+  check('super admin can delete student in hostel B -> 200', r.status === 200, `(got ${r.status})`);
+
+  r = await call('DELETE', `/users/students/${inB.userId}`, { token: adminToken });
+  check('already deleted student -> 404', r.status === 404, `(got ${r.status})`);
 
   console.log(`\n=== RESULT: ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);

@@ -138,6 +138,29 @@ const login = async (email, password) =>
   check('each carries its hostel', r.data.every((m) => m.hostel_id !== null));
   check('no password hashes', r.data.every((m) => m.password_hash === undefined));
 
+  console.log('\n11) Removing a manager is super-admin only');
+  const targetManagerId = (await call('GET', '/users/managers', { token: superToken }))
+    .data.find((m) => m.email === newManager.email)?.user_id;
+  check('found provisioned manager id', !!targetManagerId);
+
+  r = await call('DELETE', `/users/managers/${targetManagerId}`, { token: studentToken });
+  check('student cannot remove manager -> 403', r.status === 403, `(got ${r.status})`);
+  r = await call('DELETE', `/users/managers/${targetManagerId}`, { token: managerToken });
+  check('manager cannot remove another manager -> 403', r.status === 403, `(got ${r.status})`);
+  r = await call('DELETE', `/users/managers/${targetManagerId}`, { token: superToken });
+  check('super admin removes manager -> 200', r.status === 200, `(got ${r.status})`);
+  check('deletion payload has deleted true', r.data?.deleted === true);
+
+  r = await call('GET', '/users/managers', { token: superToken });
+  check('manager no longer listed', !r.data.some((m) => m.user_id === targetManagerId));
+
+  const relogin = await login(newManager.email, newManager.password);
+  check('deleted manager cannot log in', !relogin);
+
+  r = await call('DELETE', `/users/managers/${targetManagerId}`, { token: superToken });
+  check('unknown/already-deleted manager -> 404', r.status === 404, `(got ${r.status})`);
+
   console.log(`\n=== RESULT: ${pass} passed, ${fail} failed ===`);
   process.exit(fail ? 1 : 0);
 })();
+

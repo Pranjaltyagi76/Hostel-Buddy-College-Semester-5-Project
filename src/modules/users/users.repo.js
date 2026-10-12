@@ -142,6 +142,44 @@ async function findStaffHostelId(userId) {
   return row ? row.hostel_id : null;
 }
 
+async function deleteStudent(userId) {
+  const { removeUploadedFile } = require('../../middleware/upload');
+  const complaints = (await db
+    .prepare('SELECT complaint_id, image_url, video_url FROM complaint WHERE student_id = ?')
+    .all(userId));
+
+  for (const c of complaints) {
+    if (c.image_url) removeUploadedFile(c.image_url);
+    if (c.video_url) removeUploadedFile(c.video_url);
+  }
+
+  return (await inTransaction(async () => {
+    (await db.prepare(
+      `DELETE FROM complaint_duplicate_match 
+        WHERE complaint_id IN (SELECT complaint_id FROM complaint WHERE student_id = ?)
+           OR matched_complaint_id IN (SELECT complaint_id FROM complaint WHERE student_id = ?)`
+    ).run(userId, userId));
+
+    (await db.prepare(
+      'DELETE FROM complaint_triage WHERE complaint_id IN (SELECT complaint_id FROM complaint WHERE student_id = ?)'
+    ).run(userId));
+
+    (await db.prepare('DELETE FROM complaint WHERE student_id = ?').run(userId));
+    (await db.prepare('DELETE FROM student WHERE user_id = ?').run(userId));
+    (await db.prepare('DELETE FROM user WHERE user_id = ?').run(userId));
+
+    return { deleted: true, user_id: userId };
+  }));
+}
+
+async function deleteManager(userId) {
+  return (await inTransaction(async () => {
+    (await db.prepare('DELETE FROM manager WHERE user_id = ?').run(userId));
+    (await db.prepare('DELETE FROM user WHERE user_id = ?').run(userId));
+    return { deleted: true, user_id: userId };
+  }));
+}
+
 module.exports = {
   createUser,
   findAuthByEmail,
@@ -153,4 +191,7 @@ module.exports = {
   listManagers,
   countStudents,
   findStaffHostelId,
+  deleteStudent,
+  deleteManager,
 };
+

@@ -17,6 +17,11 @@ document.getElementById('clearBtn').onclick = () => {
 };
 searchInput.addEventListener('input', render);
 
+function flashSuccess(message) {
+  UI.showSuccess('pageSuccess', message);
+  setTimeout(() => UI.hideAlert('pageSuccess'), 3000);
+}
+
 function matches(student, term) {
   if (!term) return true;
   const haystack = [student.name, student.email, student.roll_no, student.hostel_name, student.room_number]
@@ -34,7 +39,24 @@ function rowHtml(s) {
     <td><span class="chip">${UI.esc(s.hostel_name || '—')}</span></td>
     <td>${UI.esc(s.room_number || '—')}</td>
     <td>${UI.fmtDay(s.created_at)}</td>
+    <td class="actions">
+      <button class="btn btn-sm btn-danger" data-del="${s.user_id}">Remove</button>
+    </td>
   </tr>`;
+}
+
+async function deleteStudent(studentId) {
+  const student = students.find((s) => s.user_id === studentId);
+  if (!student) return;
+  if (!confirm(`Remove student "${student.name}" (${student.roll_no || 'No roll no'})? This will also remove any complaints filed by this student and cannot be undone.`)) return;
+  UI.hideAlert('pageError');
+  try {
+    await API.del(`/users/students/${studentId}`);
+    flashSuccess('Student removed successfully.');
+    await loadStudents();
+  } catch (err) {
+    UI.showError('pageError', err.message);
+  }
 }
 
 function render() {
@@ -53,21 +75,30 @@ function render() {
   resultArea.innerHTML = `
     <div class="table-wrap"><table>
       <thead><tr>
-        <th>Roll No</th><th>Name</th><th>Email</th><th>Hostel</th><th>Room</th><th>Registered</th>
+        <th>Roll No</th><th>Name</th><th>Email</th><th>Hostel</th><th>Room</th><th>Registered</th><th>Actions</th>
       </tr></thead>
       <tbody>${shown.map(rowHtml).join('')}</tbody>
     </table></div>
     <div class="pagination">
       <span class="page-info">Showing ${shown.length} of ${students.length} student${students.length === 1 ? '' : 's'}</span>
     </div>`;
+
+  resultArea.querySelectorAll('[data-del]').forEach((b) => {
+    b.onclick = () => deleteStudent(+b.dataset.del);
+  });
 }
 
-(async () => {
-  resultArea.innerHTML = '<div class="loading"><div class="spinner"></div>Loading students…</div>';
+async function loadStudents() {
   try {
     students = await API.get('/users');
     render();
   } catch (err) {
     resultArea.innerHTML = `<div class="empty">Could not load students: ${UI.esc(err.message)}</div>`;
   }
+}
+
+(async () => {
+  resultArea.innerHTML = '<div class="loading"><div class="spinner"></div>Loading students…</div>';
+  await loadStudents();
 })();
+
