@@ -31,6 +31,7 @@ const ALL_SLA_STATES = ['on_track', 'overdue', 'met', 'missed'];
 
 (async () => {
   const adminToken = await login('admin@hostel.test', 'admin123');
+  const mgrToken = await login('manager.aryabhatta@hostel.test', 'manager123');
 
   // Snapshot admin totals BEFORE we add anything, so the deltas below are exact.
   const before = (await call('GET', '/dashboard/admin', { token: adminToken })).data;
@@ -131,8 +132,8 @@ const ALL_SLA_STATES = ['on_track', 'overdue', 'met', 'missed'];
 
   console.log('\n7) Student dashboard reflects admin status changes');
   const mine = (await call('GET', '/complaints/mine', { token: studentToken })).data;
-  await call('PATCH', `/complaints/${mine[0].complaint_id}/status`, { token: adminToken, body: { status: 'In Progress' } });
-  await call('PATCH', `/complaints/${mine[1].complaint_id}/status`, { token: adminToken, body: { status: 'Resolved' } });
+  await call('PATCH', `/complaints/${mine[0].complaint_id}/status`, { token: mgrToken, body: { status: 'In Progress' } });
+  await call('PATCH', `/complaints/${mine[1].complaint_id}/status`, { token: mgrToken, body: { status: 'Resolved' } });
   r = await call('GET', '/dashboard/student', { token: studentToken });
   check('total still 3', r.data?.total === 3, `(got ${r.data?.total})`);
   check('pending 1', r.data?.pending === 1, `(got ${r.data?.pending})`);

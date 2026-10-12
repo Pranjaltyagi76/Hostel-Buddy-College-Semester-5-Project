@@ -31,6 +31,8 @@ function matches(student, term) {
   return haystack.includes(term);
 }
 
+const CAN_REMOVE_STUDENTS = !Auth.isSuperAdmin();
+
 function rowHtml(s) {
   return `<tr>
     <td>${UI.esc(s.roll_no || '—')}</td>
@@ -39,9 +41,9 @@ function rowHtml(s) {
     <td><span class="chip">${UI.esc(s.hostel_name || '—')}</span></td>
     <td>${UI.esc(s.room_number || '—')}</td>
     <td>${UI.fmtDay(s.created_at)}</td>
-    <td class="actions">
+    ${CAN_REMOVE_STUDENTS ? `<td class="actions">
       <button class="btn btn-sm btn-danger" data-del="${s.user_id}">Remove</button>
-    </td>
+    </td>` : ''}
   </tr>`;
 }
 
@@ -75,7 +77,7 @@ function render() {
   resultArea.innerHTML = `
     <div class="table-wrap"><table>
       <thead><tr>
-        <th>Roll No</th><th>Name</th><th>Email</th><th>Hostel</th><th>Room</th><th>Registered</th><th>Actions</th>
+        <th>Roll No</th><th>Name</th><th>Email</th><th>Hostel</th><th>Room</th><th>Registered</th>${CAN_REMOVE_STUDENTS ? '<th>Actions</th>' : ''}
       </tr></thead>
       <tbody>${shown.map(rowHtml).join('')}</tbody>
     </table></div>
@@ -83,10 +85,13 @@ function render() {
       <span class="page-info">Showing ${shown.length} of ${students.length} student${students.length === 1 ? '' : 's'}</span>
     </div>`;
 
-  resultArea.querySelectorAll('[data-del]').forEach((b) => {
-    b.onclick = () => deleteStudent(+b.dataset.del);
-  });
+  if (CAN_REMOVE_STUDENTS) {
+    resultArea.querySelectorAll('[data-del]').forEach((b) => {
+      b.onclick = () => deleteStudent(+b.dataset.del);
+    });
+  }
 }
+
 
 async function loadStudents() {
   try {

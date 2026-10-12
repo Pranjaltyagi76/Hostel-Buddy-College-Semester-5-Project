@@ -97,7 +97,11 @@ const login = async (email, password) =>
   check('totalPages computed', r.data?.pagination?.totalPages === Math.max(1, Math.ceil(total / 5)));
 
   console.log('\n10) Status lifecycle on our Pending complaint');
-  r = await call('PATCH', `/complaints/${cid}/status`, { token: adminToken, body: { status: 'In Progress', admin_remarks: 'Technician assigned.' } });
+  const mgrToken = await login('manager.aryabhatta@hostel.test', 'manager123');
+  r = await call('PATCH', `/complaints/${cid}/status`, { token: adminToken, body: { status: 'In Progress' } });
+  check('super admin cannot update complaint status -> 403', r.status === 403, `(got ${r.status})`);
+
+  r = await call('PATCH', `/complaints/${cid}/status`, { token: mgrToken, body: { status: 'In Progress', admin_remarks: 'Technician assigned.' } });
   check('-> In Progress 200', r.status === 200, `(got ${r.status})`);
   check('status updated', r.data?.status === 'In Progress');
   check('remarks saved', r.data?.admin_remarks === 'Technician assigned.');
@@ -112,25 +116,25 @@ const login = async (email, password) =>
   check('student edit now blocked (409)', r.status === 409, `(got ${r.status})`);
 
   console.log('\n12) Resolve sets resolved_at (once)');
-  r = await call('PATCH', `/complaints/${cid}/status`, { token: adminToken, body: { status: 'Resolved', admin_remarks: 'Fixed.' } });
+  r = await call('PATCH', `/complaints/${cid}/status`, { token: mgrToken, body: { status: 'Resolved', admin_remarks: 'Fixed.' } });
   check('-> Resolved 200', r.status === 200, `(got ${r.status})`);
   check('resolved_at now set', typeof r.data?.resolved_at === 'string' && r.data.resolved_at.length > 0);
   const resolvedAt = r.data?.resolved_at;
 
   console.log('\n13) Close does NOT reset resolved_at');
-  r = await call('PATCH', `/complaints/${cid}/status`, { token: adminToken, body: { status: 'Closed' } });
+  r = await call('PATCH', `/complaints/${cid}/status`, { token: mgrToken, body: { status: 'Closed' } });
   check('-> Closed 200', r.status === 200, `(got ${r.status})`);
   check('resolved_at unchanged', r.data?.resolved_at === resolvedAt, `(was ${resolvedAt}, now ${r.data?.resolved_at})`);
   check('remarks preserved when omitted', r.data?.admin_remarks === 'Fixed.');
 
   console.log('\n14) Status validation & guards');
-  r = await call('PATCH', `/complaints/${cid}/status`, { token: adminToken, body: { status: 'Foo' } });
+  r = await call('PATCH', `/complaints/${cid}/status`, { token: mgrToken, body: { status: 'Foo' } });
   check('invalid status -> 400', r.status === 400, `(got ${r.status})`);
-  r = await call('PATCH', `/complaints/${cid}/status`, { token: adminToken, body: {} });
+  r = await call('PATCH', `/complaints/${cid}/status`, { token: mgrToken, body: {} });
   check('missing status -> 400', r.status === 400, `(got ${r.status})`);
   r = await call('PATCH', `/complaints/${cid}/status`, { token: studentToken, body: { status: 'Pending' } });
   check('student cannot change status -> 403', r.status === 403, `(got ${r.status})`);
-  r = await call('PATCH', `/complaints/999999/status`, { token: adminToken, body: { status: 'Pending' } });
+  r = await call('PATCH', `/complaints/999999/status`, { token: mgrToken, body: { status: 'Pending' } });
   check('nonexistent complaint -> 404', r.status === 404, `(got ${r.status})`);
 
   // ------------------------------------------------------------------
@@ -193,7 +197,7 @@ const login = async (email, password) =>
   r = await call('GET', `/complaints/${inB.complaintId}`, { token: adminToken });
   check('super admin can read hostel B -> 200', r.status === 200, `(got ${r.status})`);
   r = await call('PATCH', `/complaints/${inB.complaintId}/status`, { token: adminToken, body: { status: 'In Progress' } });
-  check('super admin can act on either hostel -> 200', r.status === 200, `(got ${r.status})`);
+  check('super admin CANNOT change status -> 403', r.status === 403, `(got ${r.status})`);
 
   console.log('\n16) The staff dashboard is scoped the same way');
   const dashSuper = (await call('GET', '/dashboard/admin', { token: adminToken })).data;
@@ -228,9 +232,12 @@ const login = async (email, password) =>
   check('complaint of deleted student is removed -> 404', r.status === 404, `(got ${r.status})`);
 
   r = await call('DELETE', `/users/students/${inB.userId}`, { token: adminToken });
-  check('super admin can delete student in hostel B -> 200', r.status === 200, `(got ${r.status})`);
+  check('super admin CANNOT delete student -> 403', r.status === 403, `(got ${r.status})`);
 
-  r = await call('DELETE', `/users/students/${inB.userId}`, { token: adminToken });
+  r = await call('DELETE', `/users/students/${inB.userId}`, { token: mgrB });
+  check('manager B can delete student in hostel B -> 200', r.status === 200, `(got ${r.status})`);
+
+  r = await call('DELETE', `/users/students/${inB.userId}`, { token: mgrB });
   check('already deleted student -> 404', r.status === 404, `(got ${r.status})`);
 
   console.log(`\n=== RESULT: ${pass} passed, ${fail} failed ===`);

@@ -99,6 +99,8 @@ async function registerStudent(tag, hostelId) {
   const tokenB = await registerStudent('B', hostelId);
   const admin = await call('POST', '/auth/login', { body: { email: 'admin@hostel.test', password: 'admin123' } });
   const adminToken = admin.data.token;
+  const mgr = await call('POST', '/auth/login', { body: { email: 'manager.aryabhatta@hostel.test', password: 'manager123' } });
+  const mgrToken = mgr.data.token;
 
   console.log('\n1) Create complaint (no image)');
   let r = await call('POST', '/complaints', { token: tokenA, body: { category: 'Wi-Fi', description: 'No signal in A-1' } });
@@ -163,7 +165,9 @@ async function registerStudent(tag, hostelId) {
   // the admin endpoint. Writing to the database file directly would couple this
   // integration test to one specific database path.
   r = await call('PATCH', `/complaints/${c1}/status`, { token: adminToken, body: { status: 'In Progress' } });
-  check('admin advanced it to In Progress', r.status === 200, `(got ${r.status})`);
+  check('super admin cannot advance status -> 403', r.status === 403, `(got ${r.status})`);
+  r = await call('PATCH', `/complaints/${c1}/status`, { token: mgrToken, body: { status: 'In Progress' } });
+  check('manager advanced it to In Progress', r.status === 200, `(got ${r.status})`);
   r = await call('PUT', `/complaints/${c1}`, { token: tokenA, body: { description: 'too late' } });
   check('edit non-Pending -> 409', r.status === 409, `(got ${r.status})`);
   check('code NOT_PENDING', r.data?.error?.code === 'NOT_PENDING');

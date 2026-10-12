@@ -56,6 +56,8 @@ function check(name, cond, detail = '') {
   const studentToken = r.data?.token;
   r = await call('POST', '/auth/login', { body: { email: 'admin@hostel.test', password: 'admin123' } });
   const adminToken = r.data?.token;
+  r = await call('POST', '/auth/login', { body: { email: 'manager.aryabhatta@hostel.test', password: 'manager123' } });
+  const mgrToken = r.data?.token;
 
   // ---------------------------------------------------------------- BUG-01
   console.log('\nBUG-01) A non-string value is rejected, never coerced to "[object Object]"');
@@ -115,25 +117,28 @@ function check(name, cond, detail = '') {
   r = await call('POST', '/complaints', { token: studentToken, body: { category: 'Wi-Fi', description: 'lifecycle' } });
   const lc = r.data?.complaint_id;
   r = await call('PATCH', `/complaints/${lc}/status`, { token: adminToken, body: { status: 'Resolved' } });
+  check('super admin cannot update status -> 403', r.status === 403, `(got ${r.status})`);
+
+  r = await call('PATCH', `/complaints/${lc}/status`, { token: mgrToken, body: { status: 'Resolved' } });
   check('Pending -> Resolved allowed', r.status === 200, `(got ${r.status})`);
   check('resolved_at recorded', !!r.data?.resolved_at);
   const firstResolvedAt = r.data?.resolved_at;
 
-  r = await call('PATCH', `/complaints/${lc}/status`, { token: adminToken, body: { status: 'Pending' } });
+  r = await call('PATCH', `/complaints/${lc}/status`, { token: mgrToken, body: { status: 'Pending' } });
   check('Resolved -> Pending refused -> 409', r.status === 409, `(got ${r.status})`);
   check('code INVALID_TRANSITION', r.data?.error?.code === 'INVALID_TRANSITION', `(got ${r.data?.error?.code})`);
 
-  r = await call('PATCH', `/complaints/${lc}/status`, { token: adminToken, body: { status: 'Resolved', admin_remarks: 'note only' } });
+  r = await call('PATCH', `/complaints/${lc}/status`, { token: mgrToken, body: { status: 'Resolved', admin_remarks: 'note only' } });
   check('same status allowed (remarks-only edit)', r.status === 200, `(got ${r.status})`);
   check('remarks saved', r.data?.admin_remarks === 'note only');
   check('resolved_at unchanged', r.data?.resolved_at === firstResolvedAt);
 
-  r = await call('PATCH', `/complaints/${lc}/status`, { token: adminToken, body: { status: 'Closed' } });
+  r = await call('PATCH', `/complaints/${lc}/status`, { token: mgrToken, body: { status: 'Closed' } });
   check('Resolved -> Closed allowed', r.status === 200, `(got ${r.status})`);
-  r = await call('PATCH', `/complaints/${lc}/status`, { token: adminToken, body: { status: 'In Progress' } });
+  r = await call('PATCH', `/complaints/${lc}/status`, { token: mgrToken, body: { status: 'In Progress' } });
   check('Closed -> In Progress refused -> 409', r.status === 409, `(got ${r.status})`);
 
-  r = await call('PATCH', `/complaints/${lc}/status`, { token: adminToken, body: { admin_remarks: { a: 1 }, status: 'Closed' } });
+  r = await call('PATCH', `/complaints/${lc}/status`, { token: mgrToken, body: { admin_remarks: { a: 1 }, status: 'Closed' } });
   check('object as admin_remarks -> 400', r.status === 400, `(got ${r.status})`);
 
   console.log('\n  no complaint can hold a resolution date while still open');
@@ -235,7 +240,7 @@ function check(name, cond, detail = '') {
     r.data?.priority === 'Critical' && r.data?.sla_hours === 2 && r.data?.sla_due_at !== lowComplaint.sla_due_at);
 
   r = await call('PATCH', `/complaints/${criticalComplaint.complaint_id}/status`, {
-    token: adminToken,
+    token: mgrToken,
     body: { status: 'Resolved' },
   });
   check('a resolution before its deadline is recorded as SLA met', r.data?.sla_state === 'met');

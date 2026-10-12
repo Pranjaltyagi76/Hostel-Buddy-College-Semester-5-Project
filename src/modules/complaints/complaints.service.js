@@ -7,7 +7,7 @@ const complaintsRepo = require('./complaints.repo');
 const usersRepo = require('../users/users.repo');
 const { removeUploadedFile } = require('../../middleware/upload');
 const { AppError } = require('../../middleware/errorHandler');
-const { CATEGORIES, STATUSES, STAFF_ROLES } = require('../../config/constants');
+const { CATEGORIES, STATUSES, ROLES, STAFF_ROLES } = require('../../config/constants');
 const { isString, isNonEmptyString, isTruthyFlag, toPositiveInt } = require('../../utils/validators');
 const { PRIORITIES, SLA_STATES, assessComplaint } = require('./triage');
 const {
@@ -282,7 +282,15 @@ function validateTransition(from, to) {
 }
 
 // Advance a complaint's status and record remarks.
+// Only the respective hostel manager can manage complaints. Super admin has view-only access.
 async function updateStatus(requester, complaintId, { status, admin_remarks } = {}) {
+  if (requester.role === ROLES.SUPER_ADMIN) {
+    throw new AppError('Super admin has view-only access; complaints must be managed by the respective hostel manager', 403, 'FORBIDDEN');
+  }
+  if (requester.role !== ROLES.MANAGER) {
+    throw new AppError('Only the respective hostel manager can update complaints', 403, 'FORBIDDEN');
+  }
+
   if (!isString(status) || !STATUSES.includes(status)) {
     throw new AppError('Please provide a valid status', 400, 'VALIDATION_ERROR');
   }
@@ -293,6 +301,7 @@ async function updateStatus(requester, complaintId, { status, admin_remarks } = 
   // A manager may only act on their own hostel's complaints. Checked before
   // anything is written, and before the transition is even considered.
   (await assertWithinScope(requester, complaint));
+
 
   validateTransition(complaint.status, status);
 

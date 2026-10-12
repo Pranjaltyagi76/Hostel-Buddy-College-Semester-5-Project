@@ -111,9 +111,16 @@ async function createManager({ name, email, password, hostel_id } = {}) {
   }
 }
 
-// Removes a student. A manager can only remove a student belonging to their
-// own hostel; a super admin has no hostel restriction and can remove any student.
+// Removes a student. Only the respective hostel manager can remove students;
+// super admin has view-only access.
 async function deleteStudent(requester, targetStudentId) {
+  if (requester.role === ROLES.SUPER_ADMIN) {
+    throw new AppError('Super admin cannot remove students; student removal must be handled by the respective hostel manager', 403, 'FORBIDDEN');
+  }
+  if (requester.role !== ROLES.MANAGER) {
+    throw new AppError('Only the respective hostel manager can remove students', 403, 'FORBIDDEN');
+  }
+
   const studentId = toPositiveInt(targetStudentId);
   if (!studentId) {
     throw new AppError('Invalid student ID', 400, 'VALIDATION_ERROR');
@@ -124,11 +131,9 @@ async function deleteStudent(requester, targetStudentId) {
     throw new AppError('Student not found', 404, 'NOT_FOUND');
   }
 
-  if (requester.role === ROLES.MANAGER) {
-    const managerHostelId = (await usersRepo.findStaffHostelId(requester.userId));
-    if (!managerHostelId || student.hostel_id !== managerHostelId) {
-      throw new AppError('You do not have permission to remove students from another hostel', 403, 'FORBIDDEN');
-    }
+  const managerHostelId = (await usersRepo.findStaffHostelId(requester.userId));
+  if (!managerHostelId || student.hostel_id !== managerHostelId) {
+    throw new AppError('You do not have permission to remove students from another hostel', 403, 'FORBIDDEN');
   }
 
   return (await usersRepo.deleteStudent(studentId));

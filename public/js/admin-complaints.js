@@ -107,8 +107,11 @@ async function load() {
 
 // The hostel column only earns its place for a super admin, whose list spans
 // several. A manager's rows are all their own hostel, so showing it would be a
+// The hostel column only earns its place for a super admin, whose list spans
+// several. A manager's rows are all their own hostel, so showing it would be a
 // column of the same value repeated.
 const SHOWS_HOSTEL = Auth.isSuperAdmin();
+const CAN_MANAGE_COMPLAINTS = !Auth.isSuperAdmin();
 
 function rowHtml(c) {
   return `<tr>
@@ -122,7 +125,11 @@ function rowHtml(c) {
     <td>${UI.statusBadge(c.status)}</td>
     <td>${UI.slaBadge(c.sla_state)}</td>
     <td>${UI.fmtDay(c.created_at)}</td>
-    <td class="actions"><button class="btn btn-sm" data-manage="${c.complaint_id}">Manage</button></td>
+    <td class="actions">
+      <button class="btn btn-sm ${CAN_MANAGE_COMPLAINTS ? '' : 'btn-ghost'}" data-manage="${c.complaint_id}">
+        ${CAN_MANAGE_COMPLAINTS ? 'Manage' : 'View'}
+      </button>
+    </td>
   </tr>`;
 }
 
@@ -153,7 +160,7 @@ function manage(id) {
   modalTitle.textContent = `Complaint #${c.complaint_id}`;
   modal.classList.add('show');
 
-  modalBody.innerHTML = `
+  const baseDetails = `
     <div id="mgError" class="alert alert-error"></div>
     <div id="mgSuccess" class="alert alert-success"></div>
     ${detailRow('Student', `${UI.esc(c.student_name)} · ${UI.esc(c.roll_no || '—')}`)}
@@ -168,6 +175,22 @@ function manage(id) {
     ${detailRow('Resolved On', c.resolved_at ? UI.fmtDate(c.resolved_at) : '<span class="muted">—</span>')}
     ${detailRow('Image', UI.attachmentImg(c.image_url))}
     ${detailRow('Video', UI.attachmentVideo(c.video_url))}
+  `;
+
+  if (!CAN_MANAGE_COMPLAINTS) {
+    modalBody.innerHTML = `
+      ${baseDetails}
+      ${detailRow('Admin Remarks', UI.esc(c.admin_remarks || '—'))}
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+      <div class="hint" style="margin-bottom:12px;">View only: Status and remarks are managed by the respective hostel manager.</div>
+      <button type="button" class="btn btn-ghost" id="mgClose">Close</button>
+    `;
+    document.getElementById('mgClose').onclick = closeModal;
+    return;
+  }
+
+  modalBody.innerHTML = `
+    ${baseDetails}
     <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
     <form id="statusForm">
       <div class="form-group">
@@ -203,6 +226,7 @@ function manage(id) {
       btn.disabled = false; btn.textContent = 'Update Complaint';
     }
   });
+
 }
 
 load();
